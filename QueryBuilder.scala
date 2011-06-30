@@ -42,7 +42,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim](
     QueryBuilder(meta, clauses, filters, start, limit, sort=Some(f(meta).name + "desc"))
   }
 
-  def geoRadiusFilter(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = GeoS2.MaxCells): QueryBuilder[M, Ord, Lim] = {
+  def geoRadiusFilter(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = GeoS2.DefaultMaxCells): QueryBuilder[M, Ord, Lim] = {
     val cellIds = GeoS2.cover(geoLat, geoLong, radiusInMeters, maxCells=maxCells).map({x: com.google.common.geometry.S2CellId => Phrase(x.toToken)})
     val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
     QueryBuilder(meta, clauses, geoFilter :: filters, start, limit, sort)
