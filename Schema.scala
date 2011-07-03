@@ -8,7 +8,7 @@ import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonParser
 import org.bson.types.ObjectId
 
-case class Doc(id: String, user_type: Option[String], name: Option[String], 
+case class Doc(id: String, user_type: Option[String], name: Option[String],
                  lat: Option[Double], lng: Option[Double],
                  address_string: Option[String])
 
@@ -35,7 +35,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     val result = request.asString
 //    println(result)
     JsonParser.parse(result).extract[SearchResults].response.docs.map(d => new ObjectId(d.id))
-  }    
+  }
 }
 
 trait SolrSchema[M <: Record[M]] extends Record[M] {
@@ -45,7 +45,7 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
   // 'Where' is the entry method for a SolrRogue query.
   def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited] = {
-    QueryBuilder(self, List(c(self)), filters=Nil, start=None, limit=None, sort=None)
+    QueryBuilder(self, List(c(self)), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, start=None, limit=None, sort=None, queryType=None)
   }
 }
 
@@ -62,14 +62,14 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
   def query(q: Query[V]) = Clause[V](self.name, q)
 }
 
-// 
+//
 class SolrStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T]
 class SolrIntField[T <: Record[T]](owner: T) extends IntField[T](owner) with SolrField[Int, T]
 class SolrDoubleField[T <: Record[T]](owner: T) extends DoubleField[T](owner) with SolrField[Double, T]
 class SolrObjectIdField[T <: Record[T]](owner: T) extends DummyField[ObjectId, T](owner) with SolrField[ObjectId, T]
 
 // This insanity makes me want to 86 Record all together. DummyField allows us
-// to easily define our own Field types. I use this for ObjectId so that I don't 
+// to easily define our own Field types. I use this for ObjectId so that I don't
 // have to import all of MongoRecord. We could trivially reimplement the other
 // Field types using it.
 class DummyField[V, T <: Record[T]](override val owner: T) extends Field[ObjectId, T] {
