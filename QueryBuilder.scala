@@ -38,6 +38,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
     QueryBuilder(meta, clauses, f(meta) :: filters, boostQueries, queryFields, phraseBoostFields, start, limit, sort, minimumMatch, queryType)
   }
 
+  def boostQuery[F](f: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM] = {
+    QueryBuilder(meta, clauses, filters, f(meta)::boostQueries, queryFields, phraseBoostFields, start, limit, sort, minimumMatch, queryType)
+  }
+
   def limit(l: Int)(implicit ev: Lim =:= Unlimited): QueryBuilder[M, Ord, Limited, MM] = {
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, start, Some(l), sort=None, minimumMatch, queryType)
   }
@@ -55,6 +59,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
     val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
     QueryBuilder(meta, clauses, geoFilter :: filters, boostQueries, queryFields, phraseBoostFields, start, limit, sort, minimumMatch, queryType)
   }
+
   def minimumMatchPercent(percent: Int)(implicit ev: MM =:= defaultMM) : QueryBuilder[M, Ord, Lim, customMM] = {
      QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, start,limit, sort, Some(percent.toString+"%"), queryType)
   }
