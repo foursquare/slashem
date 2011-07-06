@@ -33,6 +33,7 @@ object Ast {
     def extend = {"(%s)".format(items.extend)}
   }
 
+
   // Override the constructor for Group so that it gobbles nested Groups, ie
   // Group(Group(foo))) => Group(foo)
   // Fails to compile with 'method apply is defined twice'

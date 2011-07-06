@@ -66,6 +66,9 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   def minimumMatchAbsolute(count: Int)(implicit ev: MM =:= defaultMM) : QueryBuilder[M, Ord, Lim, customMM] = {
      QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, start,limit, sort, Some(count.toString), queryType)
   }
+  def useQueryType(qt : String) : QueryBuilder[M, Ord, Lim, MM] ={
+     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, start,limit, sort, minimumMatch, Some(qt))
+  }
 
   def test(): Unit = {
     val q = clauses.map(_.extend).mkString

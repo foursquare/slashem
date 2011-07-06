@@ -56,6 +56,8 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
   def eqs(v: V) = Clause[V](self.name, Group(Plus(Phrase(v))))
   def neqs(v: V) = Clause[V](self.name, Minus(Phrase(v)))
 
+  def phrase(v: V) = Clause[V](self.name,Phrase(v))
+
   def in(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Plus(Phrase(x))})))
   def nin(v: Iterable[V]) = Clause[V](self.name, groupWithAnd(v.map({x: V => Minus(Phrase(x))})))
 
