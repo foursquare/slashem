@@ -1,5 +1,5 @@
 package com.foursquare.solr
-import Ast._
+import com.foursquare.solr.Ast._
 import com.foursquare.lib.GeoS2
 import net.liftweb.record.{Record}
 

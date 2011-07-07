@@ -1,5 +1,5 @@
 package com.foursquare.solr
-import Ast._
+import com.foursquare.solr.Ast._
 import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
 import net.liftweb.record.field.{StringField, IntField, DoubleField}
 import net.liftweb.common.{Box, Empty}
