@@ -4,7 +4,7 @@ import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
 import net.liftweb.record.field.{StringField, IntField, DoubleField}
 import net.liftweb.common.{Box, Empty}
 import scalaj.http._
-import net.liftweb.json.JsonAST._
+
 import net.liftweb.json.JsonParser
 import org.bson.types.ObjectId
 
