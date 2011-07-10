@@ -10,7 +10,11 @@ object Ast {
         case Group(x) => query
         case _ => Group(query)
       }
-      fieldName + ":" + q.extend
+      //If a field does not have a name then do not attempt to specify it
+      fieldName match {
+        case "" => q.extend
+        case x => x + ":" + q.extend
+      }
     }
   }
 

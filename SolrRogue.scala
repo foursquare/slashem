@@ -8,6 +8,7 @@ object SVenue extends SVenue with SolrMeta[SVenue] {
 class SVenue extends SolrSchema[SVenue] {
   def meta = SVenue
 
+  object default extends SolrDefaultStringField(this)
   object id extends SolrObjectIdField(this)
   object text extends SolrStringField(this)
   object name extends SolrStringField(this)

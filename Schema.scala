@@ -56,9 +56,7 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
   def eqs(v: V) = Clause[V](self.name, Group(Plus(Phrase(v))))
   def neqs(v: V) = Clause[V](self.name, Minus(Phrase(v)))
 
-  def phrase(v: V) = Clause[V](self.name,Phrase(v))
-
-  def in(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Plus(Phrase(x))})))
+   def in(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Plus(Phrase(x))})))
   def nin(v: Iterable[V]) = Clause[V](self.name, groupWithAnd(v.map({x: V => Minus(Phrase(x))})))
 
   def query(q: Query[V]) = Clause[V](self.name, q)
@@ -66,6 +64,9 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
 
 //
 class SolrStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T]
+class SolrDefaultStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T] {
+  override def name = ""
+}
 class SolrIntField[T <: Record[T]](owner: T) extends IntField[T](owner) with SolrField[Int, T]
 class SolrDoubleField[T <: Record[T]](owner: T) extends DoubleField[T](owner) with SolrField[Double, T]
 class SolrObjectIdField[T <: Record[T]](owner: T) extends DummyField[ObjectId, T](owner) with SolrField[ObjectId, T]
