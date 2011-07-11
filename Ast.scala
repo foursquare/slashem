@@ -18,6 +18,15 @@ object Ast {
     }
   }
 
+  case class QueryField(fieldName: String, boost: Double = 1) {
+    def extend(): String = {
+      boost match {
+        case 1 => fieldName
+        case x => fieldName+"^"+x
+      }
+    }
+  }
+
   // TODO: Implement Range (maybe)
   abstract class Query[T]() {
     def extend: String

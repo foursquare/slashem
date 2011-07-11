@@ -17,7 +17,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
  clauses: List[Clause[_]],  // Like AndCondition in MongoHelpers
  filters: List[Clause[_]],
  boostQueries: List[Clause[_]],
- queryFields: List[String],
+ queryFields: List[QueryField],
  phraseBoostFields: List[String],
  start: Option[Long],
  limit: Option[Long],
@@ -70,6 +70,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
      QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, start,limit, sort, minimumMatch, Some(qt))
   }
 
+  def queryField[F](f : M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] ={
+     QueryBuilder(meta,clauses, filters, boostQueries, QueryField(f(meta).name,boost)::queryFields, phraseBoostFields, start,limit, sort, minimumMatch, queryType)
+  }
+
   def test(): Unit = {
     val q = clauses.map(_.extend).mkString
     println("clauses: " + clauses.map(_.extend).mkString)
@@ -102,7 +106,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
 
     val bq = boostQueries.map({ x => ("bq" -> x.extend)})
 
-    val qf = queryFields.map({x => ("qf" -> x)})
+    val qf = queryFields.filter({x => x.boost != 0}).map({x => ("qf" -> x.extend)})
 
     val pf = phraseBoostFields.map({x => ("pf2" -> x)})++phraseBoostFields.map({x => ("pf" -> x)})
 
