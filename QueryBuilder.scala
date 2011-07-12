@@ -17,8 +17,8 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
  clauses: List[Clause[_]],  // Like AndCondition in MongoHelpers
  filters: List[Clause[_]],
  boostQueries: List[Clause[_]],
- queryFields: List[QueryField],
- phraseBoostFields: List[String],
+ queryFields: List[WeightedField],
+ phraseBoostFields: List[WeightedField],
  start: Option[Long],
  limit: Option[Long],
  sort: Option[String],
@@ -71,7 +71,11 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   }
 
   def queryField[F](f : M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] ={
-     QueryBuilder(meta,clauses, filters, boostQueries, QueryField(f(meta).name,boost)::queryFields, phraseBoostFields, start,limit, sort, minimumMatch, queryType)
+     QueryBuilder(meta,clauses, filters, boostQueries, WeightedField(f(meta).name,boost)::queryFields, phraseBoostFields, start,limit, sort, minimumMatch, queryType)
+  }
+
+  def phraseBoost[F](f : M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] ={
+     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, WeightedField(f(meta).name,boost)::phraseBoostFields, start,limit, sort, minimumMatch, queryType)
   }
 
   def test(): Unit = {
@@ -108,7 +112,8 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
 
     val qf = queryFields.filter({x => x.boost != 0}).map({x => ("qf" -> x.extend)})
 
-    val pf = phraseBoostFields.map({x => ("pf2" -> x)})++phraseBoostFields.map({x => ("pf" -> x)})
+    //I'm not sure we want to use pf2 everywhere? Currently we do but other people might not. Opinions?
+    val pf = phraseBoostFields.map({x => ("pf2" -> x.extend)})++phraseBoostFields.map({x => ("pf" -> x.extend)})
 
     val f = filters.map({x => ("fq" -> x.extend)})
 

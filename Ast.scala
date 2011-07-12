@@ -18,7 +18,7 @@ object Ast {
     }
   }
 
-  case class QueryField(fieldName: String, boost: Double = 1) {
+  case class WeightedField(fieldName: String, boost: Double = 1) {
     def extend(): String = {
       boost match {
         case 1 => fieldName
