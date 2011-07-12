@@ -18,7 +18,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
  filters: List[Clause[_]],
  boostQueries: List[Clause[_]],
  queryFields: List[WeightedField],
- phraseBoostFields: List[WeightedField],
+ phraseBoostFields: List[PhraseWeightedField],
  start: Option[Long],
  limit: Option[Long],
  sort: Option[String],
@@ -74,8 +74,8 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
      QueryBuilder(meta,clauses, filters, boostQueries, WeightedField(f(meta).name,boost)::queryFields, phraseBoostFields, start,limit, sort, minimumMatch, queryType)
   }
 
-  def phraseBoost[F](f : M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] ={
-     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, WeightedField(f(meta).name,boost)::phraseBoostFields, start,limit, sort, minimumMatch, queryType)
+  def phraseBoost[F](f : M => SolrField[F,M], boost: Double = 1, pf: Boolean = true, pf2: Boolean = true, pf3: Boolean = true): QueryBuilder[M, Ord, Lim, MM] ={
+     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, PhraseWeightedField(f(meta).name,boost,pf,pf2,pf3)::phraseBoostFields, start,limit, sort, minimumMatch, queryType)
   }
 
   def test(): Unit = {
@@ -112,8 +112,8 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
 
     val qf = queryFields.filter({x => x.boost != 0}).map({x => ("qf" -> x.extend)})
 
-    //I'm not sure we want to use pf2 everywhere? Currently we do but other people might not. Opinions?
-    val pf = phraseBoostFields.map({x => ("pf2" -> x.extend)})++phraseBoostFields.map({x => ("pf" -> x.extend)})
+    val pf = phraseBoostFields.filter(x => x.pf).map({x => ("pf" -> x.extend)})++phraseBoostFields.filter(x => x.pf2).map({x => ("pf2" -> x.extend)})++
+             phraseBoostFields.filter(x => x.pf3).map({x => ("pf3" -> x.extend)})
 
     val f = filters.map({x => ("fq" -> x.extend)})
 

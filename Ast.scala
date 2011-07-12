@@ -27,6 +27,15 @@ object Ast {
     }
   }
 
+  case class PhraseWeightedField(fieldName: String, boost: Double = 1, pf: Boolean, pf2: Boolean, pf3: Boolean) {
+    def extend(): String = {
+      boost match {
+        case 1 => fieldName
+        case x => fieldName+"^"+x
+      }
+    }
+  }
+
   // TODO: Implement Range (maybe)
   abstract class Query[T]() {
     def extend: String
