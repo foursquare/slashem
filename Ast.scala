@@ -47,6 +47,10 @@ object Ast {
     def extend = {'"' + Solr.escape(query.toString) + '"'}
   }
 
+  case class Range[T](q1: T,q2: T) extends Query[T] {
+    def extend = {'['+Solr.escape(q1.toString)+" to "+ Solr.escape(q2.toString) +']'}
+  }
+
   case class UnescapedPhrase[T](query: T) extends Query[T] {
     def extend = query.toString
   }

@@ -59,6 +59,9 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
    def in(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Plus(Phrase(x))})))
   def nin(v: Iterable[V]) = Clause[V](self.name, groupWithAnd(v.map({x: V => Minus(Phrase(x))})))
 
+  def inRange(v1: V, v2: V) = Clause[V](self.name, Group(Plus(Range(v1,v2))))
+  def ninRange(v1: V, v2: V) = Clause[V](self.name, Group(Minus(Range(v1,v2))))
+
   def query(q: Query[V]) = Clause[V](self.name, q)
 }
 
