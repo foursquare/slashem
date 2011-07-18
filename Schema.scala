@@ -7,21 +7,36 @@ import scalaj.http._
 
 import net.liftweb.json.JsonParser
 import org.bson.types.ObjectId
+import org.codehaus.jackson._
+import org.codehaus.jackson.annotate._
+import org.codehaus.jackson.map._
 
-case class Doc(id: String, user_type: Option[String], name: Option[String],
-                 lat: Option[Double], lng: Option[Double],
-                 address_string: Option[String])
 
-case class ResponseHeader(status: Int, QTime: Int)
+class Doc(val id: String, val user_type: Option[String]=None, val name: Option[String]=None,
+               val lat: Option[Double]=None, val lng: Option[Double]=None,
+               val address: Option[String]=None, val score: Option[Double]=None, val decayedPopularity1 : Option[Double]=None,
+               val category_id_0: Option[String]=None, val mayorid : Option[Long]=None, val userid:Option[Long]=None,
+               val popularity : Option[Int]=None, val dtzone: Option[String]=None, val partionedPopularity : Option[List[Int]]=None,
+               val geomobile:Option[Boolean]=None, val checkin_info:Option[String]=None, val hasSpecial: Option[Boolean]=None,
+               val crossstreet: Option[String]=None, val city: Option[String]=None, val state: Option[String]=None,
+               val zip: Option[String]=None, val country: Option[String]=None, val checkinCount: Option[Int] = None) {
+}
+
+case class BasicDoc @JsonCreator()(@JsonProperty("id") id: String, @JsonProperty("score") score: Double)
+
+case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("Qtime")QTime: Int)
 
 case class Response(numFound: Int, start: Int, docs: List[Doc])
 
+case class BasicResponse @JsonCreator()(@JsonProperty("numFound")numFound: Int, @JsonProperty("start")start: Int, @JsonProperty("docs")docs: List[BasicDoc])
+
 case class SearchResults(responseHeader: ResponseHeader, response: Response)
+
+case class BasicSearchResults @JsonCreator()(@JsonProperty("responseHeader")responseHeader: ResponseHeader, @JsonProperty("response")response: BasicResponse)
 
 trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   self: MetaRecord[T] with T =>
 
-  implicit val formats = net.liftweb.json.DefaultFormats
   def host: String
   def port: String
 
@@ -29,13 +44,14 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
 
   // This method performs the actually query / http request. It should probably
   // go in another file when it gets more sophisticated.
-  def query(params: Seq[(String, String)]): List[ObjectId] = {
+  def rawQuery(params: Seq[(String, String)]): String = {
     val request = Http(queryUrl).params(("wt" -> "json") :: params.toList).options(HttpOptions.connTimeout(10000), HttpOptions.readTimeout(50000))
     println(request.getUrl.toString)
     val result = request.asString
 //    println(result)
-    JsonParser.parse(result).extract[SearchResults].response.docs.map(d => new ObjectId(d.id))
+    result
   }
+
 }
 
 trait SolrSchema[M <: Record[M]] extends Record[M] {
@@ -43,9 +59,30 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
   def meta: SolrMeta[M]
 
+  implicit val formats = net.liftweb.json.DefaultFormats
+  val mapper = {
+    val a = new ObjectMapper
+    a.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    a
+  }
+
   // 'Where' is the entry method for a SolrRogue query.
   def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM] = {
-    QueryBuilder(self, List(c(self)), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, start=None, limit=None, sort=None, minimumMatch=None ,queryType=None)
+    QueryBuilder(self, List(c(self)), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, start=None, limit=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil)
+  }
+  def query(params: Seq[(String, String)], fieldstofetch: List[String]) : SearchResults = {
+    val r = meta.rawQuery(params)
+    if (fieldstofetch == Nil ||
+        fieldstofetch == List("id") ||
+        fieldstofetch == List("id","score")) {
+      val results = mapper.readValue(r,classOf[BasicSearchResults])
+      val responseHeader = ResponseHeader(results.responseHeader.status,results.responseHeader.QTime)
+      val response = results.response
+      val newResponse = Response(response.numFound,response.start,response.docs.toList.map({x: BasicDoc => new Doc(x.id,score = Some(x.score))}))
+      SearchResults(responseHeader,newResponse)
+    } else {
+      JsonParser.parse(r).extract[SearchResults]
+    }
   }
 }
 
