@@ -120,17 +120,20 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
     val pf = phraseBoostFields.filter(x => x.pf).map({x => ("pf" -> x.extend)})++phraseBoostFields.filter(x => x.pf2).map({x => ("pf2" -> x.extend)})++
              phraseBoostFields.filter(x => x.pf3).map({x => ("pf3" -> x.extend)})
 
-    val fl = fieldsToFetch.map({ x => ("fl" -> x)})
+    val fl = fieldsToFetch match {
+      case Nil => Nil
+      case x => List(("fl" -> (x.mkString(","))))
+    }
 
     val f = filters.map({x => ("fq" -> x.extend)})
 
      mm ++ qt ++ bq ++ qf ++ p ++ s ++ f ++ pf ++ fl
   }
 
-  def fetch(l: Int)(implicit ev: Lim =:= Unlimited): SearchResults = {
+  def fetch(l: Int)(implicit ev: Lim =:= Unlimited): SearchResults[M] = {
     this.limit(l).fetch
   }
-  def fetch():  SearchResults = {
+  def fetch():  SearchResults[M] = {
     // Gross++
     meta.query(queryParams,fieldsToFetch)
   }
