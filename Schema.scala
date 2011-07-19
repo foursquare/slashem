@@ -2,7 +2,7 @@ package com.foursquare.solr
 import com.foursquare.solr.Ast._
 import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
 import net.liftweb.record.field.{StringField, IntField, DoubleField}
-import net.liftweb.common.{Box, Empty}
+import net.liftweb.common.{Box, Empty, Full}
 import scalaj.http._
 
 import net.liftweb.json.JsonParser
@@ -25,6 +25,7 @@ case class Response @JsonCreator()(@JsonProperty("numFound")numFound: Int, @Json
               doc.foreach({a =>
                 val fname = a._1
                 val value = a._2
+                println("Setting field "+fname+" to "+value)
                 q.fieldByName(fname).map(_.setFromAny(value))})
               q.asInstanceOf[T]
             }).toList
@@ -103,17 +104,36 @@ class SolrDefaultStringField[T <: Record[T]](owner: T) extends StringField[T](ow
 }
 class SolrIntField[T <: Record[T]](owner: T) extends IntField[T](owner) with SolrField[Int, T]
 class SolrDoubleField[T <: Record[T]](owner: T) extends DoubleField[T](owner) with SolrField[Double, T]
-class SolrObjectIdField[T <: Record[T]](owner: T) extends DummyField[ObjectId, T](owner) with SolrField[ObjectId, T]
+class SolrObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner) with SolrField[ObjectId, T]
 
 // This insanity makes me want to 86 Record all together. DummyField allows us
 // to easily define our own Field types. I use this for ObjectId so that I don't
 // have to import all of MongoRecord. We could trivially reimplement the other
 // Field types using it.
-class DummyField[V, T <: Record[T]](override val owner: T) extends Field[ObjectId, T] {
+class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectId, T] {
+  override def setFromString(s: String) = Full(new ObjectId(s))
+  override def setFromAny(a: Any) = a match {
+    case s : String => Full(new ObjectId(s))
+    case i : ObjectId => Full(i)
+    case _ => Empty
+  }
+  override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
+  override def liftSetFilterToBox(a: Box[ObjectId]) = Empty
+  override def toBoxMyType(a: ValueType) = Empty
+  override def defaultValueBox = Empty
+  override def toValueType(a: Box[MyType]) = null.asInstanceOf[ValueType]
+  override def asJValue() = net.liftweb.json.JsonAST.JNothing
+  override def asJs() = net.liftweb.http.js.JE.JsNull
+  override def toForm = Empty
+  override def set(a: ValueType) = null.asInstanceOf[ValueType]
+  override def get() = null.asInstanceOf[ValueType]
+  override def is() = null.asInstanceOf[ValueType]
+}
+class DummyField[V, T <: Record[T]](override val owner: T) extends Field[V, T] {
   override def setFromString(s: String) = Empty
   override def setFromAny(a: Any) = Empty
   override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
-  override def liftSetFilterToBox(a: Box[ObjectId]) = Empty
+  override def liftSetFilterToBox(a: Box[V]) = Empty
   override def toBoxMyType(a: ValueType) = Empty
   override def defaultValueBox = Empty
   override def toValueType(a: Box[MyType]) = null.asInstanceOf[ValueType]
