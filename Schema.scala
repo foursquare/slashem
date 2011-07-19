@@ -11,12 +11,16 @@ import org.codehaus.jackson._
 import org.codehaus.jackson.annotate._
 import org.codehaus.jackson.map._
 
+import java.util.HashMap
 
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("Qtime")QTime: Int)
 
-case class Response[M](numFound: Int, start: Int, docs: M)
+case class Response@JsonCreator()(@JsonProperty("numFound")numFound: Int, @JsonProperty("start")start: Int, @JsonProperty("docs")docs: Array[HashMap[String,Any]]) {
+  //Convert the ArrayList to the concrete type using magic
+}
 
-case class SearchResults[M](responseHeader: ResponseHeader, response: Response[M])
+case class SearchResults@JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
+                                          @JsonProperty("response") response: Response)
 
 trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   self: MetaRecord[T] with T =>
@@ -54,12 +58,12 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
   def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM] = {
     QueryBuilder(self, List(c(self)), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, start=None, limit=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil)
   }
-  def query(params: Seq[(String, String)], fieldstofetch: List[String]) : SearchResults[M] = {
+  def query(params: Seq[(String, String)], fieldstofetch: List[String]) : SearchResults = {
     val r = meta.rawQuery(params)
     extractFromResponse(r,fieldstofetch)
   }
-  def extractFromResponse(r : String, fieldstofetch: List[String]=Nil): SearchResults[M] = {
-    mapper.readValue(r,classOf[SearchResults[M]])
+  def extractFromResponse(r : String, fieldstofetch: List[String]=Nil): SearchResults = {
+    mapper.readValue(r,classOf[SearchResults])
   }
 }
 

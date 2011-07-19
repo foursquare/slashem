@@ -122,7 +122,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
 
     val fl = fieldsToFetch match {
       case Nil => Nil
-      case x => List(("fl" -> (x.mkString(","))))
+      case x => List("fl" -> (x.mkString(",")))
     }
 
     val f = filters.map({x => ("fq" -> x.extend)})
