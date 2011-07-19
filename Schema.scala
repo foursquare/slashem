@@ -12,14 +12,26 @@ import org.codehaus.jackson.annotate._
 import org.codehaus.jackson.map._
 
 import java.util.HashMap
+import collection.JavaConversions._
 
-case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("Qtime")QTime: Int)
 
-case class Response@JsonCreator()(@JsonProperty("numFound")numFound: Int, @JsonProperty("start")start: Int, @JsonProperty("docs")docs: Array[HashMap[String,Any]]) {
+
+case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
+
+case class Response @JsonCreator()(@JsonProperty("numFound")numFound: Int, @JsonProperty("start")start: Int, @JsonProperty("docs")docs: Array[HashMap[String,Any]]) {
   //Convert the ArrayList to the concrete type using magic
+  def results[T <: Record[T]](B : Record[T]) : List[T] = {
+    docs.map({doc => val q = B.meta.createRecord
+              doc.foreach({a =>
+                val fname = a._1
+                val value = a._2
+                q.fieldByName(fname).map(_.setFromAny(value))})
+              q.asInstanceOf[T]
+            }).toList
+  }
 }
 
-case class SearchResults@JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
+case class SearchResults @JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
                                           @JsonProperty("response") response: Response)
 
 trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
@@ -65,6 +77,7 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
   def extractFromResponse(r : String, fieldstofetch: List[String]=Nil): SearchResults = {
     mapper.readValue(r,classOf[SearchResults])
   }
+
 }
 
 trait SolrField[V, M <: Record[M]] extends OwnedField[M] {

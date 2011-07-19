@@ -17,7 +17,7 @@ class SVenue extends SolrSchema[SVenue] {
   object category_string extends SolrStringField(this)
   object address_string extends SolrStringField(this)
   object category_ids extends SolrStringField(this)
-  object decayedPopularity1 extends SolrStringField(this)
+  object decayedPopularity1 extends SolrDoubleField(this)
 }
 
 object STip extends STip with SolrMeta[STip] {
