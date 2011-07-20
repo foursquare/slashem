@@ -55,6 +55,10 @@ object Ast {
     def extend = query.toString
   }
 
+  case class BagOfWords[T](query: T) extends Query[T] {
+    def extend = Solr.escape(query.toString)
+  }
+
   case class Group[T](items: Query[T]) extends Query[T] {
     def extend = {"(%s)".format(items.extend)}
   }

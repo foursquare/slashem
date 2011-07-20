@@ -68,7 +68,7 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
   // 'Where' is the entry method for a SolrRogue query.
   def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM] = {
-    QueryBuilder(self, List(c(self)), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, start=None, limit=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil)
+    QueryBuilder(self, List(c(self)), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil)
   }
   def query(params: Seq[(String, String)], fieldstofetch: List[String]) : SearchResults = {
     val r = meta.rawQuery(params)
@@ -86,6 +86,8 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
 
   def eqs(v: V) = Clause[V](self.name, Group(Plus(Phrase(v))))
   def neqs(v: V) = Clause[V](self.name, Minus(Phrase(v)))
+
+  def contains(v: V) = Clause[V](self.name, Group(BagOfWords(v)))
 
    def in(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Plus(Phrase(x))})))
   def nin(v: Iterable[V]) = Clause[V](self.name, groupWithAnd(v.map({x: V => Minus(Phrase(x))})))
@@ -130,7 +132,7 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
     }
   }
   override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
-  override def liftSetFilterToBox(a: Box[ObjectId]) = Empty
+  override def liftSetFilterToBox(a: Box[ValueType]) = Empty
   override def toBoxMyType(a: ValueType) = Empty
   override def defaultValueBox = Empty
   override def toValueType(a: Box[MyType]) = null.asInstanceOf[ValueType]
@@ -141,6 +143,40 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
                                     a.asInstanceOf[ValueType]}
   override def get() = e.get
   override def is() = e.get
+}
+class SolrIntListField[T <: Record[T]](override val owner: T) extends Field[List[Int], T] {
+
+  type ValueType = List[Int]
+  var e : Box[ValueType] = Empty
+
+
+  def setFromString(s: String) = {
+    Full(set(s.split(" ").map(x => x.toInt).toList))
+  }
+  override def setFromAny(a: Any) ={
+  try {
+    a match {
+      case "" => Empty
+      case s: String => Full(set(s.split(" ").map(x => x.toInt).toList))
+      case _ => Empty
+    }
+    } catch {
+      case _ => Empty
+    }
+  }
+  override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
+  override def liftSetFilterToBox(a: Box[ValueType]) = Empty
+  override def toBoxMyType(a: ValueType) = Empty
+  override def defaultValueBox = Empty
+  override def toValueType(a: Box[MyType]) = null.asInstanceOf[ValueType]
+  override def asJValue() = net.liftweb.json.JsonAST.JNothing
+  override def asJs() = net.liftweb.http.js.JE.JsNull
+  override def toForm = Empty
+  override def set(a: ValueType) = {e = Full(a)
+                                    a.asInstanceOf[ValueType]}
+  override def get() = e.get
+  override def is() = e.get
+  def value() = e getOrElse Nil
 }
 class DummyField[V, T <: Record[T]](override val owner: T) extends Field[V, T] {
   override def setFromString(s: String) = Empty
