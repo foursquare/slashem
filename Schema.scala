@@ -1,7 +1,7 @@
 package com.foursquare.solr
 import com.foursquare.solr.Ast._
 import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
-import net.liftweb.record.field.{StringField, IntField, DoubleField}
+import net.liftweb.record.field.{BooleanField, LongField, StringField, IntField, DoubleField}
 import net.liftweb.common.{Box, Empty, Full}
 import scalaj.http._
 
@@ -103,7 +103,9 @@ class SolrDefaultStringField[T <: Record[T]](owner: T) extends StringField[T](ow
 }
 class SolrIntField[T <: Record[T]](owner: T) extends IntField[T](owner) with SolrField[Int, T]
 class SolrDoubleField[T <: Record[T]](owner: T) extends DoubleField[T](owner) with SolrField[Double, T]
+class SolrLongField[T <: Record[T]](owner: T) extends LongField[T](owner) with SolrField[Long, T]
 class SolrObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner) with SolrField[ObjectId, T]
+class SolrBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SolrField[Boolean, T]
 
 // This insanity makes me want to 86 Record all together. DummyField allows us
 // to easily define our own Field types. I use this for ObjectId so that I don't
@@ -115,10 +117,17 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
   var e : Box[ValueType] = Empty
 
   def setFromString(s: String) = Full(set(new ObjectId(s)))
-  override def setFromAny(a: Any) = a match {
-    case s : String => Full(set(new ObjectId(s)))
-    case i : ObjectId => Full(set(i))
-    case _ => Empty
+  override def setFromAny(a: Any) ={
+    try {
+    a match {
+      case "" => Empty
+      case s : String => Full(set(new ObjectId(s)))
+      case i : ObjectId => Full(set(i))
+      case _ => Empty
+    }
+    } catch {
+      case _ => Empty
+    }
   }
   override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
   override def liftSetFilterToBox(a: Box[ObjectId]) = Empty
