@@ -25,7 +25,6 @@ case class Response @JsonCreator()(@JsonProperty("numFound")numFound: Int, @Json
               doc.foreach({a =>
                 val fname = a._1
                 val value = a._2
-                println("Setting field "+fname+" to "+value)
                 q.fieldByName(fname).map(_.setFromAny(value))})
               q.asInstanceOf[T]
             }).toList
@@ -111,10 +110,14 @@ class SolrObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner
 // have to import all of MongoRecord. We could trivially reimplement the other
 // Field types using it.
 class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectId, T] {
-  override def setFromString(s: String) = Full(new ObjectId(s))
+
+  type ValueType = ObjectId
+  var e : Box[ValueType] = Empty
+
+  def setFromString(s: String) = Full(set(new ObjectId(s)))
   override def setFromAny(a: Any) = a match {
-    case s : String => Full(new ObjectId(s))
-    case i : ObjectId => Full(i)
+    case s : String => Full(set(new ObjectId(s)))
+    case i : ObjectId => Full(set(i))
     case _ => Empty
   }
   override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
@@ -125,9 +128,10 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
   override def asJValue() = net.liftweb.json.JsonAST.JNothing
   override def asJs() = net.liftweb.http.js.JE.JsNull
   override def toForm = Empty
-  override def set(a: ValueType) = null.asInstanceOf[ValueType]
-  override def get() = null.asInstanceOf[ValueType]
-  override def is() = null.asInstanceOf[ValueType]
+  override def set(a: ValueType) = {e = Full(a)
+                                    a.asInstanceOf[ValueType]}
+  override def get() = e.get
+  override def is() = e.get
 }
 class DummyField[V, T <: Record[T]](override val owner: T) extends Field[V, T] {
   override def setFromString(s: String) = Empty
