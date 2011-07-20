@@ -34,11 +34,11 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   import Helpers._
 
   def and[F](c: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM] = {
-    QueryBuilder(meta, List(c(meta)), filters=filters, boostQueries=boostQueries, queryFields=queryFields, phraseBoostFields=phraseBoostFields, boostFields=boostFields, start=start, limit=limit, tieBreaker=tieBreaker, sort=sort, queryType=queryType, minimumMatch=minimumMatch,fieldsToFetch=fieldsToFetch)
+    this.copy(meta=meta,clauses=List(c(meta)))
   }
 
   def filter[F](f: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM] = {
-    QueryBuilder(meta, clauses, f(meta) :: filters, boostQueries, queryFields, phraseBoostFields, boostFields, start, limit, tieBreaker, sort, minimumMatch, queryType, fieldsToFetch)
+    this.copy(filters=f(meta)::filters)
   }
 
   def boostQuery[F](f: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM] = {
@@ -92,7 +92,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, s::boostFields, start,limit, tieBreaker, sort, minimumMatch, queryType, fieldsToFetch)
   }
 
-  def booostField[F](f : M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] = {
+  def boostField[F](f : M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] = {
     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, (f(meta).name+"^"+boost)::boostFields, start,limit, tieBreaker, sort, minimumMatch, queryType, fieldsToFetch)
   }
 
@@ -144,9 +144,11 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
       case Some(x) => List("tieBreaker" -> x.toString)
     }
 
+    val bf = boostFields.map({x => ("bf" -> x)})
+
     val f = filters.map({x => ("fq" -> x.extend)})
 
-     t ++ mm ++ qt ++ bq ++ qf ++ p ++ s ++ f ++ pf ++ fl
+     t ++ mm ++ qt ++ bq ++ qf ++ p ++ s ++ f ++ pf ++ fl ++ bf
   }
 
   def fetch(l: Int)(implicit ev: Lim =:= Unlimited): SearchResults = {

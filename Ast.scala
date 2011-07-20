@@ -41,6 +41,7 @@ object Ast {
     def extend: String
     def and(c: Query[T]): Query[T] = And(this, c)
     def or(c: Query[T]): Query[T] = Or(this, c)
+    def boost(b : Float): Query[T] = Boost(this,b)
   }
 
   case class Phrase[T](query: T, escaped: Boolean = true) extends Query[T] {
@@ -98,7 +99,7 @@ object Ast {
     def extend = "*"
   }
 
-  case class Boost[T](q: Query[T], boost: Float) extends Query {
+  case class Boost[T](q: Query[T], boost: Float) extends Query[T] {
     def extend = q.extend + "^" + boost.toString
   }
 }

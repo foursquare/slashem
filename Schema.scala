@@ -88,6 +88,7 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
   def neqs(v: V) = Clause[V](self.name, Minus(Phrase(v)))
 
   def contains(v: V) = Clause[V](self.name, Group(BagOfWords(v)))
+  def contains(v: V, b: Float) = Clause[V](self.name, Boost(Group(BagOfWords(v)),b))
 
    def in(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Plus(Phrase(x))})))
   def nin(v: Iterable[V]) = Clause[V](self.name, groupWithAnd(v.map({x: V => Minus(Phrase(x))})))
