@@ -65,41 +65,41 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   def geoRadiusFilter(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = GeoS2.DefaultMaxCells): QueryBuilder[M, Ord, Lim, MM] = {
     val cellIds = GeoS2.cover(geoLat, geoLong, radiusInMeters, maxCells=maxCells).map({x: com.google.common.geometry.S2CellId => Phrase(x.toToken)})
     val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
-    QueryBuilder(meta, clauses, geoFilter :: filters, boostQueries, queryFields, phraseBoostFields, boostFields, start, limit, tieBreaker, sort, minimumMatch, queryType, fieldsToFetch)
+    this.copy(filters=geoFilter::filters)
   }
 
   def minimumMatchPercent(percent: Int)(implicit ev: MM =:= defaultMM) : QueryBuilder[M, Ord, Lim, customMM] = {
-     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start,limit, tieBreaker, sort, Some(percent.toString+"%"), queryType, fieldsToFetch)
+    this.copy(minimumMatch=Some(percent.toString+"%"))
   }
   def minimumMatchAbsolute(count: Int)(implicit ev: MM =:= defaultMM) : QueryBuilder[M, Ord, Lim, customMM] = {
-     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start,limit, tieBreaker, sort, Some(count.toString), queryType, fieldsToFetch)
+    this.copy(minimumMatch=Some(count.toString))
   }
   def useQueryType(qt : String) : QueryBuilder[M, Ord, Lim, MM] ={
-     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start,limit, tieBreaker, sort, minimumMatch, Some(qt), fieldsToFetch)
+    this.copy(queryType=Some(qt))
   }
 
   def queryField[F](f : M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] ={
-     QueryBuilder(meta,clauses, filters, boostQueries, WeightedField(f(meta).name,boost)::queryFields, phraseBoostFields, boostFields, start,limit, tieBreaker, sort, minimumMatch, queryType, fieldsToFetch)
+    this.copy(queryFields=WeightedField(f(meta).name,boost)::queryFields)
   }
 
   def phraseBoost[F](f : M => SolrField[F,M], boost: Double = 1, pf: Boolean = true, pf2: Boolean = true, pf3: Boolean = true): QueryBuilder[M, Ord, Lim, MM] ={
-     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, PhraseWeightedField(f(meta).name,boost,pf,pf2,pf3)::phraseBoostFields, boostFields, start,limit, tieBreaker, sort, minimumMatch, queryType, fieldsToFetch)
+    this.copy(phraseBoostFields=PhraseWeightedField(f(meta).name,boost,pf,pf2,pf3)::phraseBoostFields)
   }
 
   def fetchField[F](f : M => SolrField[F,M]): QueryBuilder[M, Ord, Lim, MM] = {
-    QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start,limit, tieBreaker, sort, minimumMatch, queryType, f(meta).name::fieldsToFetch)
+    this.copy(fieldsToFetch=f(meta).name::fieldsToFetch)
   }
 
   def fetchFields(fs : (M => SolrField[_,M])*): QueryBuilder[M, Ord, Lim, MM] = {
-    QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start,limit, tieBreaker, sort, minimumMatch, queryType, fs.map(f=> f(meta).name).toList++fieldsToFetch)
+    this.copy(fieldsToFetch=fs.map(f=> f(meta).name).toList++fieldsToFetch)
   }
 
   def boostField(s: String): QueryBuilder[M, Ord, Lim, MM] = {
-    QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, s::boostFields, start,limit, tieBreaker, sort, minimumMatch, queryType, fieldsToFetch)
+    this.copy(boostFields=s::boostFields)
   }
 
   def boostField[F](f : M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] = {
-    QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, (f(meta).name+"^"+boost)::boostFields, start,limit, tieBreaker, sort, minimumMatch, queryType, fieldsToFetch)
+    this.copy(boostFields=(f(meta).name+"^"+boost)::boostFields)
   }
 
 
