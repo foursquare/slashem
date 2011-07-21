@@ -1,9 +1,11 @@
 package com.foursquare.solr
 import Ast._
+import net.liftweb.util.Props
 
 object SVenue extends SVenue with SolrMeta[SVenue] {
-  def host = "repo.foursquare.com"
-  def port = "8002"
+  def solrName = "venues"
+  def host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Host Props not found for %s Solr".format(solrName)))
+  def port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Port Props not found for %s Solr".format(solrName))).toString
 }
 class SVenue extends SolrSchema[SVenue] {
   def meta = SVenue
