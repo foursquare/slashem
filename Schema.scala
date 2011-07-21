@@ -145,6 +145,7 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
                                     a.asInstanceOf[ValueType]}
   override def get() = e.get
   override def is() = e.get
+  override def valueBox() = e
 }
 class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int], T] {
 
@@ -179,6 +180,7 @@ class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int
   override def get() = e.get
   override def is() = e.get
   def value() = e getOrElse Nil
+  override def valueBox() = e
 }
 class DummyField[V, T <: Record[T]](override val owner: T) extends Field[V, T] {
   override def setFromString(s: String) = Empty
