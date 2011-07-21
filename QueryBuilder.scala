@@ -42,15 +42,16 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   }
 
   def boostQuery[F](f: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM] = {
-    QueryBuilder(meta, clauses, filters, f(meta)::boostQueries, queryFields, phraseBoostFields, boostFields, start, limit, tieBreaker, sort, minimumMatch, queryType, fieldsToFetch)
+    this.copy(boostQueries=f(meta)::boostQueries)
   }
 
   def limit(l: Int)(implicit ev: Lim =:= Unlimited): QueryBuilder[M, Ord, Limited, MM] = {
-    QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start, Some(l), tieBreaker, sort=None, minimumMatch, queryType, fieldsToFetch)
+    this.copy(limit=Some(l))
+    //QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start, Some(l), tieBreaker, sort=None, minimumMatch, queryType, fieldsToFetch)
   }
 
   def tieBreaker(t: Double): QueryBuilder[M, Ord, Lim, MM] = {
-    QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start, limit, Some(t), sort=None, minimumMatch, queryType, fieldsToFetch)
+    this.copy(tieBreaker=Some(t))
   }
 
   def orderAsc[F](f: M => SolrField[F, M])(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM] = {
