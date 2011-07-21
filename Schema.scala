@@ -108,6 +108,7 @@ class SolrIntField[T <: Record[T]](owner: T) extends IntField[T](owner) with Sol
 class SolrDoubleField[T <: Record[T]](owner: T) extends DoubleField[T](owner) with SolrField[Double, T]
 class SolrLongField[T <: Record[T]](owner: T) extends LongField[T](owner) with SolrField[Long, T]
 class SolrObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner) with SolrField[ObjectId, T]
+class SolrIntListField[T <: Record[T]](owner: T) extends IntListField[T](owner) with SolrField[List[Int], T]
 class SolrBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SolrField[Boolean, T]
 
 // This insanity makes me want to 86 Record all together. DummyField allows us
@@ -145,7 +146,7 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
   override def get() = e.get
   override def is() = e.get
 }
-class SolrIntListField[T <: Record[T]](override val owner: T) extends Field[List[Int], T] {
+class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int], T] {
 
   type ValueType = List[Int]
   var e : Box[ValueType] = Empty

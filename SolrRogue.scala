@@ -10,6 +10,9 @@ class SVenue extends SolrSchema[SVenue] {
 
   object default extends SolrDefaultStringField(this)
   object id extends SolrObjectIdField(this)
+  object lat extends SolrDoubleField(this)
+  object lng extends SolrDoubleField(this)
+  object userid extends SolrLongField(this)
   object text extends SolrStringField(this)
   object name extends SolrStringField(this)
   object ngram_name extends SolrStringField(this)

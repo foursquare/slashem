@@ -88,6 +88,11 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   def fetchField[F](f : M => SolrField[F,M]): QueryBuilder[M, Ord, Lim, MM] = {
     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start,limit, tieBreaker, sort, minimumMatch, queryType, f(meta).name::fieldsToFetch)
   }
+
+  def fetchFields(fs : (M => SolrField[_,M])*): QueryBuilder[M, Ord, Lim, MM] = {
+    QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start,limit, tieBreaker, sort, minimumMatch, queryType, fs.map(f=> f(meta).name).toList++fieldsToFetch)
+  }
+
   def boostField(s: String): QueryBuilder[M, Ord, Lim, MM] = {
     QueryBuilder(meta,clauses, filters, boostQueries, queryFields, phraseBoostFields, s::boostFields, start,limit, tieBreaker, sort, minimumMatch, queryType, fieldsToFetch)
   }
