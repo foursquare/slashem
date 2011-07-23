@@ -37,18 +37,15 @@ case class SearchResults @JsonCreator()(@JsonProperty("responseHeader") response
 trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   self: MetaRecord[T] with T =>
 
-  def host: String
-  def port: String
+  def servers: List[String]
 
-  val queryUrl = "http://%s:%s/solr/select".format(host, port)
+  val queryUrl = "http://%s/solr/select".format(servers.head)
 
   // This method performs the actually query / http request. It should probably
   // go in another file when it gets more sophisticated.
   def rawQuery(params: Seq[(String, String)]): String = {
     val request = Http(queryUrl).params(("wt" -> "json") :: params.toList).options(HttpOptions.connTimeout(10000), HttpOptions.readTimeout(50000))
-    println(request.getUrl.toString)
     val result = request.asString
-//    println(result)
     result
   }
 

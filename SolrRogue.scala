@@ -1,11 +1,17 @@
 package com.foursquare.solr
 import Ast._
 import net.liftweb.util.Props
+import net.liftweb.common.Box
 
 object SVenue extends SVenue with SolrMeta[SVenue] {
   def solrName = "venues"
   def host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Host Props not found for %s Solr".format(solrName)))
   def port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Port Props not found for %s Solr".format(solrName))).toString
+  def servers = Props.get("sorl."+name+".servers").map(x => x.split(",").toList).openOr {
+    val Host = Props.get("solr." + name + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(name)))
+    val Port = Props.getInt("solr." + name + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(name)))
+    List("%s:%d".format(Host, Port))
+  }
 }
 class SVenue extends SolrSchema[SVenue] {
   def meta = SVenue
@@ -45,6 +51,7 @@ class SVenue extends SolrSchema[SVenue] {
 object STip extends STip with SolrMeta[STip] {
   def host = "repo.foursquare.com"
   def port = "8000"
+  def servers = List(host+":"+port)
 }
 class STip extends SolrSchema[STip] {
   def meta = STip
@@ -57,6 +64,7 @@ class STip extends SolrSchema[STip] {
 object SUser extends SUser with SolrMeta[SUser] {
   def host = "repo.foursquare.com"
   def port = "8001"
+  def servers = List(host+":"+port)
 }
 class SUser extends SolrSchema[SUser] {
   def meta = SUser
