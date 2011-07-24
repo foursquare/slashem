@@ -3,15 +3,24 @@ import com.foursquare.solr.Ast._
 import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
 import net.liftweb.record.field.{BooleanField, LongField, StringField, IntField, DoubleField}
 import net.liftweb.common.{Box, Empty, Full}
-import scalaj.http._
 
+import com.twitter.util.{Duration, Future}
+import com.twitter.finagle._
+import com.twitter.finagle.builder.ClientBuilder
+import com.twitter.finagle.http.Http
+import com.twitter.finagle.util._
 import net.liftweb.json.JsonParser
 import org.bson.types.ObjectId
 import org.codehaus.jackson._
 import org.codehaus.jackson.annotate._
 import org.codehaus.jackson.map._
+import org.jboss.netty.util.CharsetUtil
+import org.jboss.netty.handler.codec.http._
+import org.jboss.netty.handler.codec.http.HttpResponseStatus._
 
 import java.util.HashMap
+import java.util.concurrent.TimeUnit
+import java.net.InetSocketAddress
 import collection.JavaConversions._
 
 
@@ -41,12 +50,31 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
 
   val queryUrl = "http://%s/solr/select".format(servers.head)
 
+  //Params semi-randomly chosen
+  def client = ClientBuilder()
+  .codec(Http())
+  .hosts(servers.map(x => {val h = x.split(":")
+                         val s = h.head
+                         val p = h.last
+                         new InetSocketAddress(s,p.toInt)}))
+  .hostConnectionLimit(10)
+  .retries(3)
+  .build()
+
   // This method performs the actually query / http request. It should probably
   // go in another file when it gets more sophisticated.
   def rawQuery(params: Seq[(String, String)]): String = {
-    val request = Http(queryUrl).params(("wt" -> "json") :: params.toList).options(HttpOptions.connTimeout(10000), HttpOptions.readTimeout(50000))
-    val result = request.asString
-    result
+    val response = rawQueryFuture(params)(Duration(10,TimeUnit.SECONDS))
+    val str = response.getContent.toString(CharsetUtil.UTF_8)
+    str
+  }
+  def rawQueryFuture(params: Seq[(String, String)]): Future[HttpResponse] = {
+    //Ugly :(
+    val qse = new QueryStringEncoder("/solr/select")
+    (("wt" -> "json") :: params.toList).map(x => qse.addParam(x._1,x._2))
+    val request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, qse.toString)
+    val resultFuture = client(request)
+    resultFuture
   }
 
 }

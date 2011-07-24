@@ -1,15 +1,12 @@
 package com.foursquare.solr
 import Ast._
 import net.liftweb.util.Props
-import net.liftweb.common.Box
 
 object SVenue extends SVenue with SolrMeta[SVenue] {
   def solrName = "venues"
-  def host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Host Props not found for %s Solr".format(solrName)))
-  def port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Port Props not found for %s Solr".format(solrName))).toString
-  def servers = Props.get("sorl."+name+".servers").map(x => x.split(",").toList).openOr {
-    val Host = Props.get("solr." + name + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(name)))
-    val Port = Props.getInt("solr." + name + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(name)))
+  def servers = Props.get("sorl."+solrName+".servers").map(x => x.split(",").toList).openOr {
+    val Host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
+    val Port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
     List("%s:%d".format(Host, Port))
   }
 }
