@@ -73,6 +73,9 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     val qse = new QueryStringEncoder("/solr/select")
     (("wt" -> "json") :: params.toList).map(x => qse.addParam(x._1,x._2))
     val request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, qse.toString)
+    //Here be dragons! If you have multiple backends with shared IPs this could very well explode
+    //but finagle doesn't seem to properly set the http host header for http/1.1
+    request.addHeader(HttpHeaders.Names.HOST, servers.head);
     val resultFuture = client(request)
     resultFuture
   }
