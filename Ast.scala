@@ -3,11 +3,22 @@ import com.foursquare.lib.Solr
 
 object Ast {
 
+  abstract class AClause {
+    def extend: String
+  }
+
+  case class JoinClause(s1 : AClause, s2: AClause, j: String) extends AClause {
+    def extend(): String = {
+      "("+s1.extend+") "+j+" ("+s2.extend+")"
+    }
+  }
+
   // A 'Clause' is something of the form 'field:(query)'
-  case class Clause[T](fieldName: String, query: Query[T]) {
+  case class Clause[T](fieldName: String, query: Query[T]) extends AClause{
     def extend(): String = {
       val q = query match {
         case Group(x) => query
+        case Splat() => query
         case _ => Group(query)
       }
       //If a field does not have a name then do not attempt to specify it
@@ -95,7 +106,7 @@ object Ast {
     def extend = "-" + q.extend
   }
 
-  case class Splat[T]() extends Query {
+  case class Splat[T]() extends Query[T] {
     def extend = "*"
   }
 

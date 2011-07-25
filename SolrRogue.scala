@@ -14,6 +14,9 @@ class SVenue extends SolrSchema[SVenue] {
   def meta = SVenue
 
   object default extends SolrDefaultStringField(this)
+  object metall extends SolrStringField(this) {
+    override def name="*"
+  }
   object id extends SolrObjectIdField(this)
   object lat extends SolrDoubleField(this)
   object lng extends SolrDoubleField(this)

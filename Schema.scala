@@ -38,6 +38,10 @@ case class Response @JsonCreator()(@JsonProperty("numFound")numFound: Int, @Json
               q.asInstanceOf[T]
             }).toList
   }
+  //Special for extracting just ObjectIds without the overhead of record.
+  def oids : List[ObjectId] = {
+    docs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
+  }
 }
 
 case class SearchResults @JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
@@ -96,7 +100,7 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
   // 'Where' is the entry method for a SolrRogue query.
   def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM] = {
-    QueryBuilder(self, List(c(self)), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil)
+    QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil)
   }
   def query(params: Seq[(String, String)], fieldstofetch: List[String]) : SearchResults = {
     val r = meta.rawQuery(params)
@@ -118,11 +122,13 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
   def contains(v: V) = Clause[V](self.name, Group(BagOfWords(v)))
   def contains(v: V, b: Float) = Clause[V](self.name, Boost(Group(BagOfWords(v)),b))
 
-   def in(v: Iterable[V]) = Clause[V](self.name, Plus(groupWithOr(v.map({x: V => Phrase(x)}))))
+  def in(v: Iterable[V]) = Clause[V](self.name, Plus(groupWithOr(v.map({x: V => Phrase(x)}))))
   def nin(v: Iterable[V]) = Clause[V](self.name, Minus(groupWithAnd(v.map({x: V => Phrase(x)}))))
 
   def inRange(v1: V, v2: V) = Clause[V](self.name, Group(Plus(Range(v1,v2))))
   def ninRange(v1: V, v2: V) = Clause[V](self.name, Group(Minus(Range(v1,v2))))
+
+  def any = Clause[V](self.name,Splat[V]())
 
   def query(q: Query[V]) = Clause[V](self.name, q)
 }

@@ -14,9 +14,9 @@ abstract sealed class customMM extends minimumMatchType
 
 case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
  meta: M with SolrSchema[M],
- clauses: List[Clause[_]],  // Like AndCondition in MongoHelpers
- filters: List[Clause[_]],
- boostQueries: List[Clause[_]],
+ clauses: AClause,  // Like AndCondition in MongoHelpers
+ filters: List[AClause],
+ boostQueries: List[AClause],
  queryFields: List[WeightedField],
  phraseBoostFields: List[PhraseWeightedField],
  boostFields: List[String],
@@ -34,8 +34,13 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   import Helpers._
 
   def and[F](c: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM] = {
-    this.copy(meta=meta,clauses=List(c(meta)))
+    this.copy(meta=meta,clauses=JoinClause(c(meta),clauses,"AND"))
   }
+
+  def or[F](c: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM] = {
+    this.copy(meta=meta,clauses=JoinClause(c(meta),clauses,"OR"))
+  }
+
 
   def filter[F](f: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM] = {
     this.copy(filters=f(meta)::filters)
@@ -102,10 +107,8 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
     this.copy(boostFields=(f(meta).name+"^"+boost)::boostFields)
   }
 
-
   def test(): Unit = {
-    val q = clauses.map(_.extend).mkString
-    println("clauses: " + clauses.map(_.extend).mkString)
+    println("clauses: " + clauses.extend)
     println("filters: " + filters.map(_.extend).mkString)
     println("start: " + start)
     println("limit: " + limit)
@@ -115,7 +118,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   }
 
   def queryParams(): Seq[(String,String)] = {
-    val p = List(("q" -> clauses.map(_.extend).mkString(" ")),
+    val p = List(("q" -> clauses.extend),
                  ("start" -> (start.getOrElse {DefaultStart}).toString),
                  ("rows" -> (limit.getOrElse {DefaultLimit}).toString)
                  )
