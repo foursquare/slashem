@@ -25,6 +25,7 @@ class SVenue extends SolrSchema[SVenue] {
   object aliases extends SolrStringField(this)
   object tags extends SolrStringField(this)
   object category_string extends SolrStringField(this)
+  object meta_categories extends SolrStringField(this)
   object address extends SolrStringField(this)
   object score extends SolrDoubleField(this)
   object mayorid extends SolrLongField(this)

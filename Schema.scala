@@ -118,8 +118,8 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
   def contains(v: V) = Clause[V](self.name, Group(BagOfWords(v)))
   def contains(v: V, b: Float) = Clause[V](self.name, Boost(Group(BagOfWords(v)),b))
 
-   def in(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Plus(Phrase(x))})))
-  def nin(v: Iterable[V]) = Clause[V](self.name, groupWithAnd(v.map({x: V => Minus(Phrase(x))})))
+   def in(v: Iterable[V]) = Clause[V](self.name, Plus(groupWithOr(v.map({x: V => Phrase(x)}))))
+  def nin(v: Iterable[V]) = Clause[V](self.name, Minus(groupWithAnd(v.map({x: V => Phrase(x)}))))
 
   def inRange(v1: V, v2: V) = Clause[V](self.name, Group(Plus(Range(v1,v2))))
   def ninRange(v1: V, v2: V) = Clause[V](self.name, Group(Minus(Range(v1,v2))))
