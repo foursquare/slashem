@@ -93,7 +93,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
     this.copy(queryFields=WeightedField(f(meta).name,boost)::queryFields)
   }
 
-  def queryFields[F](fs : List[M => SolrField[F,M]], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] ={
+  def queryFields(fs : List[M => SolrField[_,M]], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] ={
     this.copy(queryFields=fs.map(f => WeightedField(f(meta).name,boost))++queryFields)
   }
 
