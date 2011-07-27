@@ -73,6 +73,12 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
     this.copy(filters=geoFilter::filters)
   }
 
+  def geoBoxFilter(topRight: Pair[Double, Double], botLeft: Pair[Double, Double], maxCells: Int = GeoS2.DefaultMaxCells): QueryBuilder[M, Ord, Lim, MM] = {
+    val cellIds = GeoS2.rectCover(topRight,botLeft, maxCells=maxCells).map({x: com.google.common.geometry.S2CellId => Phrase(x.toToken)})
+    val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
+    this.copy(filters=geoFilter::filters)
+  }
+
   def minimumMatchPercent(percent: Int)(implicit ev: MM =:= defaultMM) : QueryBuilder[M, Ord, Lim, customMM] = {
     this.copy(minimumMatch=Some(percent.toString+"%"))
   }
@@ -85,6 +91,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
 
   def queryField[F](f : M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] ={
     this.copy(queryFields=WeightedField(f(meta).name,boost)::queryFields)
+  }
+
+  def queryFields[F](fs : List[M => SolrField[F,M]], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM] ={
+    this.copy(queryFields=fs.map(f => WeightedField(f(meta).name,boost))++queryFields)
   }
 
   def phraseBoost[F](f : M => SolrField[F,M], boost: Double = 1, pf: Boolean = true, pf2: Boolean = true, pf3: Boolean = true): QueryBuilder[M, Ord, Lim, MM] ={
