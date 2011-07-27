@@ -50,9 +50,12 @@ class SVenue extends SolrSchema[SVenue] {
 }
 
 object STip extends STip with SolrMeta[STip] {
-  def host = "repo.foursquare.com"
-  def port = "8000"
-  def servers = List(host+":"+port)
+  def solrName = "tips"
+  def servers = Props.get("sorl."+solrName+".servers").map(x => x.split(",").toList).openOr {
+    val Host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
+    val Port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
+    List("%s:%d".format(Host, Port))
+  }
 }
 class STip extends SolrSchema[STip] {
   def meta = STip
@@ -63,9 +66,12 @@ class STip extends SolrSchema[STip] {
 }
 
 object SUser extends SUser with SolrMeta[SUser] {
-  def host = "repo.foursquare.com"
-  def port = "8001"
-  def servers = List(host+":"+port)
+  def solrName = "user"
+  def servers = Props.get("sorl."+solrName+".servers").map(x => x.split(",").toList).openOr {
+    val Host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
+    val Port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
+    List("%s:%d".format(Host, Port))
+  }
 }
 class SUser extends SolrSchema[SUser] {
   def meta = SUser
