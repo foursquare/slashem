@@ -2,18 +2,27 @@ package com.foursquare.solr
 import Ast._
 import net.liftweb.util.Props
 
+
 object SVenue extends SVenue with SolrMeta[SVenue] {
+  //The name is used to determine which props to use.
   def solrName = "venues"
+  //The servers is a list used in round-robin for running solr read queries against.
   def servers = Props.get("sorl."+solrName+".servers").map(x => x.split(",").toList).openOr {
+    //If the server list prop isn't present fall back to the old style of host/port
     val Host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
     val Port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
     List("%s:%d".format(Host, Port))
   }
 }
+
 class SVenue extends SolrSchema[SVenue] {
   def meta = SVenue
 
+  //The default field will result in queries against the default field
+  //or if a list of fields to query has been specified to an edismax query then
+  //the query will be run against this.
   object default extends SolrDefaultStringField(this)
+  //This is a special field to allow for querying of *:*
   object metall extends SolrStringField(this) {
     override def name="*"
   }
@@ -50,8 +59,11 @@ class SVenue extends SolrSchema[SVenue] {
 }
 
 object STip extends STip with SolrMeta[STip] {
+  //The name is used to determine which props to use.
   def solrName = "tips"
+  //The servers is a list used in round-robin for running solr read queries against.
   def servers = Props.get("sorl."+solrName+".servers").map(x => x.split(",").toList).openOr {
+    //If the server list prop isn't present fall back to the old style of host/port
     val Host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
     val Port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
     List("%s:%d".format(Host, Port))
@@ -76,6 +88,9 @@ object SUser extends SUser with SolrMeta[SUser] {
 class SUser extends SolrSchema[SUser] {
   def meta = SUser
 
+  //The default field will result in queries against the default field
+  //or if a list of fields to query has been specified to an edismax query then
+  //the query will be run against this.
   object default extends SolrDefaultStringField(this)
   object id extends SolrLongField(this)
   object fullname extends SolrStringField(this)
