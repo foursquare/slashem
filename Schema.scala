@@ -52,6 +52,8 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
 
   def servers: List[String]
 
+  def solrName: String
+
   val queryUrl = "http://%s/solr/select".format(servers.head)
 
   //Params semi-randomly chosen
@@ -85,12 +87,23 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   }
 
 }
+trait QueryLogger {
+  def log[T](name: String, msg :String, f: => T): T
+}
+object NoopQueryLogger extends QueryLogger {
+  override def log[T](name: String, msg :String, f: => T): T = {
+    f
+  }
+}
 
 trait SolrSchema[M <: Record[M]] extends Record[M] {
   self: M with Record[M] =>
 
   def meta: SolrMeta[M]
 
+  //Set me to something which collects timing if you want.
+
+  var logger: QueryLogger = NoopQueryLogger
 
   implicit val formats = net.liftweb.json.DefaultFormats
   val mapper = {
@@ -104,8 +117,8 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
     QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil)
   }
   def query(params: Seq[(String, String)], fieldstofetch: List[String]) : SearchResults = {
-    val r = meta.rawQuery(params)
-    extractFromResponse(r,fieldstofetch)
+    val r = logger.log("solr"+meta.solrName+"rawQuery",params.mkString(","),meta.rawQuery(params))
+    logger.log("solr"+meta.solrName+"jsonExtract","",extractFromResponse(r,fieldstofetch))
   }
   def extractFromResponse(r : String, fieldstofetch: List[String]=Nil): SearchResults = {
     mapper.readValue(r,classOf[SearchResults])
