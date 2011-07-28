@@ -91,6 +91,7 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
   def meta: SolrMeta[M]
 
+
   implicit val formats = net.liftweb.json.DefaultFormats
   val mapper = {
     val a = new ObjectMapper

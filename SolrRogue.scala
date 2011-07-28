@@ -77,13 +77,15 @@ class SUser extends SolrSchema[SUser] {
   def meta = SUser
 
   object default extends SolrDefaultStringField(this)
-  object id extends SolrObjectIdField(this)
+  object id extends SolrLongField(this)
   object fullname extends SolrStringField(this)
   object firstname extends SolrStringField(this)
   object lastname extends SolrStringField(this)
+  object twitter_name extends SolrStringField(this)
   object email extends SolrStringField(this)
   object phone extends SolrStringField(this)
   object user_type extends SolrStringField(this)
+  object brand_sidebar_content extends SolrStringField(this)
 }
 
 
