@@ -87,10 +87,10 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   }
 
 }
-trait QueryLogger {
+trait SolrQueryLogger {
   def log[T](name: String, msg :String, f: => T): T
 }
-object NoopQueryLogger extends QueryLogger {
+object NoopQueryLogger extends SolrQueryLogger {
   override def log[T](name: String, msg :String, f: => T): T = {
     f
   }
@@ -103,7 +103,7 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
   //Set me to something which collects timing if you want.
 
-  var logger: QueryLogger = NoopQueryLogger
+  var logger: SolrQueryLogger = NoopQueryLogger
 
   implicit val formats = net.liftweb.json.DefaultFormats
   val mapper = {
