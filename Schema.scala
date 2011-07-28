@@ -67,7 +67,8 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
                          val s = h.head
                          val p = h.last
                          new InetSocketAddress(s,p.toInt)}))
-  .hostConnectionLimit(10)
+  .hostConnectionLimit(1000)
+  .hostConnectionCoresize(300)
   .retries(3)
   .build()
 
