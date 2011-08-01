@@ -170,10 +170,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
      t ++ mm ++ qt ++ bq ++ qf ++ p ++ s ++ f ++ pf ++ fl ++ bf
   }
 
-  def fetch(l: Int)(implicit ev: Lim =:= Unlimited): SearchResults = {
+  def fetch(l: Int)(implicit ev: Lim =:= Unlimited): SearchResults[M] = {
     this.limit(l).fetch
   }
-  def fetch():  SearchResults = {
+  def fetch():  SearchResults[M] = {
     // Gross++
     meta.query(queryParams,fieldsToFetch)
   }

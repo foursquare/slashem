@@ -29,10 +29,19 @@ import collection.JavaConversions._
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
 
 //The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results
-case class Response @JsonCreator()(@JsonProperty("numFound")numFound: Int, @JsonProperty("start")start: Int, @JsonProperty("docs")docs: Array[HashMap[String,Any]]) {
+case class Response[T <: Record[T]] (schema : T, numFound: Int, start: Int, docs: Array[HashMap[String,Any]]) {
   //Convert the ArrayList to the concrete type using magic
   def results[T <: Record[T]](B : Record[T]) : List[T] = {
     docs.map({doc => val q = B.meta.createRecord
+              doc.foreach({a =>
+                val fname = a._1
+                val value = a._2
+                q.fieldByName(fname).map(_.setFromAny(value))})
+              q.asInstanceOf[T]
+            }).toList
+  }
+  def results : List[T] = {
+    docs.map({doc => val q = schema.meta.createRecord
               doc.foreach({a =>
                 val fname = a._1
                 val value = a._2
@@ -47,8 +56,17 @@ case class Response @JsonCreator()(@JsonProperty("numFound")numFound: Int, @Json
 }
 
 //The search results class, you are probably most interested in the contents of response
-case class SearchResults @JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
-                                          @JsonProperty("response") response: Response)
+case class SearchResults[T <: Record[T]] (responseHeader: ResponseHeader,
+                             response: Response[T])
+
+
+//The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results
+case class RawResponse @JsonCreator()(@JsonProperty("numFound")numFound: Int, @JsonProperty("start")start: Int, @JsonProperty("docs")docs: Array[HashMap[String,Any]])
+
+//The search results class, you are probably most interested in the contents of response
+case class RawSearchResults @JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
+                                          @JsonProperty("response") response: RawResponse)
+
 
 trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   self: MetaRecord[T] with T =>
@@ -126,13 +144,14 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
   }
 
   //The query builder calls into this to do actually execute the query.
-  def query(params: Seq[(String, String)], fieldstofetch: List[String]) : SearchResults = {
+  def query(params: Seq[(String, String)], fieldstofetch: List[String]) : SearchResults[M] = {
     val r = logger.log("solr"+meta.solrName+"rawQuery",params.mkString(","),meta.rawQuery(params))
     logger.log("solr"+meta.solrName+"jsonExtract","",extractFromResponse(r,fieldstofetch))
   }
 
-  def extractFromResponse(r : String, fieldstofetch: List[String]=Nil): SearchResults = {
-    mapper.readValue(r,classOf[SearchResults])
+  def extractFromResponse(r : String, fieldstofetch: List[String]=Nil): SearchResults[M] = {
+    val rsr = mapper.readValue(r,classOf[RawSearchResults])
+    SearchResults(rsr.responseHeader,Response(this,rsr.response.numFound,rsr.response.start,rsr.response.docs))
   }
 
 }
