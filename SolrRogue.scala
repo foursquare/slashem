@@ -44,6 +44,8 @@ class SVenue extends SolrSchema[SVenue] {
   object category_id_0 extends SolrObjectIdField(this)
   object popularity extends SolrIntField(this)
   object dtzone extends SolrStringField(this)
+  // Temporarily, added this field to test SolrDateTimeField. Not present in solr conf.
+  object createdDate extends SolrDateTimeField(this)
   object partitionedPopularity extends SolrIntListField(this)
   object geomobile extends SolrBooleanField(this)
   object checkin_info extends SolrStringField(this)

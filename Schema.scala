@@ -18,11 +18,11 @@ import org.jboss.netty.util.CharsetUtil
 import org.jboss.netty.handler.codec.http._
 import org.jboss.netty.handler.codec.http.HttpResponseStatus._
 
+import org.joda.time.DateTime
 import java.util.HashMap
 import java.util.concurrent.TimeUnit
 import java.net.InetSocketAddress
 import collection.JavaConversions._
-
 
 //The response header. There are normally more fields in the response header we could extract, but
 //we don't at present.
@@ -182,6 +182,7 @@ class SolrLongField[T <: Record[T]](owner: T) extends LongField[T](owner) with S
 class SolrObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner) with SolrField[ObjectId, T]
 class SolrIntListField[T <: Record[T]](owner: T) extends IntListField[T](owner) with SolrField[List[Int], T]
 class SolrBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SolrField[Boolean, T]
+class SolrDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SolrField[DateTime, T]
 
 // This insanity makes me want to 86 Record all together. DummyField allows us
 // to easily define our own Field types. I use this for ObjectId so that I don't
@@ -219,11 +220,33 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
   override def is() = e.get
   override def valueBox() = e
 }
-class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int], T] {
-
-  type ValueType = List[Int]
+class JodaDateTimeField[T <: Record[T]](override val owner: T) extends DummyField[DateTime, T](owner) {
+  type ValueType = DateTime
   var e : Box[ValueType] = Empty
 
+  override def setFromString(s: String): Box[ValueType] = {
+    try {
+      Full(set(new DateTime(s)))
+    } catch {
+      case _ => Empty
+    }
+  }
+  override def setFromAny(a: Any): Box[ValueType] ={
+    a match {
+      case s : String => setFromString(s)
+      case d : DateTime => Full(set(d))
+      case _ => Empty
+    }
+  }
+  override def set(a: ValueType) = {e = Full(a)
+                                    a.asInstanceOf[ValueType]}
+  override def get() = e.get
+  override def is() = e.get
+  override def valueBox() = e
+}
+class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int], T] {
+  type ValueType = List[Int]
+  var e : Box[ValueType] = Empty
 
   def setFromString(s: String) = {
     Full(set(s.split(" ").map(x => x.toInt).toList))
@@ -255,8 +278,8 @@ class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int
   override def valueBox() = e
 }
 class DummyField[V, T <: Record[T]](override val owner: T) extends Field[V, T] {
-  override def setFromString(s: String) = Empty
-  override def setFromAny(a: Any) = Empty
+  override def setFromString(s: String): Box[V] = Empty
+  override def setFromAny(a: Any): Box[V] = Empty
   override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
   override def liftSetFilterToBox(a: Box[V]) = Empty
   override def toBoxMyType(a: ValueType) = Empty
