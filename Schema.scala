@@ -40,15 +40,7 @@ case class Response[T <: Record[T]] (schema : T, numFound: Int, start: Int, docs
               q.asInstanceOf[T]
             }).toList
   }
-  def results : List[T] = {
-    docs.map({doc => val q = schema.meta.createRecord
-              doc.foreach({a =>
-                val fname = a._1
-                val value = a._2
-                q.fieldByName(fname).map(_.setFromAny(value))})
-              q.asInstanceOf[T]
-            }).toList
-  }
+  def results : List[T] = results(schema)
   //Special for extracting just ObjectIds without the overhead of record.
   def oids : List[ObjectId] = {
     docs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
@@ -60,10 +52,10 @@ case class SearchResults[T <: Record[T]] (responseHeader: ResponseHeader,
                              response: Response[T])
 
 
-//The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results
+//This is the raw representation of the response from solr, you probably don't want to poke at it directly.
 case class RawResponse @JsonCreator()(@JsonProperty("numFound")numFound: Int, @JsonProperty("start")start: Int, @JsonProperty("docs")docs: Array[HashMap[String,Any]])
 
-//The search results class, you are probably most interested in the contents of response
+//This is the raw representation of the response from solr, you probably don't want to poke at it directly.
 case class RawSearchResults @JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
                                           @JsonProperty("response") response: RawResponse)
 
