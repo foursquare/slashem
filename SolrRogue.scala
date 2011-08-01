@@ -2,7 +2,6 @@ package com.foursquare.solr
 import Ast._
 import net.liftweb.util.Props
 
-
 object SVenue extends SVenue with SolrMeta[SVenue] {
   //The name is used to determine which props to use.
   def solrName = "venues"
@@ -44,8 +43,6 @@ class SVenue extends SolrSchema[SVenue] {
   object category_id_0 extends SolrObjectIdField(this)
   object popularity extends SolrIntField(this)
   object dtzone extends SolrStringField(this)
-  // Temporarily, added this field to test SolrDateTimeField. Not present in solr conf.
-  object createdDate extends SolrDateTimeField(this)
   object partitionedPopularity extends SolrIntListField(this)
   object geomobile extends SolrBooleanField(this)
   object checkin_info extends SolrStringField(this)
@@ -105,6 +102,38 @@ class SUser extends SolrSchema[SUser] {
   object brand_sidebar_content extends SolrStringField(this)
 }
 
+object SEvent extends SEvent with SolrMeta[SEvent] {
+  //The name is used to determine which props to use.
+  def solrName = "events"
+  //The servers is a list used in round-robin for running solr read queries against.
+  def servers = Props.get("sorl."+solrName+".servers").map(x => x.split(",").toList).openOr {
+    //If the server list prop isn't present fall back to the old style of host/port
+    val Host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
+    val Port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
+    List("%s:%d".format(Host, Port))
+  }
+}
+
+class SEvent extends SolrSchema[SEvent] {
+  def meta = SEvent
+
+  //The default field will result in queries against the default field
+  //or if a list of fields to query has been specified to an edismax query then
+  //the query will be run against this.
+  object default extends SolrDefaultStringField(this)
+  //This is a special field to allow for querying of *:*
+  object metall extends SolrStringField(this) {
+    override def name="*"
+  }
+  object id extends SolrObjectIdField(this)
+  object venueid extends SolrObjectIdField(this) // Use long here? Or, change FKs in SVenue, Stip to ObjectIdField?
+  object lat extends SolrDoubleField(this)
+  object lng extends SolrDoubleField(this)
+  object name extends SolrStringField(this)
+  object tags extends SolrStringField(this)
+  object start_time extends SolrDateTimeField(this)
+  object expires_time extends SolrDateTimeField(this)
+}
 
 object Helpers {
   def groupWithOr[V](v: Iterable[Query[V]]): Query[V] = {
