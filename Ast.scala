@@ -7,6 +7,7 @@ object Ast {
     def extend: String
   }
 
+  //You can use a JoinClause to join two clauses (normally with "and" or "or")
   case class JoinClause(s1 : AClause, s2: AClause, j: String) extends AClause {
     def extend(): String = {
       "("+s1.extend+") "+j+" ("+s2.extend+")"
@@ -29,6 +30,7 @@ object Ast {
     }
   }
 
+  //A field with a query weight
   case class WeightedField(fieldName: String, boost: Double = 1) {
     def extend(): String = {
       boost match {
@@ -38,6 +40,10 @@ object Ast {
     }
   }
 
+  //A phrase weighted field. Results in a document scoring bost
+  //pf => traditional phrase query
+  //pf2 => in edismax type queries two word shingle matches
+  //pf3 => in edismax type queries three word shingle matches
   case class PhraseWeightedField(fieldName: String, boost: Double = 1, pf: Boolean, pf2: Boolean, pf3: Boolean) {
     def extend(): String = {
       boost match {

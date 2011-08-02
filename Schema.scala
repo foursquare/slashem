@@ -21,6 +21,7 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus._
 import org.joda.time.DateTime
 import java.util.HashMap
 import java.util.concurrent.TimeUnit
+import java.lang.Integer
 import java.net.InetSocketAddress
 import collection.JavaConversions._
 
@@ -143,6 +144,7 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
   def extractFromResponse(r : String, fieldstofetch: List[String]=Nil): SearchResults[M] = {
     val rsr = mapper.readValue(r,classOf[RawSearchResults])
+    //Take the raw search result and make the type templated search result.
     SearchResults(rsr.responseHeader,Response(this,rsr.response.numFound,rsr.response.start,rsr.response.docs))
   }
 
@@ -171,8 +173,9 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
   def query(q: Query[V]) = Clause[V](self.name, q)
 }
 
-//
+//Solr field types
 class SolrStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T]
+//Allows for querying against the default filed in solr. This field doesn't have a name
 class SolrDefaultStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T] {
   override def name = ""
 }
@@ -244,6 +247,8 @@ class JodaDateTimeField[T <: Record[T]](override val owner: T) extends DummyFiel
   override def is() = e.get
   override def valueBox() = e
 }
+
+//This allows support for a list of integers as a field value.
 class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int], T] {
   type ValueType = List[Int]
   var e : Box[ValueType] = Empty
@@ -255,6 +260,8 @@ class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int
   try {
     a match {
       case "" => Empty
+      case ar: Array[Int] => Full(set(ar.toList))
+      case ar: Array[Integer] => Full(set(ar.toList.map(x=>x.intValue)))
       case s: String => Full(set(s.split(" ").map(x => x.toInt).toList))
       case _ => Empty
     }

@@ -52,7 +52,6 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
 
   def limit(l: Int)(implicit ev: Lim =:= Unlimited): QueryBuilder[M, Ord, Limited, MM] = {
     this.copy(limit=Some(l))
-    //QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start, Some(l), tieBreaker, sort=None, minimumMatch, queryType, fieldsToFetch)
   }
 
   def tieBreaker(t: Double): QueryBuilder[M, Ord, Lim, MM] = {
