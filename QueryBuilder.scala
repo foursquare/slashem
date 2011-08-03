@@ -67,14 +67,22 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
 
   def geoRadiusFilter(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = meta.geohash.maxCells): QueryBuilder[M, Ord, Lim, MM] = {
     val cellIds = meta.geohash.coverString(geoLat, geoLong, radiusInMeters, maxCells=maxCells).map(x => Phrase(x))
-    val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
-    this.copy(filters=geoFilter::filters)
+    if (!cellIds.isEmpty) {
+      val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
+      this.copy(filters=geoFilter::filters)
+    } else {
+      this
+    }
   }
 
   def geoBoxFilter(topRight: Pair[Double, Double], botLeft: Pair[Double, Double], maxCells: Int = meta.geohash.maxCells ): QueryBuilder[M, Ord, Lim, MM] = {
     val cellIds = meta.geohash.rectCoverString(topRight,botLeft, maxCells=maxCells).map(x => Phrase(x))
-    val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
-    this.copy(filters=geoFilter::filters)
+    if (!cellIds.isEmpty) {
+      val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
+      this.copy(filters=geoFilter::filters)
+    } else {
+      this
+    }
   }
 
   def minimumMatchPercent(percent: Int)(implicit ev: MM =:= defaultMM) : QueryBuilder[M, Ord, Lim, customMM] = {
