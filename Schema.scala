@@ -156,7 +156,11 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
   }
 
   def extractFromResponse(r : String, fieldstofetch: List[String]=Nil): SearchResults[M] = {
-    val rsr = mapper.readValue(r,classOf[RawSearchResults])
+    val rsr = try {
+      mapper.readValue(r,classOf[RawSearchResults])
+    } catch {
+      case e => throw new Exception("An error occured while parsing solr result \""+r+"\"",e)
+    }
     //Take the raw search result and make the type templated search result.
     SearchResults(rsr.responseHeader,Response(this,rsr.response.numFound,rsr.response.start,rsr.response.docs))
   }
