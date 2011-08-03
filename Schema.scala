@@ -114,6 +114,18 @@ object NoopQueryLogger extends SolrQueryLogger {
   }
 }
 
+//If you want any of the geo queries you will have to implement this
+trait SolrGeoHash {
+  def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells : Int ) : Seq[String]
+  def rectCoverString(topRight: (Double,Double), bottomLeft: (Double,Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String]
+  def maxCells: Int = 0
+}
+//Default geohash, does nothing.
+object NoopSolrGeoHash extends SolrGeoHash {
+  def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells : Int ) : Seq[String] = Nil
+  def rectCoverString(topRight: (Double,Double), bottomLeft: (Double,Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = Nil
+}
+
 trait SolrSchema[M <: Record[M]] extends Record[M] {
   self: M with Record[M] =>
 
@@ -121,6 +133,7 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
   //Set me to something which collects timing if you want (hint: you do)
   var logger: SolrQueryLogger = NoopQueryLogger
+  var geohash: SolrGeoHash = NoopSolrGeoHash
 
   //This is used so the json extractor can do its job
   implicit val formats = net.liftweb.json.DefaultFormats

@@ -1,6 +1,5 @@
 package com.foursquare.solr
 import com.foursquare.solr.Ast._
-import com.foursquare.lib.GeoS2
 import net.liftweb.record.{Record}
 
 // Phantom types
@@ -66,14 +65,14 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start, limit, tieBreaker, sort=Some(f(meta).name + " desc"), minimumMatch, queryType, fieldsToFetch)
   }
 
-  def geoRadiusFilter(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = GeoS2.DefaultMaxCells): QueryBuilder[M, Ord, Lim, MM] = {
-    val cellIds = GeoS2.cover(geoLat, geoLong, radiusInMeters, maxCells=maxCells).map({x: com.google.common.geometry.S2CellId => Phrase(x.toToken)})
+  def geoRadiusFilter(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = meta.geohash.maxCells): QueryBuilder[M, Ord, Lim, MM] = {
+    val cellIds = meta.geohash.coverString(geoLat, geoLong, radiusInMeters, maxCells=maxCells).map(x => Phrase(x))
     val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
     this.copy(filters=geoFilter::filters)
   }
 
-  def geoBoxFilter(topRight: Pair[Double, Double], botLeft: Pair[Double, Double], maxCells: Int = GeoS2.DefaultMaxCells): QueryBuilder[M, Ord, Lim, MM] = {
-    val cellIds = GeoS2.rectCover(topRight,botLeft, maxCells=maxCells).map({x: com.google.common.geometry.S2CellId => Phrase(x.toToken)})
+  def geoBoxFilter(topRight: Pair[Double, Double], botLeft: Pair[Double, Double], maxCells: Int = meta.geohash.maxCells ): QueryBuilder[M, Ord, Lim, MM] = {
+    val cellIds = meta.geohash.rectCoverString(topRight,botLeft, maxCells=maxCells).map(x => Phrase(x))
     val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
     this.copy(filters=geoFilter::filters)
   }
