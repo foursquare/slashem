@@ -30,20 +30,21 @@ import collection.JavaConversions._
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
 
 //The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results
-case class Response[T <: Record[T]] (schema : T, numFound: Int, start: Int, docs: Array[HashMap[String,Any]]) {
+case class Response[T <: Record[T]] (schema: T, numFound: Int, start: Int, docs: Array[HashMap[String,Any]]) {
   //Convert the ArrayList to the concrete type using magic
-  def results[T <: Record[T]](B : Record[T]) : List[T] = {
+  def results[T <: Record[T]](B: Record[T]): List[T] = {
     docs.map({doc => val q = B.meta.createRecord
               doc.foreach({a =>
+                
                 val fname = a._1
                 val value = a._2
                 q.fieldByName(fname).map(_.setFromAny(value))})
               q.asInstanceOf[T]
             }).toList
   }
-  def results : List[T] = results(schema)
+  def results: List[T] = results(schema)
   //Special for extracting just ObjectIds without the overhead of record.
-  def oids : List[ObjectId] = {
+  def oids: List[ObjectId] = {
     docs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
   }
 }
@@ -71,69 +72,19 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   //The name is used to determine which props to use as well as for logging
   def solrName: String
 
+  var logger: SolrQueryLogger = NoopQueryLogger
+
   //Params semi-randomly chosen
   def client = ClientBuilder()
-  .codec(Http())
-  .hosts(servers.map(x => {val h = x.split(":")
-                         val s = h.head
-                         val p = h.last
-                         new InetSocketAddress(s,p.toInt)}))
-  .hostConnectionLimit(1000)
-  .hostConnectionCoresize(300)
-  .retries(3)
-  .build()
-
-  // This method performs the actually query / http request. It should probably
-  // go in another file when it gets more sophisticated.
-  def rawQuery(params: Seq[(String, String)]): String = {
-    val response = rawQueryFuture(params)(Duration(10,TimeUnit.SECONDS))
-    val str = response.getContent.toString(CharsetUtil.UTF_8)
-    str
-  }
-  def rawQueryFuture(params: Seq[(String, String)]): Future[HttpResponse] = {
-    //Ugly :(
-    val qse = new QueryStringEncoder("/solr/select")
-    (("wt" -> "json") :: params.toList).map(x => qse.addParam(x._1,x._2))
-    val request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, qse.toString)
-    //Here be dragons! If you have multiple backends with shared IPs this could very well explode
-    //but finagle doesn't seem to properly set the http host header for http/1.1
-    request.addHeader(HttpHeaders.Names.HOST, servers.head);
-    val resultFuture = client(request)
-    resultFuture
-  }
-
-}
-//If you want to get some simple logging/timing implement this trait
-trait SolrQueryLogger {
-  def log[T](name: String, msg :String, f: => T): T
-}
-//The default logger, does nothing.
-object NoopQueryLogger extends SolrQueryLogger {
-  override def log[T](name: String, msg :String, f: => T): T = {
-    f
-  }
-}
-
-//If you want any of the geo queries you will have to implement this
-trait SolrGeoHash {
-  def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells : Int ) : Seq[String]
-  def rectCoverString(topRight: (Double,Double), bottomLeft: (Double,Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String]
-  def maxCells: Int = 0
-}
-//Default geohash, does nothing.
-object NoopSolrGeoHash extends SolrGeoHash {
-  def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells : Int ) : Seq[String] = Nil
-  def rectCoverString(topRight: (Double,Double), bottomLeft: (Double,Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = Nil
-}
-
-trait SolrSchema[M <: Record[M]] extends Record[M] {
-  self: M with Record[M] =>
-
-  def meta: SolrMeta[M]
-
-  //Set me to something which collects timing if you want (hint: you do)
-  var logger: SolrQueryLogger = NoopQueryLogger
-  var geohash: SolrGeoHash = NoopSolrGeoHash
+    .codec(Http())
+    .hosts(servers.map(x => {val h = x.split(":")
+                             val s = h.head
+                             val p = h.last
+                             new InetSocketAddress(s, p.toInt)}))
+    .hostConnectionLimit(1000)
+    .hostConnectionCoresize(300)
+    .retries(3)
+    .build()
 
   //This is used so the json extractor can do its job
   implicit val formats = net.liftweb.json.DefaultFormats
@@ -143,6 +94,76 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
     a.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     a
   }
+  
+  def extractFromResponse(r: String, fieldstofetch: List[String]=Nil): SearchResults[T] = {
+    logger.log(solrName + ".jsonExtract", "extacting json") {
+      val rsr = try {
+        mapper.readValue(r, classOf[RawSearchResults])
+      } catch {
+        case e => throw new Exception("An error occured while parsing solr result \""+r+"\"",e)
+      }
+      //Take the raw search result and make the type templated search result.
+      SearchResults(rsr.responseHeader, Response(createRecord, rsr.response.numFound, rsr.response.start, rsr.response.docs))
+    }
+  }
+
+  // This method performs the actually query / http request. It should probably
+  // go in another file when it gets more sophisticated.
+  def rawQuery(params: Seq[(String, String)]): String = {
+    val response = rawQueryFuture(params)(Duration(10, TimeUnit.SECONDS))
+    val str = response.getContent.toString(CharsetUtil.UTF_8)
+    str
+  }
+  def rawQueryFuture(params: Seq[(String, String)]): Future[HttpResponse] = {
+    //Ugly :(
+    val qse = new QueryStringEncoder("/solr/select")
+
+    (("wt" -> "json") :: params.toList).foreach { x =>
+      qse.addParam(x._1, x._2)
+    }
+    
+    val request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, qse.toString)
+    //Here be dragons! If you have multiple backends with shared IPs this could very well explode
+    //but finagle doesn't seem to properly set the http host header for http/1.1
+    request.addHeader(HttpHeaders.Names.HOST, servers.head);
+
+    logger.log(solrName+".rawQuery", request.getUri) {
+      client(request)
+    }
+  }
+
+}
+//If you want to get some simple logging/timing implement this trait
+trait SolrQueryLogger {
+  def log[T](name: String, msg :String)(f: => T): T
+}
+//The default logger, does nothing.
+object NoopQueryLogger extends SolrQueryLogger {
+  override def log[T](name: String, msg :String)(f: => T): T = {
+    f
+  }
+}
+
+//If you want any of the geo queries you will have to implement this
+trait SolrGeoHash {
+  def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells: Int ): Seq[String]
+  def rectCoverString(topRight: (Double,Double), bottomLeft: (Double,Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String]
+  def maxCells: Int = 0
+}
+//Default geohash, does nothing.
+object NoopSolrGeoHash extends SolrGeoHash {
+  def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells: Int ) : Seq[String] = Nil
+  def rectCoverString(topRight: (Double,Double), bottomLeft: (Double,Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = Nil
+}
+
+trait SolrSchema[M <: Record[M]] extends Record[M] {
+  self: M with Record[M] =>
+
+  def meta: SolrMeta[M]
+
+  //Set me to something which collects timing if you want (hint: you do)
+  var geohash: SolrGeoHash = NoopSolrGeoHash
+
 
   // 'Where' is the entry method for a SolrRogue query.
   def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM] = {
@@ -150,21 +171,10 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
   }
 
   //The query builder calls into this to do actually execute the query.
-  def query(params: Seq[(String, String)], fieldstofetch: List[String]) : SearchResults[M] = {
-    val r = logger.log("solr"+meta.solrName+"rawQuery",params.mkString(","),meta.rawQuery(params))
-    logger.log("solr"+meta.solrName+"jsonExtract","",extractFromResponse(r,fieldstofetch))
+  def query(params: Seq[(String, String)], fieldstofetch: List[String]): SearchResults[M] = {
+    val jsonResponse = meta.rawQuery(params)
+    meta.extractFromResponse(jsonResponse, fieldstofetch)
   }
-
-  def extractFromResponse(r : String, fieldstofetch: List[String]=Nil): SearchResults[M] = {
-    val rsr = try {
-      mapper.readValue(r,classOf[RawSearchResults])
-    } catch {
-      case e => throw new Exception("An error occured while parsing solr result \""+r+"\"",e)
-    }
-    //Take the raw search result and make the type templated search result.
-    SearchResults(rsr.responseHeader,Response(this,rsr.response.numFound,rsr.response.start,rsr.response.docs))
-  }
-
 }
 
 trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
