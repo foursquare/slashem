@@ -49,6 +49,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
     this.copy(boostQueries=f(meta)::boostQueries)
   }
 
+  def start(s: Int): QueryBuilder[M, Ord, Lim, MM] = {
+    this.copy(start=Some(s))
+  }
+
   def limit(l: Int)(implicit ev: Lim =:= Unlimited): QueryBuilder[M, Ord, Limited, MM] = {
     this.copy(limit=Some(l))
   }
@@ -133,11 +137,16 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
     ()
   }
 
-  def queryParams(): Seq[(String,String)] = {
-    val p = List(("q" -> clauses.extend),
-                 ("start" -> (start.getOrElse {DefaultStart}).toString),
-                 ("rows" -> (limit.getOrElse {DefaultLimit}).toString)
-                 )
+  def queryParams(): Seq[(String, String)] = queryParamsWithBounds(this.start, this.limit)
+
+  def queryParamsWithBounds(qstart: Option[Long], qrows: Option[Long]): Seq[(String,String)] = {
+    val bounds = List(("start" -> (qstart.getOrElse {DefaultStart}).toString),
+                 ("rows" -> (qrows.getOrElse {DefaultLimit}).toString))
+    bounds ++ queryParamsNoBounds()
+  }
+
+  def queryParamsNoBounds(): Seq[(String,String)] = {
+    val p = List(("q" -> clauses.extend))
 
     val s = sort match {
       case None => Nil
@@ -182,5 +191,17 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   def fetch():  SearchResults[M] = {
     // Gross++
     meta.query(queryParams,fieldsToFetch)
+  }
+  // Call fetchBatch when you need a large number of results from SOLR.
+  // Usage example: val res = (SVenue where (_.default eqs "coffee") start(10) limit(40) fetchBatch(10)) {_.response.oids }
+  def fetchBatch[T](batchSize: Int)(f: SearchResults[M] => List[T]): List[T] = {
+    val startPos: Long = this.start.getOrElse(DefaultStart)
+    val rowsToGet: Long = this.limit.getOrElse(DefaultLimit) // if limit is not set
+    // Now make rowsToGet/batchSizes calls to meta.query
+    (0 to scala.math.ceil(rowsToGet*1.0/batchSize).toInt).flatMap{i =>
+      // cannot simply override this.start as it is a val, so removing/adding on queryParams
+      val starti = startPos + (i*batchSize)
+      f(meta.query(queryParamsWithBounds(Option(starti), Option(batchSize)), fieldsToFetch))
+    }.toList
   }
 }
