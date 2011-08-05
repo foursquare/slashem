@@ -100,6 +100,7 @@ class SUser extends SolrSchema[SUser] {
   object phone extends SolrStringField(this)
   object user_type extends SolrStringField(this)
   object brand_sidebar_content extends SolrStringField(this)
+  object friend_ids extends SolrStringField(this)
 }
 
 object SEvent extends SEvent with SolrMeta[SEvent] {
