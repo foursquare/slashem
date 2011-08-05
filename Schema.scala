@@ -35,7 +35,7 @@ case class Response[T <: Record[T]] (schema: T, numFound: Int, start: Int, docs:
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     docs.map({doc => val q = B.meta.createRecord
               doc.foreach({a =>
-                
+
                 val fname = a._1
                 val value = a._2
                 q.fieldByName(fname).map(_.setFromAny(value))})
@@ -94,7 +94,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     a.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     a
   }
-  
+
   def extractFromResponse(r: String, fieldstofetch: List[String]=Nil): SearchResults[T] = {
     logger.log(solrName + ".jsonExtract", "extacting json") {
       val rsr = try {
@@ -121,7 +121,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     (("wt" -> "json") :: params.toList).foreach { x =>
       qse.addParam(x._1, x._2)
     }
-    
+
     val request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, qse.toString)
     //Here be dragons! If you have multiple backends with shared IPs this could very well explode
     //but finagle doesn't seem to properly set the http host header for http/1.1
@@ -191,6 +191,10 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
 
   def in(v: Iterable[V]) = Clause[V](self.name, Plus(groupWithOr(v.map({x: V => Phrase(x)}))))
   def nin(v: Iterable[V]) = Clause[V](self.name, Minus(groupWithAnd(v.map({x: V => Phrase(x)}))))
+
+  def in(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(Plus(groupWithOr(v.map({x: V => Phrase(x)}))),b))
+  def nin(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(Minus(groupWithAnd(v.map({x: V => Phrase(x)}))),b))
+
 
   def inRange(v1: V, v2: V) = Clause[V](self.name, Group(Plus(Range(v1,v2))))
   def ninRange(v1: V, v2: V) = Clause[V](self.name, Group(Minus(Range(v1,v2))))
