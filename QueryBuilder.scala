@@ -196,9 +196,15 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   // Usage example: val res = (SVenue where (_.default eqs "coffee") start(10) limit(40) fetchBatch(10)) {_.response.oids }
   def fetchBatch[T](batchSize: Int)(f: SearchResults[M] => List[T]): List[T] = {
     val startPos: Long = this.start.getOrElse(DefaultStart)
-    val rowsToGet: Long = this.limit.getOrElse(DefaultLimit) // if limit is not set
+    val maxRowsToGet: Option[Long] = this.limit//If not specified try to get all rows
+    //There is somewhat of a race condition here. If data is being inserted or deleted during the query
+    //some results may not appear and some results may be duplicated.
+    val firstQuery = meta.query(queryParamsWithBounds(Option(startPos), Option(batchSize)), fieldsToFetch)
+    val maxResults = firstQuery.response.numFound - firstQuery.response.start
+    val rowsToGet : Long = maxRowsToGet.map(scala.math.min(_,maxResults)) getOrElse maxResults
     // Now make rowsToGet/batchSizes calls to meta.query
-    (0 to scala.math.ceil(rowsToGet*1.0/batchSize).toInt).flatMap{i =>
+    //Note the 1 is not a typo
+    f(firstQuery)++(1 to scala.math.ceil(rowsToGet*1.0/batchSize).toInt).flatMap{i =>
       // cannot simply override this.start as it is a val, so removing/adding on queryParams
       val starti = startPos + (i*batchSize)
       f(meta.query(queryParamsWithBounds(Option(starti), Option(batchSize)), fieldsToFetch))
