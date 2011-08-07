@@ -55,6 +55,7 @@ class SVenue extends SolrSchema[SVenue] {
   object checkinCount extends SolrIntField(this)
   object category_ids extends SolrStringField(this)
   object decayedPopularity1 extends SolrDoubleField(this)
+  object geo_s2_cell_ids extends SolrGeoField(this)
 }
 
 object STip extends STip with SolrMeta[STip] {
@@ -74,6 +75,8 @@ class STip extends SolrSchema[STip] {
   object id extends SolrObjectIdField(this)
   object text extends SolrStringField(this)
   object userid extends SolrStringField(this)
+  object geo_s2_cell_ids extends SolrGeoField(this)
+
 }
 
 object SUser extends SUser with SolrMeta[SUser] {
@@ -101,6 +104,8 @@ class SUser extends SolrSchema[SUser] {
   object user_type extends SolrStringField(this)
   object brand_sidebar_content extends SolrStringField(this)
   object friend_ids extends SolrStringField(this)
+  object geo_s2_cell_ids extends SolrGeoField(this)
+
 }
 
 object SEvent extends SEvent with SolrMeta[SEvent] {
@@ -127,13 +132,15 @@ class SEvent extends SolrSchema[SEvent] {
     override def name="*"
   }
   object id extends SolrObjectIdField(this)
-  object venueid extends SolrObjectIdField(this) // Use long here? Or, change FKs in SVenue, Stip to ObjectIdField?
+  object venueid extends SolrObjectIdField(this)
   object lat extends SolrDoubleField(this)
   object lng extends SolrDoubleField(this)
   object name extends SolrStringField(this)
   object tags extends SolrStringField(this)
   object start_time extends SolrDateTimeField(this)
   object expires_time extends SolrDateTimeField(this)
+  object geo_s2_cell_ids extends SolrGeoField(this)
+
 }
 
 object Helpers {

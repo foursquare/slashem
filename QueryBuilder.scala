@@ -27,7 +27,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
  queryType: Option[String],
  fieldsToFetch: List[String]) {
 
-  val GeoS2FieldName = "geo_s2_cell_ids"
+
   val DefaultLimit = 10
   val DefaultStart = 0
   import Helpers._
@@ -67,26 +67,6 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
 
   def orderDesc[F](f: M => SolrField[F, M])(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM] = {
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields, start, limit, tieBreaker, sort=Some(f(meta).name + " desc"), minimumMatch, queryType, fieldsToFetch)
-  }
-
-  def geoRadiusFilter(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = meta.geohash.maxCells): QueryBuilder[M, Ord, Lim, MM] = {
-    val cellIds = meta.geohash.coverString(geoLat, geoLong, radiusInMeters, maxCells=maxCells).map(x => Phrase(x))
-    if (!cellIds.isEmpty) {
-      val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
-      this.copy(filters=geoFilter::filters)
-    } else {
-      this
-    }
-  }
-
-  def geoBoxFilter(topRight: Pair[Double, Double], botLeft: Pair[Double, Double], maxCells: Int = meta.geohash.maxCells ): QueryBuilder[M, Ord, Lim, MM] = {
-    val cellIds = meta.geohash.rectCoverString(topRight,botLeft, maxCells=maxCells).map(x => Phrase(x))
-    if (!cellIds.isEmpty) {
-      val geoFilter = Clause(GeoS2FieldName, groupWithOr(cellIds))
-      this.copy(filters=geoFilter::filters)
-    } else {
-      this
-    }
   }
 
   def minimumMatchPercent(percent: Int)(implicit ev: MM =:= defaultMM) : QueryBuilder[M, Ord, Lim, customMM] = {
