@@ -153,7 +153,7 @@ trait SolrGeoHash {
 //Default geohash, does nothing.
 object NoopSolrGeoHash extends SolrGeoHash {
   def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells: Int ) : Seq[String] = Nil
-  def rectCoverString(topRight: (Double,Double), bottomLeft: (Double,Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = Nil
+  def rectCoverString(topRight: (Double,Double), bottomLeft: (Double,Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = List("pleaseUseaRealGeoHash")
 }
 
 trait SolrSchema[M <: Record[M]] extends Record[M] {
@@ -221,11 +221,19 @@ class SolrDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](o
 class SolrGeoField[T <: SolrSchema[T]](owner: T) extends StringField[T](owner,0) with SolrField[String, T] {
   def inRadius(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = owner.geohash.maxCells) = {
     val cellIds = owner.geohash.coverString(geoLat, geoLong, radiusInMeters, maxCells = maxCells)
-    this.in(cellIds)
+    //If we have an empty cover we default to everything.
+    cellIds match {
+      case Nil => this.any
+      case _ => this.in(cellIds)
+    }
   }
   def inBox(topRight: Pair[Double,Double], botLeft: Pair[Double,Double], maxCells: Int = owner.geohash.maxCells) = {
     val cellIds = owner.geohash.rectCoverString(topRight,botLeft, maxCells = maxCells)
-    this.in(cellIds)
+    //If we have an empty cover we default to everything.
+    cellIds match {
+      case Nil => this.any
+      case _ => this.in(cellIds)
+    }
   }
 }
 
