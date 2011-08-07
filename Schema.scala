@@ -152,7 +152,7 @@ trait SolrGeoHash {
 }
 //Default geohash, does nothing.
 object NoopSolrGeoHash extends SolrGeoHash {
-  def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells: Int ) : Seq[String] = Nil
+  def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells: Int ) : Seq[String] = List("pleaseUseaRealGeoHash")
   def rectCoverString(topRight: (Double,Double), bottomLeft: (Double,Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = List("pleaseUseaRealGeoHash")
 }
 
