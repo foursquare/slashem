@@ -217,6 +217,17 @@ class SolrObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner
 class SolrIntListField[T <: Record[T]](owner: T) extends IntListField[T](owner) with SolrField[List[Int], T]
 class SolrBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SolrField[Boolean, T]
 class SolrDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SolrField[DateTime, T]
+//More restrictive type so we can access the geohash
+class SolrGeoField[T <: SolrSchema[T]](owner: T) extends StringField[T](owner,0) with SolrField[String, T] {
+  def inRadius(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = owner.geohash.maxCells) = {
+    val cellIds = owner.geohash.coverString(geoLat, geoLong, radiusInMeters, maxCells = maxCells)
+    this.in(cellIds)
+  }
+  def inBox(topRight: Pair[Double,Double], botLeft: Pair[Double,Double], maxCells: Int = owner.geohash.maxCells) = {
+    val cellIds = owner.geohash.rectCoverString(topRight,botLeft, maxCells = maxCells)
+    this.in(cellIds)
+  }
+}
 
 // This insanity makes me want to 86 Record all together. DummyField allows us
 // to easily define our own Field types. I use this for ObjectId so that I don't
