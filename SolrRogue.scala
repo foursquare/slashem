@@ -145,10 +145,16 @@ class SEvent extends SolrSchema[SEvent] {
 
 object Helpers {
   def groupWithOr[V](v: Iterable[Query[V]]): Query[V] = {
-    Group(v.tail.foldLeft(v.head: Query[V])({(l, r) => Or(l, r)}))
+    if (v.isEmpty)
+      Group(Empty[V])
+    else
+      Group(v.tail.foldLeft(v.head: Query[V])({(l, r) => Or(l, r)}))
   }
 
   def groupWithAnd[V](v: Iterable[Query[V]]): Query[V] = {
-    Group(v.tail.foldLeft(v.head: Query[V])({(l, r) => And(l, r)}))
+    if (v.isEmpty)
+      Group(Empty[V])
+    else
+      Group(v.tail.foldLeft(v.head: Query[V])({(l, r) => And(l, r)}))
   }
 }

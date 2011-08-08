@@ -46,7 +46,8 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   }
 
   def boostQuery[F](f: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM] = {
-    this.copy(boostQueries=f(meta)::boostQueries)
+    
+    this.copy(boostQueries=f(meta) :: boostQueries)
   }
 
   def start(s: Int): QueryBuilder[M, Ord, Lim, MM] = {

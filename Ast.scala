@@ -61,6 +61,10 @@ object Ast {
     def boost(b : Float): Query[T] = Boost(this,b)
   }
 
+  case class Empty[T]() extends Query[T] {
+    def extend = "\"\""
+  }
+
   case class Phrase[T](query: T, escaped: Boolean = true) extends Query[T] {
     def extend = {'"' + Solr.escape(query.toString) + '"'}
   }
