@@ -105,6 +105,7 @@ class SUser extends SolrSchema[SUser] {
   object brand_sidebar_content extends SolrStringField(this)
   object friend_ids extends SolrStringField(this)
   object geo_s2_cell_ids extends SolrGeoField(this)
+  object follower_count extends SolrLongField(this)
 
 }
 
