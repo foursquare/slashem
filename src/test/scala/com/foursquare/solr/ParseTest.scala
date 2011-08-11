@@ -1,8 +1,6 @@
 package com.foursquare.solr
 
-import com.foursquare.model.Implicits._
 import com.foursquare.solr._
-import com.foursquare.test.SpecHelpers._
 
 import net.liftweb.common.Full
 
