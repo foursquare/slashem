@@ -1,7 +1,25 @@
 package com.foursquare.solr
-import com.foursquare.lib.Solr
+
 
 object Ast {
+
+  // ripped from lucene source code QueryParser.java
+  def escape(q: String) = {
+    val sb = new StringBuilder()
+    q.trim.foreach{c =>
+      // These characters are part of the query syntax and must be escaped
+      if (c == '\\' || c == '+' || c == '-' || c == '!' || c == '(' || c == ')' || c == ':'
+        || c == '^' || c == '[' || c == ']' || c == '\"' || c == '{' || c == '}' || c == '~'
+        || c == '*' || c == '?' || c == '|' || c == '&') {
+        sb.append('\\')
+      }
+      sb.append(c)
+    }
+    sb.toString
+  }
+
+  def quote(q: String) = "\"" + q + "\""
+
 
   abstract class AClause {
     def extend: String
@@ -66,11 +84,11 @@ object Ast {
   }
 
   case class Phrase[T](query: T, escaped: Boolean = true) extends Query[T] {
-    def extend = {'"' + Solr.escape(query.toString) + '"'}
+    def extend = {'"' + escape(query.toString) + '"'}
   }
 
   case class Range[T](q1: T,q2: T) extends Query[T] {
-    def extend = {'['+Solr.escape(q1.toString)+" to "+ Solr.escape(q2.toString) +']'}
+    def extend = {'['+escape(q1.toString)+" to "+ escape(q2.toString) +']'}
   }
 
   case class UnescapedPhrase[T](query: T) extends Query[T] {
@@ -78,7 +96,7 @@ object Ast {
   }
 
   case class BagOfWords[T](query: T) extends Query[T] {
-    def extend = Solr.escape(query.toString)
+    def extend = escape(query.toString)
   }
 
   case class Group[T](items: Query[T]) extends Query[T] {
