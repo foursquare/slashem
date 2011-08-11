@@ -83,7 +83,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
   @Test
   def testProduceCorrectWithQueryFieldAndZeroBoost {
-    val q = SVenueTest where (_.default eqs "club") useQueryType("edismax") queryField(_.name,0)
+    val q = SVenueTest where (_.default eqs "club") useQueryType("edismax") queryField(_.name, 0)
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
                                                       "q" -> "(+\"club\")",
@@ -92,7 +92,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
   @Test
   def testProduceCorrectWithQueryFieldAndOneBoost {
-    val q = SVenueTest where (_.default eqs "club") useQueryType("edismax") queryField(_.name,1)
+    val q = SVenueTest where (_.default eqs "club") useQueryType("edismax") queryField(_.name, 1)
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
                                                       "q" -> "(+\"club\")",
@@ -165,7 +165,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   @Test
   def testAutoComplexQuery1 {
     val lols="holden's hobohut"
-    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text,1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name,0.2)
+    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text, 1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name, 0.2)
     val qp = q.queryParams().toList
     val expected = List("defType" -> "edismax",
                         "q" -> "(holden's hobohut)",
@@ -182,12 +182,12 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "text",
                         "qf" -> "ngram_name^0.2",
                         "rows" -> "10")
-    Assert.assertEquals(qp.sortWith(((x,y) => (x._1+x._2) > (y._1+y._2))),expected.sortWith(((x,y) => (x._1+x._2) > (y._1+y._2))))
+    Assert.assertEquals(qp.sortWith(((x, y) => (x._1+x._2) > (y._1+y._2))), expected.sortWith(((x, y) => (x._1+x._2) > (y._1+y._2))))
   }
   @Test
   def testAutoComplexQuery2 {
     val lols="holden's hobohut"
-    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text,1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name,0.2) queryField(_.tags,0.01)
+    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text, 1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name, 0.2) queryField(_.tags, 0.01)
     val qp = q.queryParams().toList
     val expected = List("defType" -> "edismax",
                         "q" -> "(holden's hobohut)",
@@ -205,15 +205,15 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "ngram_name^0.2",
                         "qf" -> "tags^0.01",
                         "rows" -> "10")
-    Assert.assertEquals(qp.sortWith(((x,y) => (x._1+x._2) > (y._1+y._2))),
-                        expected.sortWith(((x,y) => (x._1+x._2) > (y._1+y._2))))
+    Assert.assertEquals(qp.sortWith(((x, y) => (x._1+x._2) > (y._1+y._2))),
+                        expected.sortWith(((x, y) => (x._1+x._2) > (y._1+y._2))))
   }
   @Test
   def testAutoComplexQuery3 {
     val lols="holden's hobohut"
     val geoLat = 37.7519528215759
     val geoLong = -122.42086887359619
-    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text,1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name,0.2) queryField(_.tags,0.01) tieBreaker(0.2)
+    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text, 1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name, 0.2) queryField(_.tags, 0.01) tieBreaker(0.2)
     val qp = q.queryParams().toList
     val expected = List("defType" -> "edismax",
                         "q" -> "(holden's hobohut)",
@@ -240,7 +240,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val lols="holden's hobohut"
     val geoLat = 37.7519528215759
     val geoLong = -122.42086887359619
-    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text,1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name,0.2) queryField(_.tags,0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong))
+    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text, 1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name, 0.2) queryField(_.tags, 0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong))
     val qp = q.queryParams().toList
     val expected = List("defType" -> "edismax",
                         "q" -> "(holden's hobohut)",
@@ -258,13 +258,11 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "ngram_name^0.2",
                         "qf" -> "tags^0.01",
                         "tieBreaker" -> "0.2",
-                        "bf" -> "recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong),
+                        "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
                         "bf" -> "decayedPopularity1^1.0",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
-//    Assert.assertEquals(qp.sortWith(((x,y) => (x._1+x._2) > (y._1+y._2))),
-//                        expected.sortWith(((x,y) => (x._1+x._2) > (y._1+y._2))))
   }
 
   @Test
@@ -272,7 +270,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val lols="holden's hobohut"
     val geoLat = 37.7519528215759
     val geoLong = -122.42086887359619
-    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text,1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name,0.2) queryField(_.tags,0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong)) boostQuery((_.name contains lols))
+    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text, 1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name, 0.2) queryField(_.tags, 0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong)) boostQuery((_.name contains lols))
     val qp = q.queryParams().toList
     val expected = List("defType" -> "edismax",
                         "q" -> "(holden's hobohut)",
@@ -291,7 +289,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "tags^0.01",
                         "tieBreaker" -> "0.2",
                         "bq" -> "name:(holden's hobohut)",
-                        "bf" -> "recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong),
+                        "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
                         "bf" -> "decayedPopularity1^1.0",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
@@ -303,7 +301,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val lols="holden's hobohut"
     val geoLat = 37.7519528215759
     val geoLong = -122.42086887359619
-    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text,1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name,0.2) queryField(_.tags,0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong)) boostQuery(_.name contains(lols,10))
+    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text, 1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name, 0.2) queryField(_.tags, 0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong)) boostQuery(_.name contains(lols, 10))
     val qp = q.queryParams().toList
     val expected = List("defType" -> "edismax",
                         "q" -> "(holden's hobohut)",
@@ -322,7 +320,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "tags^0.01",
                         "tieBreaker" -> "0.2",
                         "bq" -> "name:((holden's hobohut)^10.0)",
-                        "bf" -> "recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong),
+                        "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
                         "bf" -> "decayedPopularity1^1.0",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
@@ -334,7 +332,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val lols="holden's hobohut"
     val geoLat = 37.7519528215759
     val geoLong = -122.42086887359619
-    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text,1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name,0.2) queryField(_.tags,0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong)) boostQuery(_.name contains(lols,10)) fetchFields(_.id,_.name,_.userid,_.mayorid,_.category_id_0,_.popularity,_.decayedPopularity1,_.lat,_.lng,_.checkin_info,_.score,_.hasSpecial,_.address,_.crossstreet,_.city,_.state,_.zip,_.country,_.checkinCount)
+    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text, 1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name, 0.2) queryField(_.tags, 0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong)) boostQuery(_.name contains(lols, 10)) fetchFields(_.id,_.name,_.userid,_.mayorid,_.category_id_0,_.popularity,_.decayedPopularity1,_.lat,_.lng,_.checkin_info,_.score,_.hasSpecial,_.address,_.crossstreet,_.city,_.state,_.zip,_.country,_.checkinCount)
     val qp = q.queryParams().toList
     val expected = List("defType" -> "edismax",
                         "q" -> "(holden's hobohut)",
@@ -354,7 +352,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "tieBreaker" -> "0.2",
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount",
                         "bq" -> "name:((holden's hobohut)^10.0)",
-                        "bf" -> "recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong),
+                        "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
                         "bf" -> "decayedPopularity1^1.0",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
@@ -365,7 +363,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val lols="holden's hobohut"
     val geoLat = 37.7519528215759
     val geoLong = -122.42086887359619
-    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text,1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name,0.2) queryField(_.tags,0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong)) boostQuery(_.name contains(lols,10)) fetchFields(_.id,_.name,_.userid,_.mayorid,_.category_id_0,_.popularity,_.decayedPopularity1,_.lat,_.lng,_.checkin_info,_.score,_.hasSpecial,_.address,_.crossstreet,_.city,_.state,_.zip,_.country,_.checkinCount,_.partitionedPopularity)
+    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text, 1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name, 0.2) queryField(_.tags, 0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong)) boostQuery(_.name contains(lols, 10)) fetchFields(_.id,_.name,_.userid,_.mayorid,_.category_id_0,_.popularity,_.decayedPopularity1,_.lat,_.lng,_.checkin_info,_.score,_.hasSpecial,_.address,_.crossstreet,_.city,_.state,_.zip,_.country,_.checkinCount,_.partitionedPopularity)
     val qp = q.queryParams().toList
     val expected = List("defType" -> "edismax",
                         "q" -> "(holden's hobohut)",
@@ -385,7 +383,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "tieBreaker" -> "0.2",
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount,partitionedPopularity",
                         "bq" -> "name:((holden's hobohut)^10.0)",
-                        "bf" -> "recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong),
+                        "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
                         "bf" -> "decayedPopularity1^1.0",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
@@ -396,7 +394,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val lols="holden's hobohut"
     val geoLat = 37.7519528215759
     val geoLong = -122.42086887359619
-    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text,1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name,0.2) queryField(_.tags,0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong)) boostQuery(_.name contains(lols,10)) fetchFields(_.id,_.name,_.userid,_.mayorid,_.category_id_0,_.popularity,_.decayedPopularity1,_.lat,_.lng,_.checkin_info,_.score,_.hasSpecial,_.address,_.crossstreet,_.city,_.state,_.zip,_.country,_.checkinCount,_.partitionedPopularity) filter(_.geo_s2_cell_ids inRadius(geoLat, geoLong, 1))
+    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text, 1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name, 0.2) queryField(_.tags, 0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) boostField("recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong)) boostQuery(_.name contains(lols, 10)) fetchFields(_.id,_.name,_.userid,_.mayorid,_.category_id_0,_.popularity,_.decayedPopularity1,_.lat,_.lng,_.checkin_info,_.score,_.hasSpecial,_.address,_.crossstreet,_.city,_.state,_.zip,_.country,_.checkinCount,_.partitionedPopularity) filter(_.geo_s2_cell_ids inRadius(geoLat, geoLong, 1))
     val qp = q.queryParams().toList
     val expected = List("defType" -> "edismax",
                         "q" -> "(holden's hobohut)",
@@ -417,7 +415,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "tieBreaker" -> "0.2",
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount,partitionedPopularity",
                         "bq" -> "name:((holden's hobohut)^10.0)",
-                        "bf" -> "recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong),
+                        "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
                         "bf" -> "decayedPopularity1^1.0",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)

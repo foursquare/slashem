@@ -74,26 +74,26 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
         "lng":101.495239,
         "hasSpecial":false}]
   }}"""
-    val parsed = SVenueTest.extractFromResponse(r,Nil)
-    Assert.assertEquals(parsed.responseHeader,ResponseHeader(0,1))
-    Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).name.value,"test")
-    Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).name.valueBox,Full("test"))
-    Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).decayedPopularity1.value,0.00306415687810945,0.000000001)
+    val parsed = SVenueTest.extractFromResponse(r, Nil)
+    Assert.assertEquals(parsed.responseHeader, ResponseHeader(0, 1))
+    Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).name.value, "test")
+    Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).name.valueBox, Full("test"))
+    Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).decayedPopularity1.value, 0.00306415687810945, 0.000000001)
     Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).id.is, new ObjectId("4c809f4251ada1cdc3790b10"))
     Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).id.valueBox, Full(new ObjectId("4c809f4251ada1cdc3790b10")))
     Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).partitionedPopularity.value,
-                        List(0,0,1,0,0,1,2,2,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0))
+                        List(0, 0, 1, 0, 0, 1, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0))
     Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).partitionedPopularity.valueBox,
-                        Full(List(0,0,1,0,0,1,2,2,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0)))
+                        Full(List(0, 0, 1, 0, 0, 1, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0)))
 
-    Assert.assertEquals(parsed.response.results.apply(0).name.value,"test")
-    Assert.assertEquals(parsed.response.results.apply(0).name.valueBox,Full("test"))
-    Assert.assertEquals(parsed.response.results.apply(0).decayedPopularity1.value,0.00306415687810945,0.000000001)
+    Assert.assertEquals(parsed.response.results.apply(0).name.value, "test")
+    Assert.assertEquals(parsed.response.results.apply(0).name.valueBox, Full("test"))
+    Assert.assertEquals(parsed.response.results.apply(0).decayedPopularity1.value, 0.00306415687810945, 0.000000001)
     Assert.assertEquals(parsed.response.results.apply(0).id.is, new ObjectId("4c809f4251ada1cdc3790b10"))
     Assert.assertEquals(parsed.response.results.apply(0).id.valueBox, Full(new ObjectId("4c809f4251ada1cdc3790b10")))
     Assert.assertEquals(parsed.response.results.apply(0).partitionedPopularity.value,
-                        List(0,0,1,0,0,1,2,2,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0))
+                        List(0, 0, 1, 0, 0, 1, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0))
     Assert.assertEquals(parsed.response.results.apply(0).partitionedPopularity.valueBox,
-                        Full(List(0,0,1,0,0,1,2,2,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0)))
+                        Full(List(0, 0, 1, 0, 0, 1, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0)))
   }
 }

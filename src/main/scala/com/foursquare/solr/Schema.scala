@@ -3,7 +3,6 @@ import com.foursquare.solr.Ast._
 import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
 import net.liftweb.record.field.{BooleanField, LongField, StringField, IntField, DoubleField}
 import net.liftweb.common.{Box, Empty, Full}
-
 import com.twitter.util.{Duration, Future}
 import com.twitter.finagle._
 import com.twitter.finagle.builder.ClientBuilder
@@ -147,13 +146,13 @@ object NoopQueryLogger extends SolrQueryLogger {
 //If you want any of the geo queries you will have to implement this
 trait SolrGeoHash {
   def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells: Int ): Seq[String]
-  def rectCoverString(topRight: (Double,Double), bottomLeft: (Double,Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String]
+  def rectCoverString(topRight: (Double, Double), bottomLeft: (Double, Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String]
   def maxCells: Int = 0
 }
 //Default geohash, does nothing.
 object NoopSolrGeoHash extends SolrGeoHash {
   def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells: Int ) : Seq[String] = List("pleaseUseaRealGeoHash")
-  def rectCoverString(topRight: (Double,Double), bottomLeft: (Double,Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = List("pleaseUseaRealGeoHash")
+  def rectCoverString(topRight: (Double, Double), bottomLeft: (Double, Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = List("pleaseUseaRealGeoHash")
 }
 
 trait SolrSchema[M <: Record[M]] extends Record[M] {
@@ -227,7 +226,7 @@ class SolrGeoField[T <: SolrSchema[T]](owner: T) extends StringField[T](owner,0)
       case _ => this.in(cellIds)
     }
   }
-  def inBox(topRight: Pair[Double,Double], botLeft: Pair[Double,Double], maxCells: Int = owner.geohash.maxCells) = {
+  def inBox(topRight: Pair[Double, Double], botLeft: Pair[Double, Double], maxCells: Int = owner.geohash.maxCells) = {
     val cellIds = owner.geohash.rectCoverString(topRight,botLeft, maxCells = maxCells)
     //If we have an empty cover we default to everything.
     cellIds match {
