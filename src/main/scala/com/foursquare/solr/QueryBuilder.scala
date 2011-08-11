@@ -46,7 +46,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
   }
 
   def boostQuery[F](f: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM] = {
-    
+
     this.copy(boostQueries=f(meta) :: boostQueries)
   }
 
@@ -190,5 +190,21 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
       val starti = startPos + (i*batchSize)
       f(meta.query(queryParamsWithBounds(Option(starti), Option(batchSize)), fieldsToFetch))
     }.toList
+  }
+}
+
+object Helpers {
+  def groupWithOr[V](v: Iterable[Query[V]]): Query[V] = {
+    if (v.isEmpty)
+      Group(Empty[V])
+    else
+      Group(v.tail.foldLeft(v.head: Query[V])({(l, r) => Or(l, r)}))
+  }
+
+  def groupWithAnd[V](v: Iterable[Query[V]]): Query[V] = {
+    if (v.isEmpty)
+      Group(Empty[V])
+    else
+      Group(v.tail.foldLeft(v.head: Query[V])({(l, r) => And(l, r)}))
   }
 }

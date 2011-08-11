@@ -2,20 +2,15 @@ package com.foursquare.solr
 import Ast._
 import net.liftweb.util.Props
 
-object SVenue extends SVenue with SolrMeta[SVenue] {
+object SVenueTest extends SVenueTest with SolrMeta[SVenueTest] {
   //The name is used to determine which props to use.
   def solrName = "venues"
   //The servers is a list used in round-robin for running solr read queries against.
-  def servers = Props.get("sorl."+solrName+".servers").map(x => x.split(",").toList).openOr {
-    //If the server list prop isn't present fall back to the old style of host/port
-    val Host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
-    val Port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
-    List("%s:%d".format(Host, Port))
-  }
+  def servers = List("localhost:8002")
 }
 
-class SVenue extends SolrSchema[SVenue] {
-  def meta = SVenue
+class SVenueTest extends SolrSchema[SVenueTest] {
+  def meta = SVenueTest
 
   //The default field will result in queries against the default field
   //or if a list of fields to query has been specified to an edismax query then
@@ -58,19 +53,14 @@ class SVenue extends SolrSchema[SVenue] {
   object geo_s2_cell_ids extends SolrGeoField(this)
 }
 
-object STip extends STip with SolrMeta[STip] {
+object STipTest extends STipTest with SolrMeta[STipTest] {
   //The name is used to determine which props to use.
   def solrName = "tips"
   //The servers is a list used in round-robin for running solr read queries against.
-  def servers = Props.get("sorl."+solrName+".servers").map(x => x.split(",").toList).openOr {
-    //If the server list prop isn't present fall back to the old style of host/port
-    val Host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
-    val Port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
-    List("%s:%d".format(Host, Port))
-  }
+  def servers = List("localhost:8001")
 }
-class STip extends SolrSchema[STip] {
-  def meta = STip
+class STipTest extends SolrSchema[STipTest] {
+  def meta = STipTest
 
   object id extends SolrObjectIdField(this)
   object text extends SolrStringField(this)
@@ -79,16 +69,12 @@ class STip extends SolrSchema[STip] {
 
 }
 
-object SUser extends SUser with SolrMeta[SUser] {
+object SUserTest extends SUserTest with SolrMeta[SUserTest] {
   def solrName = "user"
-  def servers = Props.get("sorl."+solrName+".servers").map(x => x.split(",").toList).openOr {
-    val Host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
-    val Port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
-    List("%s:%d".format(Host, Port))
-  }
+  def servers = List("localhost:8003")
 }
-class SUser extends SolrSchema[SUser] {
-  def meta = SUser
+class SUserTest extends SolrSchema[SUserTest] {
+  def meta = SUserTest
 
   //The default field will result in queries against the default field
   //or if a list of fields to query has been specified to an edismax query then
@@ -109,20 +95,15 @@ class SUser extends SolrSchema[SUser] {
 
 }
 
-object SEvent extends SEvent with SolrMeta[SEvent] {
+object SEventTest extends SEventTest with SolrMeta[SEventTest] {
   //The name is used to determine which props to use.
   def solrName = "events"
   //The servers is a list used in round-robin for running solr read queries against.
-  def servers = Props.get("sorl."+solrName+".servers").map(x => x.split(",").toList).openOr {
-    //If the server list prop isn't present fall back to the old style of host/port
-    val Host = Props.get("solr." + solrName + ".host").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
-    val Port = Props.getInt("solr." + solrName + ".port").openOr(throw new RuntimeException("Props not found for %s Solr".format(solrName)))
-    List("%s:%d".format(Host, Port))
-  }
+  def servers = List("localhost:8004")
 }
 
-class SEvent extends SolrSchema[SEvent] {
-  def meta = SEvent
+class SEventTest extends SolrSchema[SEventTest] {
+  def meta = SEventTest
 
   //The default field will result in queries against the default field
   //or if a list of fields to query has been specified to an edismax query then
@@ -144,18 +125,3 @@ class SEvent extends SolrSchema[SEvent] {
 
 }
 
-object Helpers {
-  def groupWithOr[V](v: Iterable[Query[V]]): Query[V] = {
-    if (v.isEmpty)
-      Group(Empty[V])
-    else
-      Group(v.tail.foldLeft(v.head: Query[V])({(l, r) => Or(l, r)}))
-  }
-
-  def groupWithAnd[V](v: Iterable[Query[V]]): Query[V] = {
-    if (v.isEmpty)
-      Group(Empty[V])
-    else
-      Group(v.tail.foldLeft(v.head: Query[V])({(l, r) => And(l, r)}))
-  }
-}
