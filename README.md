@@ -14,12 +14,18 @@ Use sbt (simple-build-tool) to build:
 The finished jar will be in 'target/'.
 
 ## Examples
-[QueryTest.scala] contains sample queries and shows the corresponding solr query.
+[QueryTest.scala] contains sample queries and shows the corresponding query.
 [SolrRogueTest.scala] countains some sample records.
 
 ## Dependencies
 
-lift, joda-time, junit, finagle. These dependencies are managed by the build system.
+lift, joda-time, junit, finagle, jackson. These dependencies are managed by 
+the build system.
+
+## Warnings
+
+This is still a very early version. There are likely bugs (sorry!). Let us know
+if you find any. While we can't promise timely fixes, it will help :)
 
 ## Maintainers
 

@@ -499,7 +499,6 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
 
   @Test
   def sortwithPopularandAll {
-    val lols="holden's hobohut"
     val geoLat = 37.7519528215759
     val geoLong = -122.42086887359619
     val q = SVenueTest where (_.metall any) useQueryType("edismax") orderDesc(_.decayedPopularity1)

@@ -17,8 +17,10 @@ import org.specs.matcher.ScalaCheckMatchers
 
 
 class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
+  //This is the test for the extraction code.
   @Test
   def testParseVenueFields {
+    //Here is some json returned from solr.
     val r = """{
   "responseHeader":{
     "status":0,

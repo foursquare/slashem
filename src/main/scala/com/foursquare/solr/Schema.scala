@@ -34,7 +34,6 @@ case class Response[T <: Record[T]] (schema: T, numFound: Int, start: Int, docs:
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     docs.map({doc => val q = B.meta.createRecord
               doc.foreach({a =>
-
                 val fname = a._1
                 val value = a._2
                 q.fieldByName(fname).map(_.setFromAny(value))})
@@ -95,6 +94,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   }
 
   def extractFromResponse(r: String, fieldstofetch: List[String]=Nil): SearchResults[T] = {
+    //This intentional avoids lift extract as it is too slow for our use case.
     logger.log(solrName + ".jsonExtract", "extacting json") {
       val rsr = try {
         mapper.readValue(r, classOf[RawSearchResults])

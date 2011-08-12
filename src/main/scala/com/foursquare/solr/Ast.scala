@@ -76,7 +76,7 @@ object Ast {
     def extend: String
     def and(c: Query[T]): Query[T] = And(this, c)
     def or(c: Query[T]): Query[T] = Or(this, c)
-    def boost(b : Float): Query[T] = Boost(this,b)
+    def boost(b : Float): Query[T] = Boost(this, b)
   }
 
   case class Empty[T]() extends Query[T] {
