@@ -13,9 +13,9 @@ abstract sealed class customMM extends MinimumMatchType
 
 case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType](
  meta: M with SolrSchema[M],
- clauses: AClause,  // Like AndCondition in MongoHelpers
- filters: List[AClause],
- boostQueries: List[AClause],
+ clauses: AbstractClause,  // Like AndCondition in MongoHelpers
+ filters: List[AbstractClause],
+ boostQueries: List[AbstractClause],
  queryFields: List[WeightedField],
  phraseBoostFields: List[PhraseWeightedField],
  boostFields: List[String],

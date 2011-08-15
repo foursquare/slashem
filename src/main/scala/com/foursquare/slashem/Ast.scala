@@ -21,19 +21,19 @@ object Ast {
   def quote(q: String) = "\"" + q + "\""
 
 
-  abstract class AClause {
+  abstract class AbstractClause {
     def extend: String
   }
 
   //You can use a JoinClause to join two clauses (normally with "and" or "or")
-  case class JoinClause(s1 : AClause, s2: AClause, j: String) extends AClause {
+  case class JoinClause(s1 : AbstractClause, s2: AbstractClause, j: String) extends AbstractClause {
     def extend(): String = {
       "("+s1.extend+") "+j+" ("+s2.extend+")"
     }
   }
 
   // A 'Clause' is something of the form 'field:(query)'
-  case class Clause[T](fieldName: String, query: Query[T]) extends AClause{
+  case class Clause[T](fieldName: String, query: Query[T]) extends AbstractClause {
     def extend(): String = {
       val q = query match {
         case Group(x) => query
