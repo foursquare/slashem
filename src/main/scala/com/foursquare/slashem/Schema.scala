@@ -226,7 +226,7 @@ class SolrGeoField[T <: SolrSchema[T]](owner: T) extends StringField[T](owner,0)
       case _ => this.in(cellIds)
     }
   }
-  def inBox(topRight: Pair[Double, Double], botLeft: Pair[Double, Double], maxCells: Int = owner.geohash.maxCells) = {
+  def inBox(topRight: (Double, Double), botLeft: (Double, Double), maxCells: Int = owner.geohash.maxCells) = {
     val cellIds = owner.geohash.rectCoverString(topRight,botLeft, maxCells = maxCells)
     //If we have an empty cover we default to everything.
     cellIds match {
