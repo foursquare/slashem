@@ -1,4 +1,4 @@
-package com.foursquare.solr
+package com.foursquare.slashem
 import Ast._
 import net.liftweb.util.Props
 

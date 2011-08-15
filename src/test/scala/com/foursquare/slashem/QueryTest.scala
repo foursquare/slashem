@@ -1,6 +1,6 @@
-package com.foursquare.solr
+package com.foursquare.slashem
 
-import com.foursquare.solr._
+import com.foursquare.slashem._
 
 import org.junit.Test
 import org.junit._

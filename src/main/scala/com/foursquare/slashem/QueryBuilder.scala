@@ -1,5 +1,5 @@
-package com.foursquare.solr
-import com.foursquare.solr.Ast._
+package com.foursquare.slashem
+import com.foursquare.slashem.Ast._
 import net.liftweb.record.{Record}
 
 // Phantom types
