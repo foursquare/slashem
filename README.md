@@ -5,7 +5,7 @@ executing find requests against SOLR. It is a rogue-like for solr. It is not
 currently full expressive to SOLR's query functionality, but covers the main
 use cases that we encountered.
 
-## Vuilding and Installation
+## Building and Installation
 
 Use sbt (simple-build-tool) to build:
 
