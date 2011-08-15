@@ -7,11 +7,11 @@ abstract sealed class Ordered
 abstract sealed class Unordered
 abstract sealed class Limited
 abstract sealed class Unlimited
-trait minimumMatchType
-abstract sealed class defaultMM extends minimumMatchType
-abstract sealed class customMM extends minimumMatchType
+trait MinimumMatchType
+abstract sealed class defaultMM extends MinimumMatchType
+abstract sealed class customMM extends MinimumMatchType
 
-case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: minimumMatchType](
+case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType](
  meta: M with SolrSchema[M],
  clauses: AClause,  // Like AndCondition in MongoHelpers
  filters: List[AClause],
