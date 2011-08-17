@@ -513,7 +513,61 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
   }
 
+  @Test
+  def thingsThatShouldntCompile {
+    val compiler = new Compiler
+    def check(code: String, shouldTypeCheck: Boolean = false): Unit = {
+      compiler.typeCheck(code) aka "'%s' compiles!".format(code) must_== shouldTypeCheck
+    }
+    //Make sure our basic does compile
+    check("""SVenueTest where (_.metall any) useQueryType("edismax") orderDesc(_.decayedPopularity1)""", shouldTypeCheck = true)
+    //Make sure trying to limit a limit query doesn't work
+    check("""SVenueTest where (_.metall any) useQueryType("edismax") orderDesc(_.decayedPopularity1) limit(1) limit(10)""")
+    //Conflicting order statements
+    check("""SVenueTest where (_.metall any) useQueryType("edismax") orderDesc(_.decayedPopularity1)  orderDesc(_.meta_categories) """)
+  }
 
+  //Stolen from Rogue
+  class Compiler {
+    import java.io.{PrintWriter, Writer}
+    import scala.io.Source
+    import scala.tools.nsc.{Interpreter, InterpreterResults, Settings}
+
+    class NullWriter extends Writer {
+      override def close() = ()
+      override def flush() = ()
+      override def write(arr: Array[Char], x: Int, y: Int): Unit = ()
+    }
+
+    private val settings = new Settings
+    val loader = manifest[SVenueTest].erasure.getClassLoader
+    settings.classpath.value = Source.fromURL(loader.getResource("app.class.path")).mkString
+    settings.bootclasspath.append(Source.fromURL(loader.getResource("boot.class.path")).mkString)
+    settings.deprecation.value = true // enable detailed deprecation warnings
+    settings.unchecked.value = true // enable detailed unchecked warnings
+
+    // This is deprecated in 2.9.x, but we need to use it for compatibility with 2.8.x
+    private val interpreter =
+      new Interpreter(
+        settings,
+        /*
+         * It's a good idea to comment out this second parameter when adding or modifying
+         * tests that shouldn't compile, to make sure that the tests don't compile for the
+         * right reason.
+         *
+         */
+        new PrintWriter(new NullWriter()))
+
+    interpreter.interpret("""import com.foursquare.slashem._""")
+
+    def typeCheck(code: String): Boolean = {
+      interpreter.interpret(code) match {
+        case InterpreterResults.Success => true
+        case InterpreterResults.Error => false
+        case InterpreterResults.Incomplete => throw new Exception("Incomplete code snippet")
+      }
+    }
+  }
 
 }
 
