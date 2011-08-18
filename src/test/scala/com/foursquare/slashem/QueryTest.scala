@@ -2,6 +2,7 @@ package com.foursquare.slashem
 
 import com.foursquare.slashem._
 
+import org.bson.types.ObjectId
 import org.junit.Test
 import org.junit._
 
@@ -141,6 +142,16 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
+
+  @Test
+  def testProduceCorrectObjID {
+    val q = SEventTest where (_.venueid eqs new ObjectId("4dc5bc4845dd2645527930a9"))
+    val qp = q.queryParams().toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "venueid:(+\"4dc5bc4845dd2645527930a9\")",
+                                                      "start" -> "0",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
+
   @Test
   def testProduceCorrectWithDateRange {
     import org.joda.time.{DateTime, DateTimeZone}
@@ -152,6 +163,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
+
   @Test
   def testFieldQuery {
     val q = SVenueTest where (_.default eqs "bedlam coffee") useQueryType("edismax") fetchField (_.name) fetchField(_.address)
@@ -422,6 +434,21 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
   }
   @Test
+  def testEventQuery1 {
+    val geoLat = 37.7519528215759
+    val geoLong = -122.42086887359619
+    val lols = "DJ Hixxy"
+    val q = SEventTest where (_.default contains lols) useQueryType("edismax") filter(_.geo_s2_cell_ids inRadius(geoLat, geoLong, 1))
+    val qp = q.queryParams().toList
+    val expected = List("defType" -> "edismax",
+                        "q" -> "(DJ Hixxy)",
+                        "start" -> "0",
+                        "rows" -> "10",
+                        "fq" -> "geo_s2_cell_ids:(+(\"pleaseUseaRealGeoHash\"))")
+    Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
+    Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
+  }
+  @Test
   def sortwithPopular {
     val lols="holden's hobohut"
     val geoLat = 37.7519528215759
@@ -525,6 +552,13 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     check("""SVenueTest where (_.metall any) useQueryType("edismax") orderDesc(_.decayedPopularity1) limit(1) limit(10)""")
     //Conflicting order statements
     check("""SVenueTest where (_.metall any) useQueryType("edismax") orderDesc(_.decayedPopularity1)  orderDesc(_.meta_categories) """)
+    check("""SEventTest where (_.default contains "hixxy") useQueryType("edismax") filter(_.tags inRadius(geoLat, geoLong, 1))""")
+    check("""
+    import org.joda.time.{DateTime, DateTimeZone}
+          val d1 = new DateTime(2011, 5, 1, 0, 0, 0, 0, DateTimeZone.UTC)
+          val d2 = new DateTime(2011, 5, 2, 0, 0, 0, 0, DateTimeZone.UTC)
+          SEventTest where (_.name inRange(d1, d2))""")
+
   }
 
   //Stolen from Rogue
@@ -556,7 +590,8 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
          * right reason.
          *
          */
-        new PrintWriter(new NullWriter()))
+        new PrintWriter(new NullWriter())
+      )
 
     interpreter.interpret("""import com.foursquare.slashem._""")
 
