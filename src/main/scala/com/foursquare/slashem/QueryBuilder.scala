@@ -1,6 +1,8 @@
 package com.foursquare.slashem
+import com.twitter.util.{Duration, Future}
 import com.foursquare.slashem.Ast._
 import net.liftweb.record.{Record}
+
 
 // Phantom types
 abstract sealed class Ordered
@@ -205,6 +207,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType](
   def fetch():  SearchResults[M] = {
     // Gross++
     meta.query(queryParams,fieldsToFetch)
+  }
+  //Non-blocking fetch
+  def fetchFuture(): Future[SearchResults[M]] = {
+    meta.queryFuture(queryParams,fieldsToFetch)
   }
   // Call fetchBatch when you need a large number of results from SOLR.
   // Usage example: val res = (SVenue where (_.default eqs "coffee") start(10) limit(40) fetchBatch(10)) {_.response.oids }

@@ -110,10 +110,9 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   // go in another file when it gets more sophisticated.
   def rawQuery(params: Seq[(String, String)]): String = {
     val response = rawQueryFuture(params)(Duration(10, TimeUnit.SECONDS))
-    val str = response.getContent.toString(CharsetUtil.UTF_8)
-    str
+    response
   }
-  def rawQueryFuture(params: Seq[(String, String)]): Future[HttpResponse] = {
+  def rawQueryFuture(params: Seq[(String, String)]): Future[String] = {
     //Ugly :(
     val qse = new QueryStringEncoder("/solr/select")
 
@@ -127,7 +126,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     request.addHeader(HttpHeaders.Names.HOST, servers.head);
 
     logger.log(solrName+".rawQuery", request.getUri) {
-      client(request)
+      client(request).map(_.getContent.toString(CharsetUtil.UTF_8))
     }
   }
 
@@ -174,6 +173,12 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
     val jsonResponse = meta.rawQuery(params)
     meta.extractFromResponse(jsonResponse, fieldstofetch)
   }
+  //The query builder calls into this to do actually execute the query.
+  def queryFuture(params: Seq[(String, String)], fieldstofetch: List[String]): Future[SearchResults[M]] = {
+    val jsonResponseFuture = meta.rawQueryFuture(params)
+    jsonResponseFuture.map(meta.extractFromResponse(_, fieldstofetch))
+  }
+
 }
 
 trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
