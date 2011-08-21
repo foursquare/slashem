@@ -24,6 +24,34 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
   @Test
+  def testProduceCorrectSimpleQueryStringContains {
+    val q = SUserTest where (_.fullname contains "jon")
+    val qp = q.queryParams().toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "fullname:(jon)",
+                                                      "start" -> "0",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
+
+  @Test
+  def testProduceCorrectSimpleEscaping {
+    val q = SUserTest where (_.fullname contains "jon-smith")
+    val qp = q.queryParams().toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "fullname:(jon\\-smith)",
+                                                      "start" -> "0",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
+  @Test
+  def testProduceCorrectSimpleQueryStringWithBoostList {
+    val q = SUserTest where (_.fullname eqs "jon") useQueryType("edismax") boostQuery(_.friend_ids in List(110714,1048882,2775804,364701,33).map(_.toString))
+    val qp = q.queryParams().toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> """fullname:(+"jon")""",
+                                                      "start" -> "0",
+                                                      "defType" -> "edismax",
+                                                      "bq" -> """friend_ids:(+("110714" OR "1048882" OR "2775804" OR "364701" OR "33"))""",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
+
+  @Test
   def testProduceCorrectEdisMaxQueryString {
     val q = SUserTest where (_.fullname eqs "holden") useQueryType("edismax")
     val qp = q.queryParams().toList
