@@ -72,6 +72,11 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
 
   var logger: SolrQueryLogger = NoopQueryLogger
 
+  //Params for the client
+  def retries = 3
+  def hostConnectionLimit = 1000
+  def hostConnectionCoresize = 300
+
   //Params semi-randomly chosen
   def client = ClientBuilder()
     .codec(Http())
@@ -79,9 +84,9 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
                              val s = h.head
                              val p = h.last
                              new InetSocketAddress(s, p.toInt)}))
-    .hostConnectionLimit(1000)
-    .hostConnectionCoresize(300)
-    .retries(3)
+    .hostConnectionLimit(hostConnectionLimit)
+    .hostConnectionCoresize(hostConnectionCoresize)
+    .retries(retries)
     .build()
 
   //This is used so the json extractor can do its job
