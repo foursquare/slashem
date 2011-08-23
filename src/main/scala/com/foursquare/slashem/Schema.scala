@@ -24,13 +24,12 @@ import java.lang.Integer
 import java.net.InetSocketAddress
 import collection.JavaConversions._
 
-//The response header. There are normally more fields in the response header we could extract, but
-//we don't at present.
+/** The response header. There are normally more fields in the response header we could extract, but
+ * we don't at present. */
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
 
-//The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results
+/** The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results */
 case class Response[T <: Record[T]] (schema: T, numFound: Int, start: Int, docs: Array[HashMap[String,Any]]) {
-  //Convert the ArrayList to the concrete type using magic
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     docs.map({doc => val q = B.meta.createRecord
               doc.foreach({a =>
@@ -40,14 +39,15 @@ case class Response[T <: Record[T]] (schema: T, numFound: Int, start: Int, docs:
               q.asInstanceOf[T]
             }).toList
   }
+  /** Return a list of the documents in a usable form */
   def results: List[T] = results(schema)
-  //Special for extracting just ObjectIds without the overhead of record.
+  /** Special for extracting just ObjectIds without the overhead of record. */
   def oids: List[ObjectId] = {
     docs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
   }
 }
 
-//The search results class, you are probably most interested in the contents of response
+/** The search results class, you are probably most interested in the contents of response */
 case class SearchResults[T <: Record[T]] (responseHeader: ResponseHeader,
                              response: Response[T])
 
@@ -63,8 +63,8 @@ case class RawSearchResults @JsonCreator()(@JsonProperty("responseHeader") respo
 trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   self: MetaRecord[T] with T =>
 
-  //The servers is a list used in round-robin for running solr read queries against.
-  //It can just be one element if you wish
+  /** The servers is a list used in round-robin for running solr read queries against.
+   * It can just be one element if you wish */
   def servers: List[String]
 
   //The name is used to determine which props to use as well as for logging
@@ -140,7 +140,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
 trait SolrQueryLogger {
   def log[T](name: String, msg :String)(f: => T): T
 }
-//The default logger, does nothing.
+/** The default logger, does nothing. */
 object NoopQueryLogger extends SolrQueryLogger {
   override def log[T](name: String, msg :String)(f: => T): T = {
     f
