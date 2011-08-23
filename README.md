@@ -26,8 +26,8 @@ coverString and rectCoverString. Most people will not need to implement this.
 
 ## Examples
 
-[QueryTest.scala] contains sample queries and shows the corresponding query.
-[SolrRogueTest.scala] countains some sample records.
+[QueryTest.scala](https://github.com/foursquare/slashem/blob/master/src/test/scala/com/foursquare/slashem/QueryTest.scala) contains sample queries and shows the corresponding query.
+[SolrRogueTest.scala](https://github.com/foursquare/slashem/blob/master/src/test/scala/com/foursquare/slashem/SolrRogueTest.scala) countains some sample records.
 
 A basic query against the SUserTest might look something like
 
