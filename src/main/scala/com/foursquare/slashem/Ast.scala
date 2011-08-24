@@ -33,7 +33,8 @@ object Ast {
   }
 
   // A 'Clause' is something of the form 'field:(query)'
-  case class Clause[T](fieldName: String, query: Query[T]) extends AbstractClause {
+  // @param plus Set true for regular required or false to negate.
+  case class Clause[T](fieldName: String, query: Query[T], plus: Boolean = true) extends AbstractClause {
     def extend(): String = {
       val q = query match {
         case Group(x) => query
@@ -41,9 +42,13 @@ object Ast {
         case _ => Group(query)
       }
       //If a field does not have a name then do not attempt to specify it
-      fieldName match {
+      val qstr = fieldName match {
         case "" => q.extend
         case x => x + ":" + q.extend
+      }
+      plus match {
+        case true => qstr
+        case false => "-"+qstr
       }
     }
   }
@@ -124,14 +129,6 @@ object Ast {
 
   case class Or[T](q1: Query[T], q2: Query[T]) extends Query[T] {
     def extend = "%s OR %s".format(q1.extend, q2.extend)
-  }
-
-  case class Plus[T](q: Query[T]) extends Query[T] {
-    def extend = "+" + q.extend
-  }
-
-  case class Minus[T](q: Query[T]) extends Query[T] {
-    def extend = "-" + q.extend
   }
 
   case class Splat[T]() extends Query[T] {

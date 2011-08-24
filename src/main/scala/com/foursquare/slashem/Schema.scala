@@ -191,22 +191,23 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
   import Helpers._
 
   //Not eqs and neqs results in phrase queries!
-  def eqs(v: V) = Clause[V](self.name, Group(Plus(Phrase(v))))
-  def neqs(v: V) = Clause[V](self.name, Minus(Phrase(v)))
+  def eqs(v: V) = Clause[V](self.name, Group(Phrase(v)))
+  def neqs(v: V) = Clause[V](self.name, Phrase(v),false)
 
   //This allows for bag of words style matching.
   def contains(v: V) = Clause[V](self.name, Group(BagOfWords(v)))
   def contains(v: V, b: Float) = Clause[V](self.name, Boost(Group(BagOfWords(v)),b))
 
-  def in(v: Iterable[V]) = Clause[V](self.name, Plus(groupWithOr(v.map({x: V => Phrase(x)}))))
-  def nin(v: Iterable[V]) = Clause[V](self.name, Minus(groupWithAnd(v.map({x: V => Phrase(x)}))))
+  def in(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Phrase(x)})))
+  def nin(v: Iterable[V]) = Clause[V](self.name, groupWithAnd(v.map({x: V => Phrase(x)})),false)
 
-  def in(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(Plus(groupWithOr(v.map({x: V => Phrase(x)}))),b))
-  def nin(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(Minus(groupWithAnd(v.map({x: V => Phrase(x)}))),b))
+  def in(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b))
+  def nin(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(groupWithAnd(v.map({x: V => Phrase(x)})),b),false)
 
 
-  def inRange(v1: V, v2: V) = Clause[V](self.name, Group(Plus(Range(v1,v2))))
-  def ninRange(v1: V, v2: V) = Clause[V](self.name, Group(Minus(Range(v1,v2))))
+  def inRange(v1: V, v2: V) = Clause[V](self.name, Group(Range(v1,v2)))
+  def ninRange(v1: V, v2: V) = Clause[V](self.name, Group(Range(v1,v2)),false)
+
 
   def any = Clause[V](self.name,Splat[V]())
 

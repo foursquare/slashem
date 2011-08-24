@@ -19,7 +19,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testProduceCorrectSimpleQueryString {
     val q = SUserTest where (_.fullname eqs "jon")
     val qp = q.queryParams().toList
-    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "fullname:(+\"jon\")",
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "fullname:(\"jon\")",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
@@ -44,10 +44,10 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testProduceCorrectSimpleQueryStringWithBoostList {
     val q = SUserTest where (_.fullname eqs "jon") useQueryType("edismax") boostQuery(_.friend_ids in List(110714,1048882,2775804,364701,33).map(_.toString))
     val qp = q.queryParams().toList
-    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> """fullname:(+"jon")""",
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> """fullname:("jon")""",
                                                       "start" -> "0",
                                                       "defType" -> "edismax",
-                                                      "bq" -> """friend_ids:(+("110714" OR "1048882" OR "2775804" OR "364701" OR "33"))""",
+                                                      "bq" -> """friend_ids:("110714" OR "1048882" OR "2775804" OR "364701" OR "33")""",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
 
@@ -56,7 +56,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val q = SUserTest where (_.fullname eqs "holden") useQueryType("edismax")
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
-                                                      "q" -> "fullname:(+\"holden\")",
+                                                      "q" -> "fullname:(\"holden\")",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
@@ -66,7 +66,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
                                                       "mm" -> "75%",
-                                                      "q" -> "fullname:(+\"jason\")",
+                                                      "q" -> "fullname:(\"jason\")",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
@@ -77,7 +77,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
                                                       "mm" -> "75%",
-                                                      "q" -> "(+\"bedlam coffee\")",
+                                                      "q" -> "(\"bedlam coffee\")",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
@@ -87,8 +87,8 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
                                                       "mm" -> "75%",
-                                                      "q" -> "(+\"club\")",
-                                                      "fq" -> "tags:(-\"douchebag\")",
+                                                      "q" -> "(\"club\")",
+                                                      "fq" -> "-tags:(\"douchebag\")",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
@@ -96,7 +96,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testProduceCorrectSimpleLimit {
     val q = SUserTest where (_.fullname eqs "jon") limit 250
     val qp = q.queryParams().toList
-    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "fullname:(+\"jon\")",
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "fullname:(\"jon\")",
                                                       "start" -> "0",
                                                       "rows" -> "250").sortWith(_._1 > _._1))
   }
@@ -105,7 +105,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val q = SVenueTest where (_.default eqs "club") useQueryType("edismax") queryField(_.name)
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
-                                                      "q" -> "(+\"club\")",
+                                                      "q" -> "(\"club\")",
                                                       "qf" -> "name",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
@@ -115,7 +115,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val q = SVenueTest where (_.default eqs "club") useQueryType("edismax") queryField(_.name, 0)
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
-                                                      "q" -> "(+\"club\")",
+                                                      "q" -> "(\"club\")",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
@@ -124,7 +124,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val q = SVenueTest where (_.default eqs "club") useQueryType("edismax") queryField(_.name, 1)
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
-                                                      "q" -> "(+\"club\")",
+                                                      "q" -> "(\"club\")",
                                                       "qf" -> "name",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
@@ -134,7 +134,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val q = SVenueTest where (_.default eqs "club") useQueryType("edismax") queryField(_.name,2)
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
-                                                      "q" -> "(+\"club\")",
+                                                      "q" -> "(\"club\")",
                                                       "qf" -> "name^2.0",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
@@ -144,7 +144,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val q = SVenueTest where (_.default eqs "club") useQueryType("edismax") queryField(_.name,2.5)
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
-                                                      "q" -> "(+\"club\")",
+                                                      "q" -> "(\"club\")",
                                                       "qf" -> "name^2.5",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
@@ -154,7 +154,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val q = SVenueTest where (_.default eqs "club") useQueryType("edismax") phraseBoost(_.name,2.5)
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
-                                                      "q" -> "(+\"club\")",
+                                                      "q" -> "(\"club\")",
                                                       "pf" -> "name^2.5",
                                                       "pf2" -> "name^2.5",
                                                       "pf3" -> "name^2.5",
@@ -166,7 +166,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val q = SVenueTest where (_.default inRange("a","z")) useQueryType("edismax")
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
-                                                      "q" -> "(+[a to z])",
+                                                      "q" -> "([a to z])",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
@@ -175,7 +175,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testProduceCorrectObjID {
     val q = SEventTest where (_.venueid eqs new ObjectId("4dc5bc4845dd2645527930a9"))
     val qp = q.queryParams().toList
-    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "venueid:(+\"4dc5bc4845dd2645527930a9\")",
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "venueid:(\"4dc5bc4845dd2645527930a9\")",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
@@ -187,7 +187,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val d2 = new DateTime(2011, 5, 2, 0, 0, 0, 0, DateTimeZone.UTC)
     val q = SEventTest where (_.start_time inRange(d1, d2))
     val qp = q.queryParams().toList
-    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "start_time:(+[2011\\-05\\-01T00\\:00\\:00.000Z to 2011\\-05\\-02T00\\:00\\:00.000Z])",
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "start_time:([2011\\-05\\-01T00\\:00\\:00.000Z to 2011\\-05\\-02T00\\:00\\:00.000Z])",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
@@ -197,7 +197,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val q = SVenueTest where (_.default eqs "bedlam coffee") useQueryType("edismax") fetchField (_.name) fetchField(_.address)
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
-                                                      "q" -> "(+\"bedlam coffee\")",
+                                                      "q" -> "(\"bedlam coffee\")",
                                                       "start" -> "0",
                                                       "fl" -> "address,name",//Britle
                                                       "rows" -> "10").sortWith(_._1 > _._1))
@@ -451,7 +451,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "text",
                         "qf" -> "ngram_name^0.2",
                         "qf" -> "tags^0.01",
-                        "fq" -> "geo_s2_cell_ids:(+(\"pleaseUseaRealGeoHash\"))",
+                        "fq" -> "geo_s2_cell_ids:(\"pleaseUseaRealGeoHash\")",
                         "tieBreaker" -> "0.2",
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount,partitionedPopularity",
                         "bq" -> "name:((holden's hobohut)^10.0)",
@@ -472,7 +472,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "q" -> "(DJ Hixxy)",
                         "start" -> "0",
                         "rows" -> "10",
-                        "fq" -> "geo_s2_cell_ids:(+(\"pleaseUseaRealGeoHash\"))")
+                        "fq" -> "geo_s2_cell_ids:(\"pleaseUseaRealGeoHash\")")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
   }
@@ -487,7 +487,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val cat_str = mcat.map((x=>"\""+x+"\"")).mkString(" OR ")
     val expected = List("defType" -> "edismax",
                         "sort" -> "decayedPopularity1 desc",
-                        "q" -> "meta_categories:(+(%s))".format(cat_str),
+                        "q" -> "meta_categories:(%s)".format(cat_str),
                         "start" -> "0",
                         "rows" -> "10"
                       )
@@ -505,7 +505,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val cat_str = mcat.map((x=>"\""+x+"\"")).mkString(" OR ")
     val expected = List("defType" -> "edismax",
                         "sort" -> "decayedPopularity1 desc",
-                        "q" -> "meta_categories:(+(%s))".format(cat_str),
+                        "q" -> "meta_categories:(%s)".format(cat_str),
                         "start" -> "0",
                         "rows" -> "200"
                       )
@@ -523,7 +523,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val cat_str = cat.map((x=>"\""+x+"\"")).mkString(" OR ")
     val expected = List("defType" -> "edismax",
                         "sort" -> "decayedPopularity1 desc",
-                        "q" -> "category_ids:(+(%s))".format(cat_str),
+                        "q" -> "category_ids:(%s)".format(cat_str),
                         "start" -> "0",
                         "rows" -> "200"
                       )
@@ -544,7 +544,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val cat_str = cat.map((x=>"\""+x+"\"")).mkString(" OR ")
     val expected = List("defType" -> "edismax",
                         "sort" -> "decayedPopularity1 desc",
-                        "q" -> "(meta_categories:(+(%s))) OR (category_ids:(+(%s)))".format(mcat_str,cat_str),
+                        "q" -> "(meta_categories:(%s)) OR (category_ids:(%s))".format(mcat_str,cat_str),
                         "start" -> "0",
                         "rows" -> "200"
                       )
