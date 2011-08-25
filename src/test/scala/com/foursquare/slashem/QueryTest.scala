@@ -166,7 +166,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val q = SVenueTest where (_.default inRange("a","z")) useQueryType("edismax")
     val qp = q.queryParams().toList
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
-                                                      "q" -> "([a to z])",
+                                                      "q" -> "([a TO z])",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
@@ -187,7 +187,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val d2 = new DateTime(2011, 5, 2, 0, 0, 0, 0, DateTimeZone.UTC)
     val q = SEventTest where (_.start_time inRange(d1, d2))
     val qp = q.queryParams().toList
-    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "start_time:([2011\\-05\\-01T00\\:00\\:00.000Z to 2011\\-05\\-02T00\\:00\\:00.000Z])",
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "start_time:([2011\\-05\\-01T00\\:00\\:00.000Z TO 2011\\-05\\-02T00\\:00\\:00.000Z])",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }

@@ -93,7 +93,7 @@ object Ast {
   }
 
   case class Range[T](q1: T,q2: T) extends Query[T] {
-    def extend = {'['+escape(q1.toString)+" to "+ escape(q2.toString) +']'}
+    def extend = {'['+escape(q1.toString)+" TO "+ escape(q2.toString) +']'}
   }
 
   case class UnescapedPhrase[T](query: T) extends Query[T] {
