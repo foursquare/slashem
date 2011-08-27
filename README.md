@@ -58,7 +58,7 @@ if you find any. While we can't promise timely fixes, it will help :)
 ## Maintainers
 
 Slashem (SolrRogue) was initial developed by Foursquare Labs for internal use. 
-The majourity of our solr related calls at Foursquare go through this library. 
+The majority of our solr related calls at Foursquare go through this library. 
 The current maintainers are:
 
 - Jon Shea jonshea@foursquare.com
