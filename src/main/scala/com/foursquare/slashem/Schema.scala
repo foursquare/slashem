@@ -205,8 +205,11 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
   def nin(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(groupWithAnd(v.map({x: V => Phrase(x)})),b),false)
 
 
-  def inRange(v1: V, v2: V) = Clause[V](self.name, Group(Range(v1,v2)))
-  def ninRange(v1: V, v2: V) = Clause[V](self.name, Group(Range(v1,v2)),false)
+  def inRange(v1: V, v2: V) = Clause[V](self.name, Group(Range(BagOfWords(v1),BagOfWords(v2))))
+  def ninRange(v1: V, v2: V) = Clause[V](self.name, Group(Range(BagOfWords(v1),BagOfWords(v2))),false)
+
+  def lessThan(v: V) = Clause[V](self.name, Group(Range(Splat[V](),BagOfWords[V](v))))
+  def greaterThan(v: V) = Clause[V](self.name, Group(Range(BagOfWords[V](v),Splat[V]())))
 
 
   def any = Clause[V](self.name,Splat[V]())

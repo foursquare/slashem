@@ -76,7 +76,6 @@ object Ast {
     }
   }
 
-  // TODO: Implement Range (maybe)
   abstract class Query[T]() {
     def extend: String
     def and(c: Query[T]): Query[T] = And(this, c)
@@ -92,9 +91,10 @@ object Ast {
     def extend = {'"' + escape(query.toString) + '"'}
   }
 
-  case class Range[T](q1: T,q2: T) extends Query[T] {
-    def extend = {'['+escape(q1.toString)+" TO "+ escape(q2.toString) +']'}
+  case class Range[T](q1: Query[T],q2: Query[T]) extends Query[T] {
+    def extend = {'['+q1.extend+" TO "+ q2.extend +']'}
   }
+
 
   case class UnescapedPhrase[T](query: T) extends Query[T] {
     def extend = query.toString

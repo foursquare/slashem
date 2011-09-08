@@ -172,6 +172,26 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
+  def testProduceCorrectWithLessThan {
+    val q = SVenueTest where (_.default lessThan("z")) useQueryType("edismax")
+    val qp = q.queryParams().toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
+                                                      "q" -> "([* TO z])",
+                                                      "start" -> "0",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
+
+  @Test
+  def testProduceCorrectWithGreaterThan {
+    val q = SVenueTest where (_.default greaterThan("z")) useQueryType("edismax")
+    val qp = q.queryParams().toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
+                                                      "q" -> "([z TO *])",
+                                                      "start" -> "0",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
+
+  @Test
   def testProduceCorrectObjID {
     val q = SEventTest where (_.venueid eqs new ObjectId("4dc5bc4845dd2645527930a9"))
     val qp = q.queryParams().toList
@@ -191,6 +211,18 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
+
+  @Test
+  def testProduceCorrectWithDateLessThan {
+    import org.joda.time.{DateTime, DateTimeZone}
+    val d1 = new DateTime(2011, 5, 1, 0, 0, 0, 0, DateTimeZone.UTC)
+    val q = SEventTest where (_.start_time lessThan(d1))
+    val qp = q.queryParams().toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "start_time:([* TO 2011\\-05\\-01T00\\:00\\:00.000Z])",
+                                                      "start" -> "0",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
+
 
   @Test
   def testFieldQuery {
