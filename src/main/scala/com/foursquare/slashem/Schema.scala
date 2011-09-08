@@ -45,6 +45,13 @@ case class Response[T <: Record[T]] (schema: T, numFound: Int, start: Int, docs:
   def oids: List[ObjectId] = {
     docs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
   }
+  /** Another special case for extracting just ObjectId & score pairs.
+   * Please think twice before using*/
+  def oidScorePair: List[(ObjectId, Double)] = {
+    val oids = docs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
+    val scores = docs.map({doc => doc.find(x => x._1 == "score").map(x => x._2.asInstanceOf[Double])}).toList.flatten
+    oids zip scores
+  }
 }
 
 /** The search results class, you are probably most interested in the contents of response */
