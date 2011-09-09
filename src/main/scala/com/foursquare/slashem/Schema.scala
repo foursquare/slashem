@@ -132,6 +132,8 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
       qse.addParam(x._1, x._2)
     }
 
+    logger.loggingString().foreach(qse.addParam("magicLoggingToken",_))
+
     val request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, qse.toString)
     //Here be dragons! If you have multiple backends with shared IPs this could very well explode
     //but finagle doesn't seem to properly set the http host header for http/1.1
@@ -146,6 +148,10 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
 //If you want to get some simple logging/timing implement this trait
 trait SolrQueryLogger {
   def log[T](name: String, msg :String)(f: => T): T
+  // If this returns a string then it will be appended to the query
+  // so you can use it to match your query logs with application
+  // logs.
+  def loggingString() : Option[String] = None
 }
 /** The default logger, does nothing. */
 object NoopQueryLogger extends SolrQueryLogger {
