@@ -18,7 +18,7 @@ class RogueProject(info: ProjectInfo) extends DefaultProject(info) with Credenti
   // Java Libraries
   lazy val specsVersion = buildScalaVersion match {
     case "2.8.0" => "1.6.5"
-    case _       => "1.6.8"
+    case _       => "1.6.9"
   }
 
   val junit = "junit"                    % "junit"          % "4.8.2"           % "test" withSources()
