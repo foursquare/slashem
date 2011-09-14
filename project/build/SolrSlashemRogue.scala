@@ -27,7 +27,13 @@ class RogueProject(info: ProjectInfo) extends DefaultProject(info) with Credenti
   val finagle           = "com.twitter"             % "finagle"             % "1.8.0"             intransitive()
   val finagleCore       = "com.twitter"             % "finagle-core"        % "1.8.0"
   val jackson      = "org.codehaus.jackson" % "jackson-mapper-asl" % "1.8.0"
-  val scalaCheck        = "org.scala-tools.testing" %% "scalacheck"         % "1.8"   % "test"    withSources()
+
+  lazy val scalaCheckVersion = buildScalaVersion match {
+    case "2.8.0" => "1.8"
+    case "2.8.1" => "1.8"
+    case _ => "1.9"
+  }
+  val scalaCheck        = "org.scala-tools.testing" %% "scalacheck"         % scalaCheckVersion   % "test"    withSources()
 
   val JavaNet = "Java.net Maven2 Repository" at "http://download.java.net/maven/2/"
   val snapshots = "Scala Tools Snapshots" at "http://scala-tools.org/repo-snapshots/"
