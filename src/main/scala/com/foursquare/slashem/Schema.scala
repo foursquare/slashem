@@ -29,7 +29,7 @@ import collection.JavaConversions._
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
 
 /** The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results */
-case class Response[T <: Record[T]] (schema: T, numFound: Int, start: Int, docs: Array[HashMap[String,Any]]) {
+case class Response[T <: Record[T],Y] (schema: T, creator: (HashMap[String,Any] => Y), numFound: Int, start: Int, docs: Array[HashMap[String,Any]]) {
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     docs.map({doc => val q = B.meta.createRecord
               doc.foreach({a =>
@@ -41,6 +41,11 @@ case class Response[T <: Record[T]] (schema: T, numFound: Int, start: Int, docs:
   }
   /** Return a list of the documents in a usable form */
   def results: List[T] = results(schema)
+  /** Return a list of results handled by the creator
+   * Most commonly used for case class based queries */
+  def processedResults: List[Y] = {
+    docs.map(creator(_)).toList
+  }
   /** Special for extracting just ObjectIds without the overhead of record. */
   def oids: List[ObjectId] = {
     docs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
@@ -52,11 +57,12 @@ case class Response[T <: Record[T]] (schema: T, numFound: Int, start: Int, docs:
     val scores = docs.map({doc => doc.find(x => x._1 == "score").map(x => x._2.asInstanceOf[Double])}).toList.flatten
     oids zip scores
   }
+
 }
 
 /** The search results class, you are probably most interested in the contents of response */
-case class SearchResults[T <: Record[T]] (responseHeader: ResponseHeader,
-                             response: Response[T])
+case class SearchResults[T <: Record[T],Y] (responseHeader: ResponseHeader,
+                             response: Response[T,Y])
 
 
 //This is the raw representation of the response from solr, you probably don't want to poke at it directly.
@@ -105,7 +111,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     a
   }
 
-  def extractFromResponse(r: String, fieldstofetch: List[String]=Nil): SearchResults[T] = {
+  def extractFromResponse[Y](r: String, creator: (HashMap[String,Any] => Y), fieldstofetch: List[String]=Nil) = {
     //This intentional avoids lift extract as it is too slow for our use case.
     logger.log(solrName + ".jsonExtract", "extacting json") {
       val rsr = try {
@@ -114,7 +120,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
         case e => throw new Exception("An error occured while parsing solr result \""+r+"\"",e)
       }
       //Take the raw search result and make the type templated search result.
-      SearchResults(rsr.responseHeader, Response(createRecord, rsr.response.numFound, rsr.response.start, rsr.response.docs))
+      SearchResults(rsr.responseHeader, Response(createRecord, creator, rsr.response.numFound, rsr.response.start, rsr.response.docs))
     }
   }
 
@@ -182,19 +188,19 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
 
   // 'Where' is the entry method for a SolrRogue query.
-  def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM] = {
-    QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil)
+  def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM,String] = {
+    QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil, creator=(_=>""))
   }
 
   //The query builder calls into this to do actually execute the query.
-  def query(params: Seq[(String, String)], fieldstofetch: List[String]): SearchResults[M] = {
+  def query[Y](creator: (HashMap[String,Any] => Y), params: Seq[(String, String)], fieldstofetch: List[String]) = {
     val jsonResponse = meta.rawQuery(params)
-    meta.extractFromResponse(jsonResponse, fieldstofetch)
+    meta.extractFromResponse(jsonResponse, creator, fieldstofetch)
   }
   //The query builder calls into this to do actually execute the query.
-  def queryFuture(params: Seq[(String, String)], fieldstofetch: List[String]): Future[SearchResults[M]] = {
+  def queryFuture[Y](creator: (HashMap[String,Any] => Y), params: Seq[(String, String)], fieldstofetch: List[String]) = {
     val jsonResponseFuture = meta.rawQueryFuture(params)
-    jsonResponseFuture.map(meta.extractFromResponse(_, fieldstofetch))
+    jsonResponseFuture.map(meta.extractFromResponse(_, creator, fieldstofetch))
   }
 
 }
@@ -228,6 +234,9 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
   def any = Clause[V](self.name,Splat[V]())
 
   def query(q: Query[V]) = Clause[V](self.name, q)
+
+  def setFromAny(a: Any) : Box[V]
+
 }
 
 //Solr field types
