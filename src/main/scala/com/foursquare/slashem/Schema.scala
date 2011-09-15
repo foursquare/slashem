@@ -237,6 +237,13 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
 
   def setFromAny(a: Any) : Box[V]
 
+  def valueBoxFromAny(a: Any) : Box[V] = {
+    try {
+      Full(a.asInstanceOf[V])
+    } catch {
+      case _ => Empty
+    }
+  }
 }
 
 //Solr field types
@@ -248,10 +255,39 @@ class SolrDefaultStringField[T <: Record[T]](owner: T) extends StringField[T](ow
 class SolrIntField[T <: Record[T]](owner: T) extends IntField[T](owner) with SolrField[Int, T]
 class SolrDoubleField[T <: Record[T]](owner: T) extends DoubleField[T](owner) with SolrField[Double, T]
 class SolrLongField[T <: Record[T]](owner: T) extends LongField[T](owner) with SolrField[Long, T]
-class SolrObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner) with SolrField[ObjectId, T]
-class SolrIntListField[T <: Record[T]](owner: T) extends IntListField[T](owner) with SolrField[List[Int], T]
+class SolrObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner) with SolrField[ObjectId, T] {
+  override def valueBoxFromAny(a: Any) = {
+    try {
+      a match {
+        case "" => Empty
+        case s : String => Full(new ObjectId(s))
+        case i : ObjectId => Full(i)
+        case _ => Empty
+      }
+    } catch {
+      case _ => Empty
+    }
+  }
+}
+class SolrIntListField[T <: Record[T]](owner: T) extends IntListField[T](owner) with SolrField[List[Int], T] {
+  override def valueBoxFromAny(a: Any) ={
+  try {
+    a match {
+      case "" => Empty
+      case ar: Array[Int] => Full(ar.toList)
+      case ar: Array[Integer] => Full(ar.toList.map(x=>x.intValue))
+      case s: String => Full(s.split(" ").map(x => x.toInt).toList)
+      case _ => Empty
+    }
+    } catch {
+      case _ => Empty
+    }
+  }
+}
 class SolrBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SolrField[Boolean, T]
-class SolrDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SolrField[DateTime, T]
+class SolrDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SolrField[DateTime, T] {
+
+}
 //More restrictive type so we can access the geohash
 class SolrGeoField[T <: SolrSchema[T]](owner: T) extends StringField[T](owner,0) with SolrField[String, T] {
   def inRadius(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = owner.geohash.maxCells) = {
@@ -282,17 +318,21 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
   var e : Box[ValueType] = Empty
 
   def setFromString(s: String) = Full(set(new ObjectId(s)))
-  override def setFromAny(a: Any) ={
+  def valueBoxFromAny(a: Any) = {
     try {
-    a match {
-      case "" => Empty
-      case s : String => Full(set(new ObjectId(s)))
-      case i : ObjectId => Full(set(i))
-      case _ => Empty
-    }
+      a match {
+        case "" => Empty
+        case s : String => Full(new ObjectId(s))
+        case i : ObjectId => Full(i)
+        case _ => Empty
+      }
     } catch {
       case _ => Empty
     }
+  }
+  override def setFromAny(a: Any) ={
+    val vb = valueBoxFromAny(a)
+    vb.map(set(_))
   }
   override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
   override def liftSetFilterToBox(a: Box[ValueType]) = Empty

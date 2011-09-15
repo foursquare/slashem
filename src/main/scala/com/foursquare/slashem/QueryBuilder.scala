@@ -63,11 +63,16 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y](
     this.copy(boostQueries=f(meta) :: boostQueries)
   }
 
+   /** Helper method for case class extraction */
+   private def getForField[F1,M <: Record[M]](f: SolrField[F1,M], fName: String, doc: HashMap[String,Any]): Option[F1] = {
+     if (doc.containsKey(fName)) f.valueBoxFromAny(doc.get(fName)).toOption else None
+   }
    /** Select into a case class */
    def selectCase [F1, CC](f: M => SolrField[F1, M], create: Option[F1] => CC): QueryBuilder[M, Ord, Lim, MM, CC] = {
      val f1Name : String = f(meta).name
+     val f1Field : SolrField[F1, M] = f(meta)
      val transformer = ((doc : HashMap[String,Any]) => {
-         val f1 = f(meta).setFromAny(doc.get(f1Name)).toOption
+         val f1 = getForField(f1Field, f1Name, doc)
          create(f1)})
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields,
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
