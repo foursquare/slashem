@@ -606,6 +606,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     def check(code: String, shouldTypeCheck: Boolean = false): Unit = {
       compiler.typeCheck(code) aka "'%s' compiles!".format(code) must_== shouldTypeCheck
     }
+
     //Make sure our basic does compile
     check("""SVenueTest where (_.metall any) useQueryType("edismax") orderDesc(_.decayedPopularity1)""", shouldTypeCheck = true)
     //Make sure trying to limit a limit query doesn't work
@@ -619,7 +620,18 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
           val d2 = new DateTime(2011, 5, 2, 0, 0, 0, 0, DateTimeZone.UTC)
           SEventTest where (_.name inRange(d1, d2))""")
 
-  }
+
+
+    check("""
+    case class TestPirate(state: Option[String])
+    SVenueTest where (_.name eqs "test") selectCase(_.name,((x: Option[String]) => TestPirate(x)))
+              """,shouldTypeCheck=true)
+    check("""
+    case class TestPirate(state: Option[String])
+    SVenueTest where (_.name eqs "test") selectCase(_.name,((x: Option[String]) => TestPirate(x))) selectCase(_.name,((x: Option[String]) => TestPirate(x)))
+              """,shouldTypeCheck=false)
+
+ }
 
   //Stolen from Rogue
   class Compiler {

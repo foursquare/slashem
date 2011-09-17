@@ -29,7 +29,7 @@ import collection.JavaConversions._
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
 
 /** The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results */
-case class Response[T <: Record[T],Y] (schema: T, creator: (HashMap[String,Any] => Y), numFound: Int, start: Int, docs: Array[HashMap[String,Any]]) {
+case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[String,Any] => Y)], numFound: Int, start: Int, docs: Array[HashMap[String,Any]]) {
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     docs.map({doc => val q = B.meta.createRecord
               doc.foreach({a =>
@@ -44,7 +44,10 @@ case class Response[T <: Record[T],Y] (schema: T, creator: (HashMap[String,Any] 
   /** Return a list of results handled by the creator
    * Most commonly used for case class based queries */
   def processedResults: List[Y] = {
-    docs.map(creator(_)).toList
+    creator match {
+      case Some(func) => { docs.map(func(_)).toList }
+      case None => Nil
+    }
   }
   /** Special for extracting just ObjectIds without the overhead of record. */
   def oids: List[ObjectId] = {
@@ -111,7 +114,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     a
   }
 
-  def extractFromResponse[Y](r: String, creator: (HashMap[String,Any] => Y), fieldstofetch: List[String]=Nil) = {
+  def extractFromResponse[Y](r: String, creator: Option[(HashMap[String,Any] => Y)], fieldstofetch: List[String]=Nil) = {
     //This intentional avoids lift extract as it is too slow for our use case.
     logger.log(solrName + ".jsonExtract", "extacting json") {
       val rsr = try {
@@ -188,17 +191,17 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
 
   // 'Where' is the entry method for a SolrRogue query.
-  def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM,String] = {
-    QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil, creator=(_=>""))
+  def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM, NoSelect] = {
+    QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil, creator=None)
   }
 
   //The query builder calls into this to do actually execute the query.
-  def query[Y](creator: (HashMap[String,Any] => Y), params: Seq[(String, String)], fieldstofetch: List[String]) = {
+  def query[Y](creator: Option[(HashMap[String,Any] => Y)], params: Seq[(String, String)], fieldstofetch: List[String]) = {
     val jsonResponse = meta.rawQuery(params)
     meta.extractFromResponse(jsonResponse, creator, fieldstofetch)
   }
   //The query builder calls into this to do actually execute the query.
-  def queryFuture[Y](creator: (HashMap[String,Any] => Y), params: Seq[(String, String)], fieldstofetch: List[String]) = {
+  def queryFuture[Y](creator: Option[(HashMap[String,Any] => Y)], params: Seq[(String, String)], fieldstofetch: List[String]) = {
     val jsonResponseFuture = meta.rawQueryFuture(params)
     jsonResponseFuture.map(meta.extractFromResponse(_, creator, fieldstofetch))
   }

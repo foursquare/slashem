@@ -77,7 +77,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
         "lng":101.495239,
         "hasSpecial":false}]
   }}"""
-    val parsed = SVenueTest.extractFromResponse(r, testCreator, Nil)
+    val parsed = SVenueTest.extractFromResponse(r, Some(testCreator _), Nil)
     Assert.assertEquals(parsed.responseHeader, ResponseHeader(0, 1))
     Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).name.value, "test")
     Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).name.valueBox, Full("test"))
@@ -121,7 +121,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
         "id":"4d102d0d6331a093714e5594",
         "score":9.185220}]
   }}"""
-    val parsed = SVenueTest.extractFromResponse(r, testCreator, Nil)
+    val parsed = SVenueTest.extractFromResponse(r, Some(testCreator _), Nil)
     val oids = parsed.response.oids
     val oidAndScores = parsed.response.oidScorePair
     Assert.assertEquals(oids.apply(0),new ObjectId("4c809f4251ada1cdc3790b10"))
