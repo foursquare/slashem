@@ -231,6 +231,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
       "text":["<em>SUCKA</em> FREE."]},
     "4bd3921670c603bb931a99b4":{
       "text":["<em>Sucka</em> free!"]}}}"""
+    val parsed = STipTest.extractFromResponse(r, Some(testCreator _), Nil)
   }
 }
 

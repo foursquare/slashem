@@ -29,13 +29,32 @@ import collection.JavaConversions._
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
 
 /** The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results */
-case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[String,Any] => Y)], numFound: Int, start: Int, docs: Array[HashMap[String,Any]], highlighting: HashMap[String,HashMap[String,Any]]) {
+case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[String,Any] => Y)], numFound: Int, start: Int, docs: Array[HashMap[String,Any]], highlighting: HashMap[String,HashMap[String,String]]) {
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     docs.map({doc => val q = B.meta.createRecord
+              val matchingHighlights = if (doc.contains("id") && highlighting != null
+                                           &&highlighting.contains(doc.get("id").toString)) {
+                Some(highlighting.get(doc.get("id").toString))
+              } else {
+                None
+              }
               doc.foreach({a =>
                 val fname = a._1
                 val value = a._2
-                q.fieldByName(fname).map(_.setFromAny(value))})
+                q.fieldByName(fname).map((field) =>{
+                  matchingHighlights match {
+                    case Some(mhl) if (mhl.contains(fname)) => {
+                      field match {
+                        case f : SolrField[_,_] => f.setHighlighted(mhl.get(fname))
+                        case _ => None
+                      }
+                    }
+                    case _ => None
+                  }
+                  field.setFromAny(value)
+                }
+                                       )}
+               )
               q.asInstanceOf[T]
             }).toList
   }
@@ -71,7 +90,7 @@ case class SearchResults[T <: Record[T],Y] (responseHeader: ResponseHeader,
 //This is the raw representation of the response from solr, you probably don't want to poke at it directly.
 case class RawResponse @JsonCreator()(@JsonProperty("numFound")numFound: Int, @JsonProperty("start")start: Int,
                                       @JsonProperty("docs")docs: Array[HashMap[String,Any]],
-                                      @JsonProperty("highlighting") highlighting: HashMap[String,HashMap[String,Any]])
+                                      @JsonProperty("highlighting") highlighting: HashMap[String,HashMap[String,String]])
 
 //This is the raw representation of the response from solr, you probably don't want to poke at it directly.
 case class RawSearchResults @JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
@@ -249,10 +268,7 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
       case _ => Empty
     }
   }
-}
-
-//Solr field types
-class SolrStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T] {
+  //Support for highlighting matches
   var hl: String = ""
   def highlighted: String = {
     hl
@@ -260,7 +276,11 @@ class SolrStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0)
   def setHighlighted(a: String) = {
     hl = a
   }
+
 }
+
+//Solr field types
+class SolrStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T]
 //Allows for querying against the default filed in solr. This field doesn't have a name
 class SolrDefaultStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T] {
   override def name = ""
