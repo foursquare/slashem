@@ -74,7 +74,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    }
 
    /** Select into a case class */
-   def selectCase [F1, CC](f: M => SolrField[F1, M], create: Option[F1] => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
+   def selectCase [F1, CC](f: M => SolrField[F1, M], create: Option[F1] => CC)(implicit ev: (Y,H) =:= (NoSelect,NoHighlighting)): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
      val f1Name : String = f(meta).name
      val f1Field : SolrField[F1, M] = f(meta)
      val transformer = Some(((doc : HashMap[String,Any]) => {
