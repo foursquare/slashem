@@ -195,7 +195,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(extracted.length,2)
     Assert.assertEquals(extracted,List(TestPirate(Some("test")),TestPirate(Some("test2"))))
   }
-  def testCreator(a: HashMap[String,Any]) = {
+  def testCreator(a: HashMap[String,Any], b: Any) = {
     "lols"
   }
   @Test
