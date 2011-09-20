@@ -29,7 +29,7 @@ import collection.JavaConversions._
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
 
 /** The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results */
-case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[String,Any] => Y)], numFound: Int, start: Int, docs: Array[HashMap[String,Any]]) {
+case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[String,Any] => Y)], numFound: Int, start: Int, docs: Array[HashMap[String,Any]], highlighting: HashMap[String,HashMap[String,Any]]) {
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     docs.map({doc => val q = B.meta.createRecord
               doc.foreach({a =>
@@ -69,7 +69,9 @@ case class SearchResults[T <: Record[T],Y] (responseHeader: ResponseHeader,
 
 
 //This is the raw representation of the response from solr, you probably don't want to poke at it directly.
-case class RawResponse @JsonCreator()(@JsonProperty("numFound")numFound: Int, @JsonProperty("start")start: Int, @JsonProperty("docs")docs: Array[HashMap[String,Any]])
+case class RawResponse @JsonCreator()(@JsonProperty("numFound")numFound: Int, @JsonProperty("start")start: Int,
+                                      @JsonProperty("docs")docs: Array[HashMap[String,Any]],
+                                      @JsonProperty("highlighting") highlighting: HashMap[String,HashMap[String,Any]])
 
 //This is the raw representation of the response from solr, you probably don't want to poke at it directly.
 case class RawSearchResults @JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
@@ -123,7 +125,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
         case e => throw new Exception("An error occured while parsing solr result \""+r+"\"",e)
       }
       //Take the raw search result and make the type templated search result.
-      SearchResults(rsr.responseHeader, Response(createRecord, creator, rsr.response.numFound, rsr.response.start, rsr.response.docs))
+      SearchResults(rsr.responseHeader, Response(createRecord, creator, rsr.response.numFound, rsr.response.start, rsr.response.docs, rsr.response.highlighting))
     }
   }
 
@@ -191,7 +193,7 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
 
   // 'Where' is the entry method for a SolrRogue query.
-  def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM, NoSelect] = {
+  def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM, NoSelect, NoHighlighting] = {
     QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil, creator=None)
   }
 
@@ -250,7 +252,15 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
 }
 
 //Solr field types
-class SolrStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T]
+class SolrStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T] {
+  var hl: String = ""
+  def highlighted: String = {
+    hl
+  }
+  def setHighlighted(a: String) = {
+    hl = a
+  }
+}
 //Allows for querying against the default filed in solr. This field doesn't have a name
 class SolrDefaultStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T] {
   override def name = ""

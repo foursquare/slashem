@@ -198,4 +198,39 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
   def testCreator(a: HashMap[String,Any]) = {
     "lols"
   }
+  @Test
+  def testHighlighting() = {
+    val r= """{
+  "responseHeader":{
+    "status":0,
+    "QTime":1,
+    "params":{
+      "indent":"on",
+      "start":"0",
+      "q":"pancakes sucka",
+      "wt":"json",
+      "hl":"true",
+      "version":"2.2",
+      "rows":"2"}},
+  "response":{"numFound":14066,"start":0,"docs":[
+      {
+        "id":"4bbee3c170c603bba83a97b4",
+        "text":"SUCKA FREE.",
+        "lat":-33.892586,
+        "lng":151.203223,
+        "venueid":"4b594c4bf964a520578428e3"},
+      {
+        "id":"4bd3921670c603bb931a99b4",
+        "text":"Sucka free!",
+        "lat":39.76184,
+        "lng":-105.011328,
+        "venueid":"4bbfd22a4cdfc9b65c049221"}]
+  },
+  "highlighting":{
+    "4bbee3c170c603bba83a97b4":{
+      "text":["<em>SUCKA</em> FREE."]},
+    "4bd3921670c603bb931a99b4":{
+      "text":["<em>Sucka</em> free!"]}}}"""
+  }
 }
+
