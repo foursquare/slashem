@@ -123,9 +123,9 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
     this.copy(limit=Some(l))
   }
 
-   /** Turn on highlighting
+   /** Turn on highlighting. Must be done prior to select case
     */
-   def highlighting()(implicit ev: H =:= NoHighlighting): QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting] = {
+   def highlighting()(implicit ev: (Y,H) =:= (NoSelect,NoHighlighting)): QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting] = {
      this.copy()
    }
 

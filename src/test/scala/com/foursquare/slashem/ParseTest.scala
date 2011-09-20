@@ -237,5 +237,48 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(parsed.response.results.apply(0).text.highlighted.length, 1)
     Assert.assertEquals(parsed.response.results.apply(0).text.highlighted.apply(0), "<em>SUCKA</em> FREE.")
   }
+  @Test
+  def testHighlightingCaseClass() = {
+    val r= """{
+  "responseHeader":{
+    "status":0,
+    "QTime":1,
+    "params":{
+      "indent":"on",
+      "start":"0",
+      "q":"pancakes sucka",
+      "wt":"json",
+      "hl":"true",
+      "version":"2.2",
+      "rows":"2"}},
+  "response":{"numFound":14066,"start":0,"docs":[
+      {
+        "id":"4bbee3c170c603bba83a97b4",
+        "text":"SUCKA FREE.",
+        "lat":-33.892586,
+        "lng":151.203223,
+        "venueid":"4b594c4bf964a520578428e3"},
+      {
+        "id":"4bd3921670c603bb931a99b4",
+        "text":"Sucka free!",
+        "lat":39.76184,
+        "lng":-105.011328,
+        "venueid":"4bbfd22a4cdfc9b65c049221"}]
+  },
+  "highlighting":{
+    "4bbee3c170c603bba83a97b4":{
+      "text":["<em>SUCKA</em> FREE."]},
+    "4bd3921670c603bb931a99b4":{
+      "text":["<em>Sucka</em> free!"]}}}"""
+    case class TestPirate(state: Option[String], lolerskates: List[String])
+    val parsedQuery = (STipTest where (_.text eqs "test") highlighting() selectCase(_.text,((x: Option[String], y: List[String]) => TestPirate(x,y))))
+    val parsed = STipTest.extractFromResponse(r, parsedQuery.creator, Nil)
+    val extracted = parsed.response.processedResults
+    Assert.assertEquals(parsed.responseHeader, ResponseHeader(0, 1))
+    Assert.assertEquals(parsed.response.results.apply(0).text.value, "SUCKA FREE.")
+    Assert.assertEquals(parsed.response.results.apply(0).text.highlighted.length, 1)
+    Assert.assertEquals(parsed.response.results.apply(0).text.highlighted.apply(0), "<em>SUCKA</em> FREE.")
+    Assert.assertEquals(extracted,List(TestPirate(Some("SUCKA FREE."),List("<em>SUCKA</em> FREE.")),TestPirate(Some("Sucka free!"),List("<em>Sucka</em> free!"))))
+  }
 }
 
