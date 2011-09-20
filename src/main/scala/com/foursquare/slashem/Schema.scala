@@ -29,7 +29,7 @@ import collection.JavaConversions._
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
 
 /** The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results */
-case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[String,Any] => Y)], numFound: Int, start: Int, docs: Array[HashMap[String,Any]], highlighting: HashMap[String,HashMap[String,String]]) {
+case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[String,Any] => Y)], numFound: Int, start: Int, docs: Array[HashMap[String,Any]], highlighting: HashMap[String,HashMap[String,List[String]]]) {
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     docs.map({doc => val q = B.meta.createRecord
               val matchingHighlights = if (doc.contains("id") && highlighting != null
@@ -90,7 +90,7 @@ case class SearchResults[T <: Record[T],Y] (responseHeader: ResponseHeader,
 //This is the raw representation of the response from solr, you probably don't want to poke at it directly.
 case class RawResponse @JsonCreator()(@JsonProperty("numFound")numFound: Int, @JsonProperty("start")start: Int,
                                       @JsonProperty("docs")docs: Array[HashMap[String,Any]],
-                                      @JsonProperty("highlighting") highlighting: HashMap[String,HashMap[String,String]])
+                                      @JsonProperty("highlighting") highlighting: HashMap[String,HashMap[String,List[String]]])
 
 //This is the raw representation of the response from solr, you probably don't want to poke at it directly.
 case class RawSearchResults @JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
@@ -269,11 +269,11 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
     }
   }
   //Support for highlighting matches
-  var hl: String = ""
-  def highlighted: String = {
+  var hl: List[String] = Nil
+  def highlighted: List[String] = {
     hl
   }
-  def setHighlighted(a: String) = {
+  def setHighlighted(a: List[String]) = {
     hl = a
   }
 
