@@ -32,8 +32,9 @@ case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @Js
 
 /** The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results */
 case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y], numFound: Int, start: Int, docs: Array[HashMap[String,Any]], highlighting: HashMap[String,HashMap[String,ArrayList[String]]], fallOf: Option[Double], min: Option[Int]) {
+  val filteredDocs = filterHighQuality(docs)
   def results[T <: Record[T]](B: Record[T]): List[T] = {
-    docs.map({doc => val q = B.meta.createRecord
+    filteredDocs.map({doc => val q = B.meta.createRecord
               val matchingHighlights = if (doc.contains("id") && highlighting != null
                                            &&highlighting.contains(doc.get("id").toString)) {
                 Some(highlighting.get(doc.get("id").toString))
@@ -64,7 +65,8 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
   private def filterHighQuality(r : Array[HashMap[String,Any]]) : Array[HashMap[String,Any]] = {
     (min,fallOf) match {
       case (Some(minR),Some(qualityFallOf)) => {
-        val hqCount = highQuality((r.map(x => if(x.contains("score")) Some(x.get("score").asInstanceOf[Double]) else None).toList),
+        val scores = (r.map(x => if(x.contains("score")) Some(x.get("score").asInstanceOf[Double]) else None).toList)
+        val hqCount = highQuality(scores,
                                 score=0, count=0,minR=minR,qualityFallOf=qualityFallOf)
         r.take(hqCount)
       }
@@ -72,8 +74,9 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
     }
   }
   @tailrec private def highQuality(l : List[Option[Double]], score: Double = 0,count: Int = 0, minR: Int = 1, qualityFallOf : Double = 0) : Int = {
+    val minScore = qualityFallOf*(score/count)
     l match {
-      case Some(x)::xs if (count < minR || x > qualityFallOf*(score/count)) => highQuality(xs,score+x,count+1)
+      case Some(x)::xs if (count < minR || x > minScore) => highQuality(xs,score=(score+x),count=(count+1),minR=minR,qualityFallOf=qualityFallOf)
       case None::xs if (score == 0) => highQuality(xs,score,count+1)
       case None::xs => count
       case _ => count
@@ -86,19 +89,19 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
    * Most commonly used for case class based queries */
   def processedResults: List[Y] = {
     creator match {
-      case Some(func) => { docs.map(func(_,highlighting)).toList }
+      case Some(func) => { filteredDocs.map(func(_,highlighting)).toList }
       case None => Nil
     }
   }
   /** Special for extracting just ObjectIds without the overhead of record. */
   def oids: List[ObjectId] = {
-    docs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
+    filteredDocs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
   }
   /** Another special case for extracting just ObjectId & score pairs.
    * Please think twice before using*/
   def oidScorePair: List[(ObjectId, Double)] = {
-    val oids = docs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
-    val scores = docs.map({doc => doc.find(x => x._1 == "score").map(x => x._2.asInstanceOf[Double])}).toList.flatten
+    val oids = filteredDocs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
+    val scores = filteredDocs.map({doc => doc.find(x => x._1 == "score").map(x => x._2.asInstanceOf[Double])}).toList.flatten
     oids zip scores
   }
 

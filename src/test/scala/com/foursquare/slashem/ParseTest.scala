@@ -19,7 +19,7 @@ import java.util.HashMap
 
 class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
   //This is the test for the extraction code.
-//  @Test
+  @Test
   def testParseVenueFields {
     //Here is some json returned from solr.
     val r = """{
@@ -99,7 +99,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(parsed.response.results.apply(0).partitionedPopularity.valueBox,
                         Full(List(0, 0, 1, 0, 0, 1, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0)))
   }
-//  @Test
+  @Test
   def testOidandScoreExtract = {
     val r = """{
   "responseHeader":{
@@ -131,7 +131,41 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
                         List((new ObjectId("4c809f4251ada1cdc3790b10") -> 9.185221),
                            (new ObjectId("4d102d0d6331a093714e5594") -> 9.185220)))
   }
-//  @Test
+  @Test
+  def testScoreFiltering = {
+    val r = """{
+  "responseHeader":{
+    "status":0,
+    "QTime":1,
+    "params":{
+      "fl":"id,score",
+      "indent":"on",
+      "start":"0",
+      "q":"foursquare hq",
+      "wt":"json",
+      "version":"2.2",
+      "rows":"3"}},
+  "response":{"numFound":45776,"start":0,"maxScore":9.185221,"docs":[
+      {
+        "id":"4c809f4251ada1cdc3790b10",
+        "score":9000.185221},
+      {
+        "id":"4d102d0d6331a093714e5594",
+        "score":9.185220},
+      {
+        "id":"4d102d0d6331a093714e5595",
+        "score":1.185220}]
+  }}"""
+    val parsed = SVenueTest.extractFromResponse(r, Some(testCreator _), Nil, fallOf = Some(0.5), min=Some(1))
+    val oids = parsed.response.oids
+    val oidAndScores = parsed.response.oidScorePair
+    Assert.assertEquals(oids.apply(0),new ObjectId("4c809f4251ada1cdc3790b10"))
+    Assert.assertEquals(oids, List(new ObjectId("4c809f4251ada1cdc3790b10")))
+    Assert.assertEquals(oidAndScores,
+                        List((new ObjectId("4c809f4251ada1cdc3790b10") -> 9000.185221)))
+  }
+
+  @Test
   def testCaseClassExtraction = {
     val r = """{
       "responseHeader":{
