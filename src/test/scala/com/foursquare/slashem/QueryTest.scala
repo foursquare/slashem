@@ -24,6 +24,16 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
   @Test
+  def testProduceCorrectSimpleQueryStringWithHighlighting {
+    val q = SUserTest where (_.fullname eqs "jon") highlighting()
+    val qp = q.queryParams().toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "fullname:(\"jon\")",
+                                                      "start" -> "0",
+                                                      "hl" -> "on",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
+
+  @Test
   def testProduceCorrectSimpleQueryStringContains {
     val q = SUserTest where (_.fullname contains "jon")
     val qp = q.queryParams().toList

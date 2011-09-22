@@ -38,6 +38,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
  minimumMatch: Option[String],
  queryType: Option[String],
  fieldsToFetch: List[String],
+ hls: Option[String],
  creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y]) {
 
 
@@ -83,7 +84,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
          create(f1)}))
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields,
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
-                 sort, minimumMatch, queryType, (f1Name::fieldsToFetch).distinct, transformer)
+                 sort, minimumMatch, queryType, (f1Name::fieldsToFetch).distinct, hls, transformer)
   }
    /** Select into a case class */
    def selectCase [F1, CC](f: M => SolrField[F1, M], create: (Option[F1], List[String]) => CC)(implicit ev: (Y,H) =:= (NoSelect,YesHighlighting)): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -106,7 +107,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
        create(f1,f1HL)}))
      QueryBuilder(meta, clauses, filters, boostQueries, queryFields,
                   phraseBoostFields, boostFields, start, limit, tieBreaker,
-                  sort, minimumMatch, queryType, (f1Name::fieldsToFetch).distinct, transformer)
+                  sort, minimumMatch, queryType, (f1Name::fieldsToFetch).distinct, hls, transformer)
   }
 
 
@@ -126,7 +127,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Turn on highlighting. Must be done prior to select case
     */
    def highlighting()(implicit ev: (Y,H) =:= (NoSelect,NoHighlighting)): QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting] = {
-     this.copy()
+     this.copy(hls=Some("on"))
    }
 
   /** In edismax the score is max({scores})+tieBreak*\sum{scores}) */
@@ -142,7 +143,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   def orderAsc[F](f: M => SolrField[F, M])(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM, Y, H] = {
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields,
                  boostFields, start, limit, tieBreaker,
-                 sort=Some(f(meta).name + " asc"), minimumMatch, queryType, fieldsToFetch, creator)
+                 sort=Some(f(meta).name + " asc"), minimumMatch, queryType, fieldsToFetch, hls, creator)
   }
 
   /** Order the results by a specific field in descending order.
@@ -151,7 +152,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   def orderDesc[F](f: M => SolrField[F, M])(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM, Y, H] = {
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields,
                  start, limit, tieBreaker, sort=Some(f(meta).name + " desc"),
-                 minimumMatch, queryType, fieldsToFetch, creator)
+                 minimumMatch, queryType, fieldsToFetch, hls, creator)
   }
 
   /** If you doing a phrase search this the percent of terms that must match,
@@ -291,11 +292,16 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
       case Some(x) => List("tieBreaker" -> x.toString)
     }
 
+    val hlp = hls match {
+      case None => Nil
+      case Some(a) => List("hl" -> a)
+    }
+
     val bf = boostFields.map({x => ("bf" -> x)})
 
     val f = filters.map({x => ("fq" -> x.extend)})
 
-     t ++ mm ++ qt ++ bq ++ qf ++ p ++ s ++ f ++ pf ++ fl ++ bf
+     t ++ mm ++ qt ++ bq ++ qf ++ p ++ s ++ f ++ pf ++ fl ++ bf ++ hlp
   }
 
   /** Fetch the results with the limit of l. Can only be used on an unlimited
@@ -333,8 +339,8 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
       f(meta.query(creator,queryParamsWithBounds(Option(starti), Option(batchSize)), fieldsToFetch))
     }.toList
   }
-
    //Auto generated code, is there a better way to do this?
+
 
    /** Select into a case class */
    def selectCase [F1, F2,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M], create: (Option[F1], List[String] ,Option[F2], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -371,7 +377,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M], create: (Option[F1], Option[F2]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -389,7 +395,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -436,7 +442,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M], create: (Option[F1], Option[F2], Option[F3]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -458,7 +464,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -515,7 +521,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M], create: (Option[F1], Option[F2], Option[F3], Option[F4]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -541,7 +547,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String] ,Option[F5], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -608,7 +614,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -638,7 +644,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String] ,Option[F5], List[String] ,Option[F6], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -715,7 +721,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -749,7 +755,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -787,7 +793,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -830,7 +836,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -877,7 +883,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -928,7 +934,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -983,7 +989,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -1042,7 +1048,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -1105,7 +1111,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M],f14: M => SolrField[F14, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -1172,7 +1178,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::f14Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M],f14: M => SolrField[F14, M],f15: M => SolrField[F15, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -1243,7 +1249,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::f14Name::f15Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M],f14: M => SolrField[F14, M],f15: M => SolrField[F15, M],f16: M => SolrField[F16, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -1319,7 +1325,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::f14Name::f15Name::f16Name::
                  fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16, F17,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M],f14: M => SolrField[F14, M],f15: M => SolrField[F15, M],f16: M => SolrField[F16, M],f17: M => SolrField[F17, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16], Option[F17]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -1399,7 +1405,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::f14Name::f15Name::f16Name::
                  f17Name::fieldsToFetch).distinct,
-                 transformer)
+                 hls,transformer)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16, F17, F18,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M],f14: M => SolrField[F14, M],f15: M => SolrField[F15, M],f16: M => SolrField[F16, M],f17: M => SolrField[F17, M],f18: M => SolrField[F18, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16], Option[F17], Option[F18]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H] = {
@@ -1483,10 +1489,9 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::f14Name::f15Name::f16Name::
                  f17Name::f18Name::fieldsToFetch).distinct,
-                 transformer)
-  }
+                 hls,transformer)
+   }
  }
-
 object Helpers {
   def groupWithOr[V](v: Iterable[Query[V]]): Query[V] = {
     if (v.isEmpty)

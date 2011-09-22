@@ -214,7 +214,7 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
   // 'Where' is the entry method for a SolrRogue query.
   def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM, NoSelect, NoHighlighting] = {
-    QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil, creator=None)
+    QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil, hls=None, creator=None)
   }
 
   //The query builder calls into this to do actually execute the query.
