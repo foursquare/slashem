@@ -17,6 +17,8 @@ import org.jboss.netty.util.CharsetUtil
 import org.jboss.netty.handler.codec.http._
 import org.jboss.netty.handler.codec.http.HttpResponseStatus._
 
+import scala.annotation.tailrec
+
 import org.joda.time.DateTime
 import java.util.{HashMap, ArrayList}
 import java.util.concurrent.TimeUnit
@@ -29,7 +31,7 @@ import collection.JavaConversions._
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
 
 /** The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results */
-case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y], numFound: Int, start: Int, docs: Array[HashMap[String,Any]], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) {
+case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y], numFound: Int, start: Int, docs: Array[HashMap[String,Any]], highlighting: HashMap[String,HashMap[String,ArrayList[String]]], fallOf: Option[Double], min: Option[Int]) {
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     docs.map({doc => val q = B.meta.createRecord
               val matchingHighlights = if (doc.contains("id") && highlighting != null
@@ -58,6 +60,26 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
               q.asInstanceOf[T]
             }).toList
   }
+  // Collect results which are of a high enough lucene score to be relevant.
+  private def filterHighQuality(r : Array[HashMap[String,Any]]) : Array[HashMap[String,Any]] = {
+    (min,fallOf) match {
+      case (Some(minR),Some(qualityFallOf)) => {
+        val hqCount = highQuality((r.map(x => if(x.contains("score")) Some(x.get("score").asInstanceOf[Double]) else None).toList),
+                                score=0, count=0,minR=minR,qualityFallOf=qualityFallOf)
+        r.take(hqCount)
+      }
+      case _ => r
+    }
+  }
+  @tailrec private def highQuality(l : List[Option[Double]], score: Double = 0,count: Int = 0, minR: Int = 1, qualityFallOf : Double = 0) : Int = {
+    l match {
+      case Some(x)::xs if (count < minR || x > qualityFallOf*(score/count)) => highQuality(xs,score+x,count+1)
+      case None::xs if (score == 0) => highQuality(xs,score,count+1)
+      case None::xs => count
+      case _ => count
+    }
+  }
+
   /** Return a list of the documents in a usable form */
   def results: List[T] = results(schema)
   /** Return a list of results handled by the creator
@@ -135,7 +157,8 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     a
   }
 
-  def extractFromResponse[Y](r: String, creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]])=> Y], fieldstofetch: List[String]=Nil) = {
+  def extractFromResponse[Y](r: String, creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]])=> Y],
+                             fieldstofetch: List[String]=Nil, fallOf: Option[Double] = None, min: Option[Int] = None) = {
     //This intentional avoids lift extract as it is too slow for our use case.
     logger.log(solrName + ".jsonExtract", "extacting json") {
       val rsr = try {
@@ -145,7 +168,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
       }
       //Take the raw search result and make the type templated search result.
       SearchResults(rsr.responseHeader, Response(createRecord, creator, rsr.response.numFound, rsr.response.start,
-                                                 rsr.response.docs, rsr.highlighting))
+                                                 rsr.response.docs, rsr.highlighting, fallOf, min))
     }
   }
 
@@ -213,19 +236,24 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 
 
   // 'Where' is the entry method for a SolrRogue query.
-  def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM, NoSelect, NoHighlighting] = {
-    QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil, phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None, tieBreaker=None, sort=None, minimumMatch=None ,queryType=None, fieldsToFetch=Nil, hls=None, creator=None)
+  def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM, NoSelect, NoHighlighting, NoQualityFilter] = {
+    QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil,
+                 phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None,
+                 tieBreaker=None, sort=None, minimumMatch=None ,queryType=None,
+                 fieldsToFetch=Nil, hls=None, creator=None, fallOf=None, min=None)
   }
 
   //The query builder calls into this to do actually execute the query.
-  def query[Y](creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y], params: Seq[(String, String)], fieldstofetch: List[String]) = {
+  def query[Y](creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y],
+               params: Seq[(String, String)], fieldstofetch: List[String], fallOf: Option[Double], min: Option[Int]) = {
     val jsonResponse = meta.rawQuery(params)
-    meta.extractFromResponse(jsonResponse, creator, fieldstofetch)
+    meta.extractFromResponse(jsonResponse, creator, fieldstofetch, fallOf, min)
   }
   //The query builder calls into this to do actually execute the query.
-  def queryFuture[Y](creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y], params: Seq[(String, String)], fieldstofetch: List[String]) = {
+  def queryFuture[Y](creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y],
+                     params: Seq[(String, String)], fieldstofetch: List[String], fallOf: Option[Double], min: Option[Int]) = {
     val jsonResponseFuture = meta.rawQueryFuture(params)
-    jsonResponseFuture.map(meta.extractFromResponse(_, creator, fieldstofetch))
+    jsonResponseFuture.map(meta.extractFromResponse(_, creator, fieldstofetch, fallOf, min))
   }
 
 }
