@@ -177,10 +177,6 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
 
   // This method performs the actually query / http request. It should probably
   // go in another file when it gets more sophisticated.
-  def rawQuery(params: Seq[(String, String)]): String = {
-    val response = rawQueryFuture(params)(Duration(10, TimeUnit.SECONDS))
-    response
-  }
   def rawQueryFuture(params: Seq[(String, String)]): Future[String] = {
     //Ugly :(
     val qse = new QueryStringEncoder("/solr/select")
@@ -247,11 +243,11 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
   }
 
   //The query builder calls into this to do actually execute the query.
-  def query[Y](creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y],
-               params: Seq[(String, String)], fieldstofetch: List[String], fallOf: Option[Double], min: Option[Int]) = {
-    val jsonResponse = meta.rawQuery(params)
-    meta.extractFromResponse(jsonResponse, creator, fieldstofetch, fallOf, min)
+  def query[Y](timeout: Duration, creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y],
+                     params: Seq[(String, String)], fieldstofetch: List[String], fallOf: Option[Double], min: Option[Int]) = {
+      queryFuture(creator,params,fieldstofetch,fallOf,min)(timeout)
   }
+
   //The query builder calls into this to do actually execute the query.
   def queryFuture[Y](creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y],
                      params: Seq[(String, String)], fieldstofetch: List[String], fallOf: Option[Double], min: Option[Int]) = {

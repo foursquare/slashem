@@ -4,7 +4,7 @@ import com.foursquare.slashem.Ast._
 import net.liftweb.record.{Record}
 import java.util.{ArrayList, HashMap}
 import collection.JavaConversions._
-
+import java.util.concurrent.TimeUnit
 
 // Phantom types
 /** Used for an Ordered query */
@@ -322,13 +322,13 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   /** Fetch the results with the limit of l. Can only be used on an unlimited
   * query */
   def fetch(l: Int)(implicit ev: Lim =:= Unlimited): SearchResults[M,Y] = {
-    this.limit(l).fetch
+    this.limit(l).fetch()
   }
 
   /** Fetch the results for a given query (blocking)*/
-  def fetch():  SearchResults[M,Y] = {
+  def fetch(timeout: Duration = Duration(1, TimeUnit.SECONDS)):  SearchResults[M,Y] = {
     // Gross++
-    meta.query(creator, queryParams, fieldsToFetch, fallOf, min)
+    (meta.queryFuture(creator, queryParams, fieldsToFetch, fallOf, min)(timeout))
   }
   /** Fetch the results for a given query (non-blocking)*/
   def fetchFuture(): Future[SearchResults[M,Y]] = {
@@ -338,12 +338,13 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    * Usage example: val res = (SVenue where (_.default eqs "coffee") start(10) limit(40) fetchBatch(10)) {_.response.oids }
    * @param batchSize The size of the batch to be retrieved
    * @param f A function to be applied over the result batches */
-  def fetchBatch[T](batchSize: Int)(f: SearchResults[M,Y] => List[T]): List[T] = {
+  def fetchBatch[T](batchSize: Int, timeout: Duration = Duration(1, TimeUnit.SECONDS))(f: SearchResults[M,Y] => List[T]): List[T] = {
     val startPos: Long = this.start.getOrElse(DefaultStart)
     val maxRowsToGet: Option[Long] = this.limit//If not specified try to get all rows
     //There is somewhat of a race condition here. If data is being inserted or deleted during the query
     //some results may not appear and some results may be duplicated.
-    val firstQuery = meta.query(creator,
+    val firstQuery = meta.query(timeout,
+                                creator,
                                 queryParamsWithBounds(Option(startPos), Option(batchSize)),
                                 fieldsToFetch,
                                 fallOf,
@@ -355,7 +356,8 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
     f(firstQuery)++(1 to scala.math.ceil(rowsToGet*1.0/batchSize).toInt).flatMap{i =>
       // cannot simply override this.start as it is a val, so removing/adding on queryParams
       val starti = startPos + (i*batchSize)
-      f(meta.query(creator,
+      f(meta.query(timeout,
+                   creator,
                    queryParamsWithBounds(Option(starti), Option(batchSize)),
                    fieldsToFetch,
                    fallOf,
