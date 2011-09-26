@@ -193,7 +193,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     request.addHeader(HttpHeaders.Names.HOST, servers.head);
 
     logger.log(solrName+".rawQuery", request.getUri) {
-      val l = logger.startLog(solrName+"rawquery")
+      val l = logger.startLog(solrName+"rawquery",logger.logQueryTime _)
       val future = client(request).map(_.getContent.toString(CharsetUtil.UTF_8))
       future.onSuccess(_ => l())
       future.onFailure(_ => l())
@@ -211,14 +211,14 @@ trait SolrQueryLogger {
   //Provide this hook to collect timings. Note: may run inside
   //a future, so be careful touching thread.local
   //Time is in milliseconds
-  def startLog(name: String): (() => Unit) = {
+  def startLog(name: String, logger: ((String, Int) => Unit)): (() => Unit) = {
     val startTime = new DateTime
     (() => {
       val finishedTime = new DateTime
-      logTime(name,(finishedTime.getMillis-startTime.getMillis).toInt)
+      logger(name,(finishedTime.getMillis-startTime.getMillis).toInt)
     })
   }
-  def logTime(name: String, time: Int): Unit = {
+  def logQueryTime(name: String, time: Int): Unit = {
   }
   //Log failure
   def failure(name: String, e: Throwable): Unit = {
