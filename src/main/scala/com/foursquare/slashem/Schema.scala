@@ -193,7 +193,10 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     request.addHeader(HttpHeaders.Names.HOST, servers.head);
 
     logger.log(solrName+".rawQuery", request.getUri) {
-      client(request).map(_.getContent.toString(CharsetUtil.UTF_8))
+      val l = logger.startLog("rawquery")
+      val future = client(request).map(_.getContent.toString(CharsetUtil.UTF_8))
+      future.onSuccess(_ => l())
+      future.onFailure(_ => l())
     }
   }
 
@@ -205,6 +208,24 @@ trait SolrQueryLogger {
   // so you can use it to match your query logs with application
   // logs.
   def loggingString(): Option[String] = None
+  //Provide this hook to collect timings. Note: may run inside
+  //a future, so be careful touching thread.local
+  //Time is in milliseconds
+  def startLog(name: String): (() => Unit) = {
+    val startTime = new DateTime
+    (() => {
+      val finishedTime = new DateTime
+      logTime(name,(finishedTime.getMillis-startTime.getMillis).toInt)
+    })
+  }
+  def logTime(name: String, time: Int): Unit = {
+  }
+  //Log failure
+  def failure(name: String, msg: String): Unit = {
+  }
+  //Log success
+  def success(name: String): Unit = {
+  }
 }
 /** The default logger, does nothing. */
 object NoopQueryLogger extends SolrQueryLogger {
