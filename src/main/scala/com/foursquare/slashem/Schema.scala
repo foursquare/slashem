@@ -48,7 +48,7 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
                   matchingHighlights match {
                     case Some(mhl) if (mhl.contains(fname)) => {
                       field match {
-                        case f : SolrField[_,_] => f.setHighlighted(mhl.get(fname).toList)
+                        case f: SolrField[_,_] => f.setHighlighted(mhl.get(fname).toList)
                         case _ => None
                       }
                     }
@@ -62,7 +62,7 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
             }).toList
   }
   // Collect results which are of a high enough lucene score to be relevant.
-  private def filterHighQuality(r : Array[HashMap[String,Any]]) : Array[HashMap[String,Any]] = {
+  private def filterHighQuality(r: Array[HashMap[String,Any]]): Array[HashMap[String,Any]] = {
     (min,fallOf) match {
       case (Some(minR),Some(qualityFallOf)) => {
         val scores = (r.map(x => if(x.contains("score")) Some(x.get("score").asInstanceOf[Double]) else None).toList)
@@ -73,7 +73,7 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
       case _ => r
     }
   }
-  @tailrec private def highQuality(l : List[Option[Double]], score: Double = 0,count: Int = 0, minR: Int = 1, qualityFallOf : Double = 0) : Int = {
+  @tailrec private def highQuality(l: List[Option[Double]], score: Double = 0,count: Int = 0, minR: Int = 1, qualityFallOf: Double = 0): Int = {
     val minScore = qualityFallOf*(score/count)
     l match {
       case Some(x)::xs if (count < minR || x > minScore) => highQuality(xs,score=(score+x),count=(count+1),minR=minR,qualityFallOf=qualityFallOf)
@@ -200,28 +200,28 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
 }
 //If you want to get some simple logging/timing implement this trait
 trait SolrQueryLogger {
-  def log[T](name: String, msg :String)(f: => T): T
+  def log[T](name: String, msg:String)(f: => T): T
   // If this returns a string then it will be appended to the query
   // so you can use it to match your query logs with application
   // logs.
-  def loggingString() : Option[String] = None
+  def loggingString(): Option[String] = None
 }
 /** The default logger, does nothing. */
 object NoopQueryLogger extends SolrQueryLogger {
-  override def log[T](name: String, msg :String)(f: => T): T = {
+  override def log[T](name: String, msg:String)(f: => T): T = {
     f
   }
 }
 
 //If you want any of the geo queries you will have to implement this
 trait SolrGeoHash {
-  def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells: Int ): Seq[String]
+  def coverString (geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int ): Seq[String]
   def rectCoverString(topRight: (Double, Double), bottomLeft: (Double, Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String]
   def maxCells: Int = 0
 }
 //Default geohash, does nothing.
 object NoopSolrGeoHash extends SolrGeoHash {
-  def coverString (geoLat : Double, geoLong : Double, radiusInMeters : Int, maxCells: Int ) : Seq[String] = List("pleaseUseaRealGeoHash")
+  def coverString (geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int ): Seq[String] = List("pleaseUseaRealGeoHash")
   def rectCoverString(topRight: (Double, Double), bottomLeft: (Double, Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = List("pleaseUseaRealGeoHash")
 }
 
@@ -287,9 +287,9 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
 
   def query(q: Query[V]) = Clause[V](self.name, q)
 
-  def setFromAny(a: Any) : Box[V]
+  def setFromAny(a: Any): Box[V]
 
-  def valueBoxFromAny(a: Any) : Box[V] = {
+  def valueBoxFromAny(a: Any): Box[V] = {
     try {
       Full(a.asInstanceOf[V])
     } catch {
@@ -321,8 +321,8 @@ class SolrObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner
     try {
       a match {
         case "" => Empty
-        case s : String => Full(new ObjectId(s))
-        case i : ObjectId => Full(i)
+        case s: String => Full(new ObjectId(s))
+        case i: ObjectId => Full(i)
         case _ => Empty
       }
     } catch {
@@ -376,15 +376,15 @@ class SolrGeoField[T <: SolrSchema[T]](owner: T) extends StringField[T](owner,0)
 class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectId, T] {
 
   type ValueType = ObjectId
-  var e : Box[ValueType] = Empty
+  var e: Box[ValueType] = Empty
 
   def setFromString(s: String) = Full(set(new ObjectId(s)))
   def valueBoxFromAny(a: Any) = {
     try {
       a match {
         case "" => Empty
-        case s : String => Full(new ObjectId(s))
-        case i : ObjectId => Full(i)
+        case s: String => Full(new ObjectId(s))
+        case i: ObjectId => Full(i)
         case _ => Empty
       }
     } catch {
@@ -411,7 +411,7 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
 }
 class JodaDateTimeField[T <: Record[T]](override val owner: T) extends DummyField[DateTime, T](owner) {
   type ValueType = DateTime
-  var e : Box[ValueType] = Empty
+  var e: Box[ValueType] = Empty
 
   override def setFromString(s: String): Box[ValueType] = {
     try {
@@ -422,8 +422,8 @@ class JodaDateTimeField[T <: Record[T]](override val owner: T) extends DummyFiel
   }
   override def setFromAny(a: Any): Box[ValueType] ={
     a match {
-      case s : String => setFromString(s)
-      case d : DateTime => Full(set(d))
+      case s: String => setFromString(s)
+      case d: DateTime => Full(set(d))
       case _ => Empty
     }
   }
@@ -437,7 +437,7 @@ class JodaDateTimeField[T <: Record[T]](override val owner: T) extends DummyFiel
 //This allows support for a list of integers as a field value.
 class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int], T] {
   type ValueType = List[Int]
-  var e : Box[ValueType] = Empty
+  var e: Box[ValueType] = Empty
 
   def setFromString(s: String) = {
     Full(set(s.split(" ").map(x => x.toInt).toList))

@@ -82,9 +82,9 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
 
    /** Select into a case class */
    def selectCase [F1, CC](f: M => SolrField[F1, M], create: Option[F1] => CC)(implicit ev: (Y,H) =:= (NoSelect,NoHighlighting)): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
-     val f1Name : String = f(meta).name
-     val f1Field : SolrField[F1, M] = f(meta)
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f1Name: String = f(meta).name
+     val f1Field: SolrField[F1, M] = f(meta)
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
          val f1 = getForField(f1Field, f1Name, doc)
          create(f1)}))
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields,
@@ -94,10 +94,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   }
    /** Select into a case class */
    def selectCase [F1, CC](f: M => SolrField[F1, M], create: (Option[F1], List[String]) => CC)(implicit ev: (Y,H) =:= (NoSelect,YesHighlighting)): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
-     val f1Name : String = f(meta).name
-     val f1Field : SolrField[F1, M] = f(meta)
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
-       val matchingHighlights : Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
+     val f1Name: String = f(meta).name
+     val f1Field: SolrField[F1, M] = f(meta)
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+       val matchingHighlights: Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
                                     && highlighting.contains(doc.get("id").toString)) {
                                       Some(highlighting.get(doc.get("id").toString))
                                     } else {
@@ -176,7 +176,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    * terms to match.
    * You can only use one of minimumMatchAbsolute or minimumMatchPercent.
    * @param percent The minimum percent of tokens to match */
-  def minimumMatchPercent(percent: Int)(implicit ev: MM =:= defaultMM) : QueryBuilder[M, Ord, Lim, customMM, Y, H, Q] = {
+  def minimumMatchPercent(percent: Int)(implicit ev: MM =:= defaultMM): QueryBuilder[M, Ord, Lim, customMM, Y, H, Q] = {
     this.copy(minimumMatch=Some(percent.toString+"%"))
   }
 
@@ -185,14 +185,14 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    * to match. Note: You must chose one or the other.
    * @param count The minimum number of tokens to match
    */
-  def minimumMatchAbsolute(count: Int)(implicit ev: MM =:= defaultMM) : QueryBuilder[M, Ord, Lim, customMM, Y, H, Q] = {
+  def minimumMatchAbsolute(count: Int)(implicit ev: MM =:= defaultMM): QueryBuilder[M, Ord, Lim, customMM, Y, H, Q] = {
     this.copy(minimumMatch=Some(count.toString))
   }
   /** Set the query type. This corresponds to the "defType" field.
    * Some sample values include "edismax" , "dismax" or just empty to use
    * the default query type
    * @param qt The query type */
-  def useQueryType(qt : String) : QueryBuilder[M, Ord, Lim, MM, Y, H, Q] ={
+  def useQueryType(qt: String): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] ={
     this.copy(queryType=Some(qt))
   }
 
@@ -202,14 +202,14 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   * query parser)
   * @param f The field to query
   * @param boost The (optional) amount to boost the query weight for the provided field */
-  def queryField[F](f : M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] ={
+  def queryField[F](f: M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] ={
     this.copy(queryFields=WeightedField(f(meta).name,boost)::queryFields)
   }
 
   /** Same as queryField but takes a list of fields.
   * @param fs A list of fields to query
   * @param boost The (optional) amount to boost the query weight for the provided field */
-  def queryFields(fs : List[M => SolrField[_,M]], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] ={
+  def queryFields(fs: List[M => SolrField[_,M]], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] ={
     this.copy(queryFields=fs.map(f => WeightedField(f(meta).name,boost))++queryFields)
   }
 
@@ -227,20 +227,20 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    * @param pf Enable/disable full phrase boosting
    * @param pf2 Enable/disable 2-word shingle phrase boosting
    * @param pf3 Enable/disable 3-word shingle phrase boosting */
-  def phraseBoost[F](f : M => SolrField[F,M], boost: Double = 1, pf: Boolean = true, pf2: Boolean = true, pf3: Boolean = true): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] ={
+  def phraseBoost[F](f: M => SolrField[F,M], boost: Double = 1, pf: Boolean = true, pf2: Boolean = true, pf3: Boolean = true): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] ={
     this.copy(phraseBoostFields=PhraseWeightedField(f(meta).name,boost,pf,pf2,pf3)::phraseBoostFields)
   }
 
   /** Specify a field to be retrieved. If you want to get back all fields you
    * can use a field of name "*"
    * @param f Field to be retrieved */
-  def fetchField[F](f : M => SolrField[F,M]): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
+  def fetchField[F](f: M => SolrField[F,M]): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
     this.copy(fieldsToFetch=f(meta).name::fieldsToFetch)
   }
 
   /** Same as fetchField but takes multiple fields
   * @param fs List of fields to be retrieved */
-  def fetchFields(fs : (M => SolrField[_,M])*): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
+  def fetchFields(fs: (M => SolrField[_,M])*): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
     this.copy(fieldsToFetch=fs.map(f=> f(meta).name).toList++fieldsToFetch)
   }
 
@@ -250,7 +250,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   }
 
   /** Boost a field (type safe version) */
-  def boostField[F](f : M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
+  def boostField[F](f: M => SolrField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
     this.copy(boostFields=(f(meta).name+"^"+boost)::boostFields)
   }
 
@@ -326,7 +326,12 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   }
 
   /** Fetch the results for a given query (blocking)*/
-  def fetch(timeout: Duration = Duration(1, TimeUnit.SECONDS)):  SearchResults[M,Y] = {
+  def fetch():  SearchResults[M,Y] = {
+    // Gross++
+    fetch(Duration(1, TimeUnit.SECONDS))
+  }
+  /** Fetch the results for a given query (blocking) with a specified timeout*/
+  def fetch(timeout: Duration):  SearchResults[M,Y] = {
     // Gross++
     (meta.queryFuture(creator, queryParams, fieldsToFetch, fallOf, min)(timeout))
   }
@@ -350,7 +355,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                                 fallOf,
                                 min)
     val maxResults = firstQuery.response.numFound - firstQuery.response.start
-    val rowsToGet : Long = maxRowsToGet.map(scala.math.min(_,maxResults)) getOrElse maxResults
+    val rowsToGet: Long = maxRowsToGet.map(scala.math.min(_,maxResults)) getOrElse maxResults
     // Now make rowsToGet/batchSizes calls to meta.query
     //Note the 1 is not a typo since we have already fetched the first page.
     f(firstQuery)++(1 to scala.math.ceil(rowsToGet*1.0/batchSize).toInt).flatMap{i =>
@@ -369,14 +374,14 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M], create: (Option[F1], List[String] ,Option[F2], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
 
-       val matchingHighlights : Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
+       val matchingHighlights: Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
                                     && highlighting.contains(doc.get("id").toString)) {
                                       Some(highlighting.get(doc.get("id").toString))
                                     } else {
@@ -406,12 +411,12 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M], create: (Option[F1], Option[F2]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      create(f1 , f2)}));
@@ -424,17 +429,17 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
 
-       val matchingHighlights : Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
+       val matchingHighlights: Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
                                     && highlighting.contains(doc.get("id").toString)) {
                                       Some(highlighting.get(doc.get("id").toString))
                                     } else {
@@ -471,15 +476,15 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M], create: (Option[F1], Option[F2], Option[F3]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -493,20 +498,20 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
 
-       val matchingHighlights : Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
+       val matchingHighlights: Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
                                     && highlighting.contains(doc.get("id").toString)) {
                                       Some(highlighting.get(doc.get("id").toString))
                                     } else {
@@ -550,18 +555,18 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M], create: (Option[F1], Option[F2], Option[F3], Option[F4]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -576,23 +581,23 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String] ,Option[F5], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
 
-       val matchingHighlights : Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
+       val matchingHighlights: Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
                                     && highlighting.contains(doc.get("id").toString)) {
                                       Some(highlighting.get(doc.get("id").toString))
                                     } else {
@@ -643,21 +648,21 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -673,26 +678,26 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String] ,Option[F5], List[String] ,Option[F6], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
 
-       val matchingHighlights : Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
+       val matchingHighlights: Option[HashMap[String,ArrayList[String]]] = if (doc.contains("id") && highlighting != null
                                     && highlighting.contains(doc.get("id").toString)) {
                                       Some(highlighting.get(doc.get("id").toString))
                                     } else {
@@ -750,24 +755,24 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -784,27 +789,27 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -822,30 +827,30 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
 
-     val f8Field : SolrField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f8Field: SolrField[F8, M] = f8(meta)
+     val f8Name: String = f8Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -865,33 +870,33 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
 
-     val f8Field : SolrField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Field: SolrField[F8, M] = f8(meta)
+     val f8Name: String = f8Field.name
 
-     val f9Field : SolrField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f9Field: SolrField[F9, M] = f9(meta)
+     val f9Name: String = f9Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -912,36 +917,36 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
 
-     val f8Field : SolrField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Field: SolrField[F8, M] = f8(meta)
+     val f8Name: String = f8Field.name
 
-     val f9Field : SolrField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Field: SolrField[F9, M] = f9(meta)
+     val f9Name: String = f9Field.name
 
-     val f10Field : SolrField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f10Field: SolrField[F10, M] = f10(meta)
+     val f10Name: String = f10Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -963,39 +968,39 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
 
-     val f8Field : SolrField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Field: SolrField[F8, M] = f8(meta)
+     val f8Name: String = f8Field.name
 
-     val f9Field : SolrField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Field: SolrField[F9, M] = f9(meta)
+     val f9Name: String = f9Field.name
 
-     val f10Field : SolrField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Field: SolrField[F10, M] = f10(meta)
+     val f10Name: String = f10Field.name
 
-     val f11Field : SolrField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f11Field: SolrField[F11, M] = f11(meta)
+     val f11Name: String = f11Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -1018,42 +1023,42 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
 
-     val f8Field : SolrField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Field: SolrField[F8, M] = f8(meta)
+     val f8Name: String = f8Field.name
 
-     val f9Field : SolrField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Field: SolrField[F9, M] = f9(meta)
+     val f9Name: String = f9Field.name
 
-     val f10Field : SolrField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Field: SolrField[F10, M] = f10(meta)
+     val f10Name: String = f10Field.name
 
-     val f11Field : SolrField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Field: SolrField[F11, M] = f11(meta)
+     val f11Name: String = f11Field.name
 
-     val f12Field : SolrField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f12Field: SolrField[F12, M] = f12(meta)
+     val f12Name: String = f12Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -1077,45 +1082,45 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
 
-     val f8Field : SolrField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Field: SolrField[F8, M] = f8(meta)
+     val f8Name: String = f8Field.name
 
-     val f9Field : SolrField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Field: SolrField[F9, M] = f9(meta)
+     val f9Name: String = f9Field.name
 
-     val f10Field : SolrField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Field: SolrField[F10, M] = f10(meta)
+     val f10Name: String = f10Field.name
 
-     val f11Field : SolrField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Field: SolrField[F11, M] = f11(meta)
+     val f11Name: String = f11Field.name
 
-     val f12Field : SolrField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Field: SolrField[F12, M] = f12(meta)
+     val f12Name: String = f12Field.name
 
-     val f13Field : SolrField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f13Field: SolrField[F13, M] = f13(meta)
+     val f13Name: String = f13Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -1140,48 +1145,48 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M],f14: M => SolrField[F14, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
 
-     val f8Field : SolrField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Field: SolrField[F8, M] = f8(meta)
+     val f8Name: String = f8Field.name
 
-     val f9Field : SolrField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Field: SolrField[F9, M] = f9(meta)
+     val f9Name: String = f9Field.name
 
-     val f10Field : SolrField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Field: SolrField[F10, M] = f10(meta)
+     val f10Name: String = f10Field.name
 
-     val f11Field : SolrField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Field: SolrField[F11, M] = f11(meta)
+     val f11Name: String = f11Field.name
 
-     val f12Field : SolrField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Field: SolrField[F12, M] = f12(meta)
+     val f12Name: String = f12Field.name
 
-     val f13Field : SolrField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
+     val f13Field: SolrField[F13, M] = f13(meta)
+     val f13Name: String = f13Field.name
 
-     val f14Field : SolrField[F14, M] = f14(meta)
-     val f14Name : String = f14Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f14Field: SolrField[F14, M] = f14(meta)
+     val f14Name: String = f14Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -1207,51 +1212,51 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M],f14: M => SolrField[F14, M],f15: M => SolrField[F15, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
 
-     val f8Field : SolrField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Field: SolrField[F8, M] = f8(meta)
+     val f8Name: String = f8Field.name
 
-     val f9Field : SolrField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Field: SolrField[F9, M] = f9(meta)
+     val f9Name: String = f9Field.name
 
-     val f10Field : SolrField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Field: SolrField[F10, M] = f10(meta)
+     val f10Name: String = f10Field.name
 
-     val f11Field : SolrField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Field: SolrField[F11, M] = f11(meta)
+     val f11Name: String = f11Field.name
 
-     val f12Field : SolrField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Field: SolrField[F12, M] = f12(meta)
+     val f12Name: String = f12Field.name
 
-     val f13Field : SolrField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
+     val f13Field: SolrField[F13, M] = f13(meta)
+     val f13Name: String = f13Field.name
 
-     val f14Field : SolrField[F14, M] = f14(meta)
-     val f14Name : String = f14Field.name
+     val f14Field: SolrField[F14, M] = f14(meta)
+     val f14Name: String = f14Field.name
 
-     val f15Field : SolrField[F15, M] = f15(meta)
-     val f15Name : String = f15Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f15Field: SolrField[F15, M] = f15(meta)
+     val f15Name: String = f15Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -1278,54 +1283,54 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M],f14: M => SolrField[F14, M],f15: M => SolrField[F15, M],f16: M => SolrField[F16, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
 
-     val f8Field : SolrField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Field: SolrField[F8, M] = f8(meta)
+     val f8Name: String = f8Field.name
 
-     val f9Field : SolrField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Field: SolrField[F9, M] = f9(meta)
+     val f9Name: String = f9Field.name
 
-     val f10Field : SolrField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Field: SolrField[F10, M] = f10(meta)
+     val f10Name: String = f10Field.name
 
-     val f11Field : SolrField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Field: SolrField[F11, M] = f11(meta)
+     val f11Name: String = f11Field.name
 
-     val f12Field : SolrField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Field: SolrField[F12, M] = f12(meta)
+     val f12Name: String = f12Field.name
 
-     val f13Field : SolrField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
+     val f13Field: SolrField[F13, M] = f13(meta)
+     val f13Name: String = f13Field.name
 
-     val f14Field : SolrField[F14, M] = f14(meta)
-     val f14Name : String = f14Field.name
+     val f14Field: SolrField[F14, M] = f14(meta)
+     val f14Name: String = f14Field.name
 
-     val f15Field : SolrField[F15, M] = f15(meta)
-     val f15Name : String = f15Field.name
+     val f15Field: SolrField[F15, M] = f15(meta)
+     val f15Name: String = f15Field.name
 
-     val f16Field : SolrField[F16, M] = f16(meta)
-     val f16Name : String = f16Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f16Field: SolrField[F16, M] = f16(meta)
+     val f16Name: String = f16Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -1354,57 +1359,57 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16, F17,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M],f14: M => SolrField[F14, M],f15: M => SolrField[F15, M],f16: M => SolrField[F16, M],f17: M => SolrField[F17, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16], Option[F17]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
 
-     val f8Field : SolrField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Field: SolrField[F8, M] = f8(meta)
+     val f8Name: String = f8Field.name
 
-     val f9Field : SolrField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Field: SolrField[F9, M] = f9(meta)
+     val f9Name: String = f9Field.name
 
-     val f10Field : SolrField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Field: SolrField[F10, M] = f10(meta)
+     val f10Name: String = f10Field.name
 
-     val f11Field : SolrField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Field: SolrField[F11, M] = f11(meta)
+     val f11Name: String = f11Field.name
 
-     val f12Field : SolrField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Field: SolrField[F12, M] = f12(meta)
+     val f12Name: String = f12Field.name
 
-     val f13Field : SolrField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
+     val f13Field: SolrField[F13, M] = f13(meta)
+     val f13Name: String = f13Field.name
 
-     val f14Field : SolrField[F14, M] = f14(meta)
-     val f14Name : String = f14Field.name
+     val f14Field: SolrField[F14, M] = f14(meta)
+     val f14Name: String = f14Field.name
 
-     val f15Field : SolrField[F15, M] = f15(meta)
-     val f15Name : String = f15Field.name
+     val f15Field: SolrField[F15, M] = f15(meta)
+     val f15Name: String = f15Field.name
 
-     val f16Field : SolrField[F16, M] = f16(meta)
-     val f16Name : String = f16Field.name
+     val f16Field: SolrField[F16, M] = f16(meta)
+     val f16Name: String = f16Field.name
 
-     val f17Field : SolrField[F17, M] = f17(meta)
-     val f17Name : String = f17Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f17Field: SolrField[F17, M] = f17(meta)
+     val f17Name: String = f17Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)
@@ -1434,60 +1439,60 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16, F17, F18,  CC](f1: M => SolrField[F1, M],f2: M => SolrField[F2, M],f3: M => SolrField[F3, M],f4: M => SolrField[F4, M],f5: M => SolrField[F5, M],f6: M => SolrField[F6, M],f7: M => SolrField[F7, M],f8: M => SolrField[F8, M],f9: M => SolrField[F9, M],f10: M => SolrField[F10, M],f11: M => SolrField[F11, M],f12: M => SolrField[F12, M],f13: M => SolrField[F13, M],f14: M => SolrField[F14, M],f15: M => SolrField[F15, M],f16: M => SolrField[F16, M],f17: M => SolrField[F17, M],f18: M => SolrField[F18, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16], Option[F17], Option[F18]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
-     val f1Field : SolrField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Field: SolrField[F1, M] = f1(meta)
+     val f1Name: String = f1Field.name
 
-     val f2Field : SolrField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Field: SolrField[F2, M] = f2(meta)
+     val f2Name: String = f2Field.name
 
-     val f3Field : SolrField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Field: SolrField[F3, M] = f3(meta)
+     val f3Name: String = f3Field.name
 
-     val f4Field : SolrField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Field: SolrField[F4, M] = f4(meta)
+     val f4Name: String = f4Field.name
 
-     val f5Field : SolrField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Field: SolrField[F5, M] = f5(meta)
+     val f5Name: String = f5Field.name
 
-     val f6Field : SolrField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Field: SolrField[F6, M] = f6(meta)
+     val f6Name: String = f6Field.name
 
-     val f7Field : SolrField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Field: SolrField[F7, M] = f7(meta)
+     val f7Name: String = f7Field.name
 
-     val f8Field : SolrField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Field: SolrField[F8, M] = f8(meta)
+     val f8Name: String = f8Field.name
 
-     val f9Field : SolrField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Field: SolrField[F9, M] = f9(meta)
+     val f9Name: String = f9Field.name
 
-     val f10Field : SolrField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Field: SolrField[F10, M] = f10(meta)
+     val f10Name: String = f10Field.name
 
-     val f11Field : SolrField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Field: SolrField[F11, M] = f11(meta)
+     val f11Name: String = f11Field.name
 
-     val f12Field : SolrField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Field: SolrField[F12, M] = f12(meta)
+     val f12Name: String = f12Field.name
 
-     val f13Field : SolrField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
+     val f13Field: SolrField[F13, M] = f13(meta)
+     val f13Name: String = f13Field.name
 
-     val f14Field : SolrField[F14, M] = f14(meta)
-     val f14Name : String = f14Field.name
+     val f14Field: SolrField[F14, M] = f14(meta)
+     val f14Name: String = f14Field.name
 
-     val f15Field : SolrField[F15, M] = f15(meta)
-     val f15Name : String = f15Field.name
+     val f15Field: SolrField[F15, M] = f15(meta)
+     val f15Name: String = f15Field.name
 
-     val f16Field : SolrField[F16, M] = f16(meta)
-     val f16Name : String = f16Field.name
+     val f16Field: SolrField[F16, M] = f16(meta)
+     val f16Name: String = f16Field.name
 
-     val f17Field : SolrField[F17, M] = f17(meta)
-     val f17Name : String = f17Field.name
+     val f17Field: SolrField[F17, M] = f17(meta)
+     val f17Name: String = f17Field.name
 
-     val f18Field : SolrField[F18, M] = f18(meta)
-     val f18Name : String = f18Field.name
-     val transformer = Some(((doc : HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
+     val f18Field: SolrField[F18, M] = f18(meta)
+     val f18Name: String = f18Field.name
+     val transformer = Some(((doc: HashMap[String,Any], highlighting: HashMap[String,HashMap[String,ArrayList[String]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
      val f3 = getForField(f3Field, f3Name, doc)

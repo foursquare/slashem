@@ -26,7 +26,7 @@ object Ast {
   }
 
   //You can use a JoinClause to join two clauses (normally with "and" or "or")
-  case class JoinClause(s1 : AbstractClause, s2: AbstractClause, j: String) extends AbstractClause {
+  case class JoinClause(s1: AbstractClause, s2: AbstractClause, j: String) extends AbstractClause {
     def extend(): String = {
       "("+s1.extend+") "+j+" ("+s2.extend+")"
     }
@@ -80,7 +80,7 @@ object Ast {
     def extend: String
     def and(c: Query[T]): Query[T] = And(this, c)
     def or(c: Query[T]): Query[T] = Or(this, c)
-    def boost(b : Float): Query[T] = Boost(this, b)
+    def boost(b: Float): Query[T] = Boost(this, b)
   }
 
   case class Empty[T]() extends Query[T] {
