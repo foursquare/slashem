@@ -193,7 +193,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     request.addHeader(HttpHeaders.Names.HOST, servers.head);
 
     logger.log(solrName+".rawQuery", request.getUri) {
-      val l = logger.startLog("rawquery")
+      val l = logger.startLog(solrName+"rawquery")
       val future = client(request).map(_.getContent.toString(CharsetUtil.UTF_8))
       future.onSuccess(_ => l())
       future.onFailure(_ => l())
@@ -221,7 +221,7 @@ trait SolrQueryLogger {
   def logTime(name: String, time: Int): Unit = {
   }
   //Log failure
-  def failure(name: String, msg: String): Unit = {
+  def failure(name: String, e: Throwable): Unit = {
   }
   //Log success
   def success(name: String): Unit = {
@@ -273,7 +273,9 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
   def queryFuture[Y](creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y],
                      params: Seq[(String, String)], fieldstofetch: List[String], fallOf: Option[Double], min: Option[Int]) = {
     val jsonResponseFuture = meta.rawQueryFuture(params)
-    jsonResponseFuture.map(meta.extractFromResponse(_, creator, fieldstofetch, fallOf, min))
+    val formattedFuture = jsonResponseFuture.map(meta.extractFromResponse(_, creator, fieldstofetch, fallOf, min))
+    formattedFuture.onSuccess(_ => meta.logger.success(meta.solrName+"-success"))
+    formattedFuture.onFailure(e => meta.logger.failure(meta.solrName+"-failure", e))
   }
 
 }
