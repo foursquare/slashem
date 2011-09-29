@@ -160,18 +160,22 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     a
   }
 
-  def extractFromResponse[Y](r: String, creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]])=> Y],
-                             fieldstofetch: List[String]=Nil, fallOf: Option[Double] = None, min: Option[Int] = None) = {
+  def extractFromResponse[Y](r: String, creator: Option[(HashMap[String,Any],
+                                                         HashMap[String,HashMap[String,ArrayList[String]]])=> Y],
+                             fieldstofetch: List[String]=Nil, fallOf: Option[Double] = None,
+                             min: Option[Int] = None, queryText: String) = {
     //This intentional avoids lift extract as it is too slow for our use case.
     logger.log(solrName + ".jsonExtract", "extacting json") {
-      val rsr = try {
-        mapper.readValue(r, classOf[RawSearchResults])
+      try {
+        val rsr = mapper.readValue(r, classOf[RawSearchResults])
+        //Take the raw search result and make the type templated search result.
+        Future(SearchResults(rsr.responseHeader, Response(createRecord, creator, rsr.response.numFound, rsr.response.start,
+                                                          rsr.response.docs, rsr.highlighting, fallOf, min)))
       } catch {
-        case e => throw new Exception("An error occured while parsing solr result \""+r+"\"",e)
+        case e => Future.exception(new Exception("An error occured while parsing solr result \""+r+
+                                                 "\" from query ("+queryText+")",e))
       }
-      //Take the raw search result and make the type templated search result.
-      SearchResults(rsr.responseHeader, Response(createRecord, creator, rsr.response.numFound, rsr.response.start,
-                                                 rsr.response.docs, rsr.highlighting, fallOf, min))
+
     }
   }
 
@@ -272,8 +276,14 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
   //The query builder calls into this to do actually execute the query.
   def queryFuture[Y](creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y],
                      params: Seq[(String, String)], fieldstofetch: List[String], fallOf: Option[Double], min: Option[Int]) = {
+    val queryText = params.map((x: (String,String)) => x._1+x._2).mkString(" ")
     val jsonResponseFuture = meta.rawQueryFuture(params)
-    val formattedFuture = jsonResponseFuture.map(meta.extractFromResponse(_, creator, fieldstofetch, fallOf, min))
+    val formattedFuture = jsonResponseFuture.flatMap(meta.extractFromResponse(_, creator,
+                                                                          fieldstofetch,
+                                                                          fallOf,
+                                                                          min,
+                                                                          queryText)
+                                                   )
     formattedFuture.onSuccess(_ => meta.logger.success(meta.solrName+"-success"))
     formattedFuture.onFailure(e => meta.logger.failure(meta.solrName+"-failure", e))
   }

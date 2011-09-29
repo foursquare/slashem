@@ -77,7 +77,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
         "lng":101.495239,
         "hasSpecial":false}]
   }}"""
-    val parsed = SVenueTest.extractFromResponse(r, Some(testCreator _), Nil)
+    val parsed = SVenueTest.extractFromResponse(r, Some(testCreator _), Nil, queryText="foo").get()
     Assert.assertEquals(parsed.responseHeader, ResponseHeader(0, 1))
     Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).name.value, "test")
     Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).name.valueBox, Full("test"))
@@ -121,7 +121,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
         "id":"4d102d0d6331a093714e5594",
         "score":9.185220}]
   }}"""
-    val parsed = SVenueTest.extractFromResponse(r, Some(testCreator _), Nil)
+    val parsed = SVenueTest.extractFromResponse(r, Some(testCreator _), Nil, queryText="foo2").get()
     val oids = parsed.response.oids
     val oidAndScores = parsed.response.oidScorePair
     Assert.assertEquals(oids.apply(0),new ObjectId("4c809f4251ada1cdc3790b10"))
@@ -156,7 +156,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
         "id":"4d102d0d6331a093714e5595",
         "score":1.185220}]
   }}"""
-    val parsed = SVenueTest.extractFromResponse(r, Some(testCreator _), Nil, fallOf = Some(0.5), min=Some(1))
+    val parsed = SVenueTest.extractFromResponse(r, Some(testCreator _), Nil, fallOf = Some(0.5), min=Some(1),"foo3").get()
     val oids = parsed.response.oids
     val oidAndScores = parsed.response.oidScorePair
     Assert.assertEquals(oids.apply(0),new ObjectId("4c809f4251ada1cdc3790b10"))
@@ -224,7 +224,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
   }}"""
     case class TestPirate(state: Option[String])
     val parsedQuery = (SVenueTest where (_.name eqs "test") selectCase(_.name,((x: Option[String]) => TestPirate(x))))
-    val parsed = SVenueTest.extractFromResponse(r, parsedQuery.creator, Nil)
+    val parsed = SVenueTest.extractFromResponse(r, parsedQuery.creator, Nil, queryText="rawrs").get()
     val extracted = parsed.response.processedResults
     Assert.assertEquals(extracted.length,2)
     Assert.assertEquals(extracted,List(TestPirate(Some("test")),TestPirate(Some("test2"))))
@@ -265,7 +265,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
       "text":["<em>SUCKA</em> FREE."]},
     "4bd3921670c603bb931a99b4":{
       "text":["<em>Sucka</em> free!"]}}}"""
-    val parsed = STipTest.extractFromResponse(r, Some(testCreator _), Nil)
+    val parsed = STipTest.extractFromResponse(r, Some(testCreator _), Nil,queryText="cheetos").get()
     Assert.assertEquals(parsed.responseHeader, ResponseHeader(0, 1))
     Assert.assertEquals(parsed.response.results.apply(0).text.value, "SUCKA FREE.")
     Assert.assertEquals(parsed.response.results.apply(0).text.highlighted.length, 1)
@@ -306,7 +306,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
       "text":["<em>Sucka</em> free!"]}}}"""
     case class TestPirate(state: Option[String], lolerskates: List[String])
     val parsedQuery = (STipTest where (_.text eqs "test") highlighting() selectCase(_.text,((x: Option[String], y: List[String]) => TestPirate(x,y))))
-    val parsed = STipTest.extractFromResponse(r, parsedQuery.creator, Nil)
+    val parsed = STipTest.extractFromResponse(r, parsedQuery.creator, Nil,queryText="are delicious!").get()
     val extracted = parsed.response.processedResults
     Assert.assertEquals(parsed.responseHeader, ResponseHeader(0, 1))
     Assert.assertEquals(parsed.response.results.apply(0).text.value, "SUCKA FREE.")
@@ -314,5 +314,20 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(parsed.response.results.apply(0).text.highlighted.apply(0), "<em>SUCKA</em> FREE.")
     Assert.assertEquals(extracted,List(TestPirate(Some("SUCKA FREE."),List("<em>SUCKA</em> FREE.")),TestPirate(Some("Sucka free!"),List("<em>Sucka</em> free!"))))
   }
+  @Test
+  def test504() = {
+    val r= """<>504<>"""
+    case class TestPirate(state: Option[String], lolerskates: List[String])
+    val parsedQuery = (STipTest where (_.text eqs "test") highlighting() selectCase(_.text,((x: Option[String], y: List[String]) => TestPirate(x,y))))
+    val parsedFuture = STipTest.extractFromResponse(r, parsedQuery.creator, Nil,queryText="are delicious!")
+    val exception = try {
+      parsedFuture.get()
+      false
+    } catch {
+      case e => true
+    }
+    Assert.assertEquals(exception,true)
+  }
+
 }
 

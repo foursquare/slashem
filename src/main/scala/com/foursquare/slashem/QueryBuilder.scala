@@ -46,7 +46,6 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
  fallOf: Option[Double],
  min: Option[Int]) {
 
-
   val DefaultLimit = 10
   val DefaultStart = 0
   import Helpers._
