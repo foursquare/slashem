@@ -4,18 +4,15 @@ import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
 import net.liftweb.record.field.{BooleanField, LongField, StringField, IntField, DoubleField}
 import net.liftweb.common.{Box, Empty, Full}
 import com.twitter.util.{Duration, Future}
-import com.twitter.finagle._
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.http.Http
-import com.twitter.finagle.util._
 import net.liftweb.json.JsonParser
 import org.bson.types.ObjectId
-import org.codehaus.jackson._
 import org.codehaus.jackson.annotate._
-import org.codehaus.jackson.map._
+import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper}
 import org.jboss.netty.util.CharsetUtil
-import org.jboss.netty.handler.codec.http._
-import org.jboss.netty.handler.codec.http.HttpResponseStatus._
+import org.jboss.netty.handler.codec.http.{DefaultHttpRequest, HttpResponseStatus, HttpHeaders, HttpMethod,
+                                           HttpVersion, QueryStringEncoder}
 
 import scala.annotation.tailrec
 
@@ -25,6 +22,12 @@ import java.util.concurrent.TimeUnit
 import java.lang.Integer
 import java.net.InetSocketAddress
 import collection.JavaConversions._
+
+case class SolrResponseException(code: Int, reason: String, solrName: String, query: String) extends RuntimeException {
+  override def getMessage(): String = {
+     "Solr %s request resulted in HTTP %s: %s\n%s: %s".format(solrName, code, reason, solrName, query)
+  }
+}
 
 /** The response header. There are normally more fields in the response header we could extract, but
  * we don't at present. */
@@ -41,7 +44,7 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
               } else {
                 None
               }
-              doc.foreach({a =>
+              doc.foreach(a => {
                 val fname = a._1
                 val value = a._2
                 q.fieldByName(fname).map((field) =>{
@@ -73,12 +76,12 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
       case _ => r
     }
   }
-  @tailrec private def highQuality(l: List[Option[Double]], score: Double = 0,count: Int = 0, minR: Int = 1, qualityFallOf: Double = 0): Int = {
-    val minScore = qualityFallOf*(score/count)
+  @tailrec private def highQuality(l: List[Option[Double]], score: Double = 0, count: Int = 0, minR: Int = 1, qualityFallOf: Double = 0): Int = {
+    val minScore = qualityFallOf * (score / count)
     l match {
-      case Some(x)::xs if (count < minR || x > minScore) => highQuality(xs,score=(score+x),count=(count+1),minR=minR,qualityFallOf=qualityFallOf)
-      case None::xs if (score == 0) => highQuality(xs,score,count+1)
-      case None::xs => count
+      case Some(x) :: xs if (count < minR || x > minScore) => highQuality(xs,score=(score+x),count=(count+1),minR=minR,qualityFallOf=qualityFallOf)
+      case None :: xs if (score == 0) => highQuality(xs, score, count + 1)
+      case None :: xs => count
       case _ => count
     }
   }
@@ -89,7 +92,7 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
    * Most commonly used for case class based queries */
   def processedResults: List[Y] = {
     creator match {
-      case Some(func) => { filteredDocs.map(func(_,highlighting)).toList }
+      case Some(func) => { filteredDocs.map(func(_, highlighting)).toList }
       case None => Nil
     }
   }
@@ -140,7 +143,9 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   def hostConnectionCoresize = 300
 
   //Params semi-randomly chosen
-  def client = ClientBuilder()
+  // jonshea: Should we make this a val?
+  def client = {
+    ClientBuilder()
     .codec(Http())
     .hosts(servers.map(x => {val h = x.split(":")
                              val s = h.head
@@ -149,7 +154,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
     .hostConnectionLimit(hostConnectionLimit)
     .hostConnectionCoresize(hostConnectionCoresize)
     .retries(retries)
-    .build()
+    .build()}
 
   //This is used so the json extractor can do its job
   implicit val formats = net.liftweb.json.DefaultFormats
@@ -163,69 +168,65 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   def extractFromResponse[Y](r: String, creator: Option[(HashMap[String,Any],
                                                          HashMap[String,HashMap[String,ArrayList[String]]])=> Y],
                              fieldstofetch: List[String]=Nil, fallOf: Option[Double] = None,
-                             min: Option[Int] = None, queryText: String) = {
+                             min: Option[Int] = None, queryText: String): Future[SearchResults[T, Y]] = {
     //This intentional avoids lift extract as it is too slow for our use case.
-    logger.log(solrName + ".jsonExtract", "extacting json") {
-      try {
-        val rsr = mapper.readValue(r, classOf[RawSearchResults])
-        //Take the raw search result and make the type templated search result.
-        Future(SearchResults(rsr.responseHeader, Response(createRecord, creator, rsr.response.numFound, rsr.response.start,
-                                                          rsr.response.docs, rsr.highlighting, fallOf, min)))
-      } catch {
-        case e => Future.exception(new Exception("An error occured while parsing solr result \""+r+
-                                                 "\" from query ("+queryText+")",e))
-      }
+    try {
+      val rsr = mapper.readValue(r, classOf[RawSearchResults])
+      //Take the raw search result and make the type templated search result.
+      Future(SearchResults(rsr.responseHeader, Response(createRecord, creator, rsr.response.numFound, rsr.response.start,
+                                                        rsr.response.docs, rsr.highlighting, fallOf, min)))
 
+    } catch {
+      case e => Future.exception(new Exception("An error occured while parsing solr result \""+r+
+                                               "\" from query ("+queryText+")",e))
     }
+  }
+
+  def queryString(params: Seq[(String, String)]): QueryStringEncoder = {
+    val qse = new QueryStringEncoder("/solr/select/")
+    qse.addParam("wt", "json")
+
+    params.foreach( x => {
+      qse.addParam(x._1, x._2)
+    })
+
+    qse
   }
 
   // This method performs the actually query / http request. It should probably
   // go in another file when it gets more sophisticated.
   def rawQueryFuture(params: Seq[(String, String)]): Future[String] = {
-    //Ugly :(
-    val qse = new QueryStringEncoder("/solr/select")
+    //Ugly
 
-    (("wt" -> "json") :: params.toList).foreach { x =>
-      qse.addParam(x._1, x._2)
-    }
+    val qse = queryString(params ++
+                      logger.queryIdToken.map("magicLoggingToken" -> _).toList)
 
-    logger.loggingString().foreach(qse.addParam("magicLoggingToken",_))
 
     val request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, qse.toString)
     //Here be dragons! If you have multiple backends with shared IPs this could very well explode
     //but finagle doesn't seem to properly set the http host header for http/1.1
     request.addHeader(HttpHeaders.Names.HOST, servers.head);
 
-    logger.log(solrName+".rawQuery", request.getUri) {
-      val l = logger.startLog(solrName+"rawquery",logger.logQueryTime _)
-      val future = client(request).map(_.getContent.toString(CharsetUtil.UTF_8))
-      future.onSuccess(_ => l())
-      future.onFailure(_ => l())
-    }
+    client(request).map(response => {
+      response.getStatus match {
+        case HttpResponseStatus.OK => response.getContent.toString(CharsetUtil.UTF_8)
+        case status => throw SolrResponseException(status.getCode, status.getReasonPhrase, solrName, qse.toString)
+      }
+    }).ensure { client.release }
   }
 
 }
 //If you want to get some simple logging/timing implement this trait
 trait SolrQueryLogger {
-  def log[T](name: String, msg:String)(f: => T): T
+  def log(name: String, msg: String, time: Long)
+
   // If this returns a string then it will be appended to the query
   // so you can use it to match your query logs with application
   // logs.
-  def loggingString(): Option[String] = None
-  //Provide this hook to collect timings. Note: may run inside
-  //a future, so be careful touching thread.local
-  //Time is in milliseconds
-  def startLog(name: String, logger: ((String, Int) => Unit)): (() => Unit) = {
-    val startTime = new DateTime
-    (() => {
-      val finishedTime = new DateTime
-      logger(name,(finishedTime.getMillis-startTime.getMillis).toInt)
-    })
-  }
-  def logQueryTime(name: String, time: Int): Unit = {
-  }
+  def queryIdToken(): Option[String] = None
+
   //Log failure
-  def failure(name: String, e: Throwable): Unit = {
+  def failure(name: String, message: String, e: Throwable): Unit = {
   }
   //Log success
   def success(name: String): Unit = {
@@ -233,9 +234,7 @@ trait SolrQueryLogger {
 }
 /** The default logger, does nothing. */
 object NoopQueryLogger extends SolrQueryLogger {
-  override def log[T](name: String, msg:String)(f: => T): T = {
-    f
-  }
+  override def log(name: String, msg: String, time: Long) = Unit
 }
 
 //If you want any of the geo queries you will have to implement this
@@ -258,37 +257,73 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
   //Set me to something which collects timing if you want (hint: you do)
   var geohash: SolrGeoHash = NoopSolrGeoHash
 
+  // fixme(jonshea) this should go somewhere else
+  private def time[T](f: => T): (Long, T) = {
+    val start = System.currentTimeMillis
+    val rv = f
+    val elapsed = System.currentTimeMillis - start
+    (elapsed, rv)
+  }
+
 
   // 'Where' is the entry method for a SolrRogue query.
   def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM, NoSelect, NoHighlighting, NoQualityFilter] = {
     QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil,
                  phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None,
                  tieBreaker=None, sort=None, minimumMatch=None ,queryType=None,
-                 fieldsToFetch=Nil, hls=None, creator=None, fallOf=None, min=None)
+                 fieldsToFetch=Nil, hls=None, creator=None, comment=None,
+                 fallOf=None, min=None)
+  }
+
+  // 'Where' is the entry method for a SolrRogue query.
+  def allEntries[F](): QueryBuilder[M, Unordered, Unlimited, defaultMM, NoSelect, NoHighlighting, NoQualityFilter] = {
+    QueryBuilder(self, Clause[F]("*", Splat[F]), filters=Nil, boostQueries=Nil, queryFields=Nil,
+                 phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None,
+                 tieBreaker=None, sort=None, minimumMatch=None ,queryType=None,
+                 fieldsToFetch=Nil, hls=None, creator=None, comment=None,
+                 fallOf=None, min=None)
   }
 
   //The query builder calls into this to do actually execute the query.
-  def query[Y](timeout: Duration, creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y],
-                     params: Seq[(String, String)], fieldstofetch: List[String], fallOf: Option[Double], min: Option[Int]) = {
-      queryFuture(creator,params,fieldstofetch,fallOf,min)(timeout)
+  def query[Y](timeout: Duration,
+               creator: Option[(HashMap[String, Any], HashMap[String, HashMap[String, ArrayList[String]]]) => Y],
+               params: Seq[(String, String)],
+               fieldstofetch: List[String],
+               fallOf: Option[Double],
+               min: Option[Int]): SearchResults[M, Y] = {
+
+    val (t, retval) = time {
+      queryFuture(creator, params, fieldstofetch, fallOf, min)(timeout)
+    }
+
+    meta.logger.log(meta.solrName + ".query", meta.queryString(params).toString, t)
+
+    retval
   }
 
   //The query builder calls into this to do actually execute the query.
-  def queryFuture[Y](creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y],
-                     params: Seq[(String, String)], fieldstofetch: List[String], fallOf: Option[Double], min: Option[Int]) = {
-    val queryText = params.map((x: (String,String)) => x._1+x._2).mkString(" ")
+  def queryFuture[Y](creator: Option[(HashMap[String, Any], HashMap[String, HashMap[String, ArrayList[String]]]) => Y],
+                     params: Seq[(String, String)],
+                     fieldstofetch: List[String],
+                     fallOf: Option[Double],
+                     min: Option[Int]): Future[SearchResults[M, Y]] = {
+    val queryText = meta.queryString(params).toString
+
     val jsonResponseFuture = meta.rawQueryFuture(params)
-    val formattedFuture = jsonResponseFuture.flatMap(meta.extractFromResponse(_, creator,
-                                                                          fieldstofetch,
-                                                                          fallOf,
-                                                                          min,
-                                                                          queryText)
-                                                   )
-    formattedFuture.onSuccess(_ => meta.logger.success(meta.solrName+"-success"))
-    formattedFuture.onFailure(e => meta.logger.failure(meta.solrName+"-failure", e))
+    val formattedFuture = (
+      jsonResponseFuture.flatMap(meta.extractFromResponse(_, creator,
+                                                          fieldstofetch,
+                                                          fallOf,
+                                                          min,
+                                                          queryText))
+      )
+
+    formattedFuture.onSuccess(_ => meta.logger.success(meta.solrName))
+    formattedFuture.onFailure(e => meta.logger.failure(meta.solrName, queryText, e))
   }
 
 }
+
 
 trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
   self: Field[V, M] =>
