@@ -18,9 +18,11 @@ class RogueProject(info: ProjectInfo) extends DefaultProject(info) with Credenti
   // Java Libraries
   lazy val specsVersion = buildScalaVersion match {
     case "2.8.0" => "1.6.5"
+    case "2.8.1" => "1.6.6"
     case _       => "1.6.9"
   }
 
+  val maven = "org.elasticsearch"        % "elasticsearch"  % "0.17.8"
   val junit = "junit"                    % "junit"          % "4.8.2"           % "test" withSources()
   val specs = "org.scala-tools.testing" %% "specs"          % specsVersion      % "test" withSources()
   val scalc = "org.scala-lang"           % "scala-compiler" % buildScalaVersion % "test" withSources()
@@ -40,6 +42,7 @@ class RogueProject(info: ProjectInfo) extends DefaultProject(info) with Credenti
   val bryanjswift = "Bryan J Swift Repository" at "http://repos.bryanjswift.com/maven2/"
   val twitterMaven = "twitter maven repo" at "http://maven.twttr.com/"
   val codehausMaven = "codehaus maven repo" at "http://repository.codehaus.org/"
+  val elasticSearchMaven = "sonatype maven repo" at "http://oss.sonatype.org/content/repositories/releases/"
   val junitInterface = "com.novocode" % "junit-interface" % "0.6" % "test"
   override def testFrameworks = super.testFrameworks ++ List(new TestFramework("com.novocode.junit.JUnitFrameworkNoMarker"))
 }

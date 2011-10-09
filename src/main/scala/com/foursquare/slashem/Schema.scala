@@ -10,6 +10,12 @@ import net.liftweb.json.JsonParser
 import org.bson.types.ObjectId
 import org.codehaus.jackson.annotate._
 import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper}
+import org.elasticsearch.client.transport.TransportClient
+import org.elasticsearch.common.transport.InetSocketTransportAddress
+import org.elasticsearch.common.settings.ImmutableSettings
+import org.elasticsearch.node.NodeBuilder._
+import org.elasticsearch.node.Node
+import org.elasticsearch.client.Client
 import org.jboss.netty.util.CharsetUtil
 import org.jboss.netty.handler.codec.http.{DefaultHttpRequest, HttpResponseStatus, HttpHeaders, HttpMethod,
                                            HttpVersion, QueryStringEncoder}
@@ -125,6 +131,30 @@ case class RawSearchResults @JsonCreator()(@JsonProperty("responseHeader") respo
                                            @JsonProperty("highlighting") highlighting: HashMap[String,HashMap[String,ArrayList[String]]])
 
 
+trait ElasticMeta[T <: Record[T]] extends MetaRecord[T] {
+  self: MetaRecord[T] with T =>
+
+  val clientOnly = true
+  val local = false //Override for unit testing!
+  val clusterName = "testCluster" //Override me knthx
+  val useTransport = false// Override if you want to use transport client
+  def servers: List[String] //Define if your going to use the transport client
+  def serverInetSockets = servers.map(x => {val h = x.split(":")
+                             val s = h.head
+                             val p = h.last
+                             new InetSocketTransportAddress(s, p.toInt)})
+  def node: Node = nodeBuilder().client(clientOnly).local(local).clusterName(clusterName).node()
+  def client: Client = {
+    if (useTransport) {
+      val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName)
+      val tc = new TransportClient(settings);
+      serverInetSockets.map(tc.addTransportAddress(_))
+      tc
+    } else {
+      node.client()
+    }
+  }
+}
 trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   self: MetaRecord[T] with T =>
 
@@ -142,8 +172,7 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
   def hostConnectionLimit = 1000
   def hostConnectionCoresize = 300
 
-  //Params semi-randomly chosen
-  // jonshea: Should we make this a val?
+
   def client = {
     ClientBuilder()
     .codec(Http())
