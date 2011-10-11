@@ -57,7 +57,7 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
                   matchingHighlights match {
                     case Some(mhl) if (mhl.contains(fname)) => {
                       field match {
-                        case f: SolrField[_,_] => f.setHighlighted(mhl.get(fname).toList)
+                        case f: SlashemField[_,_] => f.setHighlighted(mhl.get(fname).toList)
                         case _ => None
                       }
                     }
@@ -130,8 +130,11 @@ case class RawSearchResults @JsonCreator()(@JsonProperty("responseHeader") respo
                                            @JsonProperty("response") response: RawResponse,
                                            @JsonProperty("highlighting") highlighting: HashMap[String,HashMap[String,ArrayList[String]]])
 
-
-trait ElasticMeta[T <: Record[T]] extends MetaRecord[T] {
+trait SlashemMeta[T <: Record[T]] extends MetaRecord[T] {
+  self: MetaRecord[T] with T =>
+  var logger: SolrQueryLogger = NoopQueryLogger
+}
+trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
   self: MetaRecord[T] with T =>
 
   val clientOnly = true
@@ -155,7 +158,7 @@ trait ElasticMeta[T <: Record[T]] extends MetaRecord[T] {
     }
   }
 }
-trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
+trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
   self: MetaRecord[T] with T =>
 
   /** The servers is a list used in round-robin for running solr read queries against.
@@ -164,8 +167,6 @@ trait SolrMeta[T <: Record[T]] extends MetaRecord[T] {
 
   //The name is used to determine which props to use as well as for logging
   def solrName: String
-
-  var logger: SolrQueryLogger = NoopQueryLogger
 
   //Params for the client
   def retries = 3
@@ -278,16 +279,16 @@ object NoopSolrGeoHash extends SolrGeoHash {
   def rectCoverString(topRight: (Double, Double), bottomLeft: (Double, Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = List("pleaseUseaRealGeoHash")
 }
 
-trait SolrSchema[M <: Record[M]] extends Record[M] {
+trait SlashemSchema[M <: Record[M]] extends Record[M] {
   self: M with Record[M] =>
 
-  def meta: SolrMeta[M]
+  def meta: SlashemMeta[M]
 
   //Set me to something which collects timing if you want (hint: you do)
   var geohash: SolrGeoHash = NoopSolrGeoHash
 
   // fixme(jonshea) this should go somewhere else
-  private def time[T](f: => T): (Long, T) = {
+  def time[T](f: => T): (Long, T) = {
     val start = System.currentTimeMillis
     val rv = f
     val elapsed = System.currentTimeMillis - start
@@ -295,7 +296,6 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
   }
 
 
-  // 'Where' is the entry method for a SolrRogue query.
   def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM, NoSelect, NoHighlighting, NoQualityFilter] = {
     QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil,
                  phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None,
@@ -303,35 +303,93 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
                  fieldsToFetch=Nil, hls=None, creator=None, comment=None,
                  fallOf=None, min=None)
   }
+  def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): SearchResults[M, Y]
+  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): Future[SearchResults[M, Y]]
+}
 
+trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
+  self: M with SlashemSchema[M] =>
+
+  def meta: SolrMeta[M]
   // 'Where' is the entry method for a SolrRogue query.
-  def allEntries[F](): QueryBuilder[M, Unordered, Unlimited, defaultMM, NoSelect, NoHighlighting, NoQualityFilter] = {
-    QueryBuilder(self, Clause[F]("*", Splat[F]), filters=Nil, boostQueries=Nil, queryFields=Nil,
-                 phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None,
-                 tieBreaker=None, sort=None, minimumMatch=None ,queryType=None,
-                 fieldsToFetch=Nil, hls=None, creator=None, comment=None,
-                 fallOf=None, min=None)
+
+  def queryParams[Ord, Lim, MM <: MinimumMatchType, Select, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Select, H, Q]): Seq[(String, String)] = queryParamsWithBounds(qb,qb.start, qb.limit)
+
+  def queryParamsWithBounds[Ord, Lim, MM <: MinimumMatchType, Select, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Select, H, Q], qstart: Option[Long], qrows: Option[Long]): Seq[(String,String)] = {
+    val bounds = List(("start" -> (qstart.getOrElse {qb.DefaultStart}).toString),
+                 ("rows" -> (qrows.getOrElse {qb.DefaultLimit}).toString))
+    bounds ++ queryParamsNoBounds(qb)
   }
 
-  //The query builder calls into this to do actually execute the query.
-  def query[Y](timeout: Duration,
-               creator: Option[(HashMap[String, Any], HashMap[String, HashMap[String, ArrayList[String]]]) => Y],
-               params: Seq[(String, String)],
-               fieldstofetch: List[String],
-               fallOf: Option[Double],
-               min: Option[Int]): SearchResults[M, Y] = {
+  //This is the part which generates most of the solr request
+  def queryParamsNoBounds[Ord, Lim, MM <: MinimumMatchType, Select, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Select, H, Q]): Seq[(String,String)] = {
+    val p = List(("q" -> qb.clauses.extend))
 
-    val (t, retval) = time {
-      queryFuture(creator, params, fieldstofetch, fallOf, min)(timeout)
+    val s = qb.sort match {
+      case None => Nil
+      case Some(sort) => List("sort" -> sort)
+    }
+    val qt = qb.queryType match {
+      case None => Nil
+      case Some(method) => List("defType" -> method)
+    }
+    val mm = qb.minimumMatch match {
+      case None => Nil
+      case Some(mmParam) => List("mm" -> mmParam)
     }
 
-    meta.logger.log(meta.solrName + ".query", meta.queryString(params).toString, t)
+    val bq = qb.boostQueries.map({ x => ("bq" -> x.extend)})
+
+    val qf = qb.queryFields.filter({x => x.boost != 0}).map({x => ("qf" -> x.extend)})
+
+    val pf = qb.phraseBoostFields.filter(x => x.pf).map({x => ("pf" -> x.extend)})++
+    qb.phraseBoostFields.filter(x => x.pf2).map({x => ("pf2" -> x.extend)})++
+    qb.phraseBoostFields.filter(x => x.pf3).map({x => ("pf3" -> x.extend)})
+
+    val fl = qb.fieldsToFetch match {
+      case Nil => Nil
+      case x => List("fl" -> (x.mkString(",")))
+    }
+
+    val t = qb.tieBreaker match {
+      case None => Nil
+      case Some(x) => List("tieBreaker" -> x.toString)
+    }
+
+    val hlp = qb.hls match {
+      case None => Nil
+      case Some(a) => List("hl" -> a)
+    }
+
+    val bf = qb.boostFields.map({x => ("bf" -> x)})
+
+    val f = qb.filters.map({x => ("fq" -> x.extend)})
+
+    val ct = qb.comment match {
+      case None => Nil
+      case Some(a) => List("comment" -> a)
+    }
+
+     ct ++ t ++ mm ++ qt ++ bq ++ qf ++ p ++ s ++ f ++ pf ++ fl ++ bf ++ hlp
+  }
+
+
+  def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]):
+  SearchResults[M, Y] = {
+    val (t, retval) = time {
+    queryFuture(qb)(timeout)
+    }
+    meta.logger.log(meta.solrName + ".query", meta.queryString(queryParams(qb)).toString, t)
 
     retval
   }
 
+  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]):
+  Future[SearchResults[M, Y]] = {
+    solrQueryFuture(qb.creator, queryParams(qb), qb.fieldsToFetch, qb.fallOf, qb.min)
+  }
   //The query builder calls into this to do actually execute the query.
-  def queryFuture[Y](creator: Option[(HashMap[String, Any], HashMap[String, HashMap[String, ArrayList[String]]]) => Y],
+  def solrQueryFuture[Y](creator: Option[(HashMap[String, Any], HashMap[String, HashMap[String, ArrayList[String]]]) => Y],
                      params: Seq[(String, String)],
                      fieldstofetch: List[String],
                      fallOf: Option[Double],
@@ -354,7 +412,7 @@ trait SolrSchema[M <: Record[M]] extends Record[M] {
 }
 
 
-trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
+trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   self: Field[V, M] =>
   import Helpers._
 
@@ -404,16 +462,16 @@ trait SolrField[V, M <: Record[M]] extends OwnedField[M] {
 
 }
 
-//Solr field types
-class SolrStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T]
+//Slashem field types
+class SlashemStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SlashemField[String, T]
 //Allows for querying against the default filed in solr. This field doesn't have a name
-class SolrDefaultStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SolrField[String, T] {
+class SlashemDefaultStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SlashemField[String, T] {
   override def name = ""
 }
-class SolrIntField[T <: Record[T]](owner: T) extends IntField[T](owner) with SolrField[Int, T]
-class SolrDoubleField[T <: Record[T]](owner: T) extends DoubleField[T](owner) with SolrField[Double, T]
-class SolrLongField[T <: Record[T]](owner: T) extends LongField[T](owner) with SolrField[Long, T]
-class SolrObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner) with SolrField[ObjectId, T] {
+class SlashemIntField[T <: Record[T]](owner: T) extends IntField[T](owner) with SlashemField[Int, T]
+class SlashemDoubleField[T <: Record[T]](owner: T) extends DoubleField[T](owner) with SlashemField[Double, T]
+class SlashemLongField[T <: Record[T]](owner: T) extends LongField[T](owner) with SlashemField[Long, T]
+class SlashemObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner) with SlashemField[ObjectId, T] {
   override def valueBoxFromAny(a: Any) = {
     try {
       a match {
@@ -427,7 +485,7 @@ class SolrObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner
     }
   }
 }
-class SolrIntListField[T <: Record[T]](owner: T) extends IntListField[T](owner) with SolrField[List[Int], T] {
+class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owner) with SlashemField[List[Int], T] {
   override def valueBoxFromAny(a: Any) ={
   try {
     a match {
@@ -442,12 +500,12 @@ class SolrIntListField[T <: Record[T]](owner: T) extends IntListField[T](owner) 
     }
   }
 }
-class SolrBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SolrField[Boolean, T]
-class SolrDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SolrField[DateTime, T] {
+class SlashemBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SlashemField[Boolean, T]
+class SlashemDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SlashemField[DateTime, T] {
 
 }
 //More restrictive type so we can access the geohash
-class SolrGeoField[T <: SolrSchema[T]](owner: T) extends StringField[T](owner,0) with SolrField[String, T] {
+class SlashemGeoField[T <: SlashemSchema[T]](owner: T) extends StringField[T](owner,0) with SlashemField[String, T] {
   def inRadius(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = owner.geohash.maxCells) = {
     val cellIds = owner.geohash.coverString(geoLat, geoLong, radiusInMeters, maxCells = maxCells)
     //If we have an empty cover we default to everything.
