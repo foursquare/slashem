@@ -78,7 +78,7 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(Pair[Map[Stri
   Array[Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]] = {
     (min,fallOf) match {
       case (Some(minR),Some(qualityFallOf)) => {
-        val scores = (r.map(x => if(x._1.contains("score")) Some(x._1.get("score").asInstanceOf[Double]) else None).toList)
+        val scores = (r.map(x => if(x._1.contains("score")) Some(x._1.get("score").get.asInstanceOf[Double]) else None).toList)
         val hqCount = highQuality(scores,
                                 score=0, count=0,minR=minR,qualityFallOf=qualityFallOf)
         r.take(hqCount)

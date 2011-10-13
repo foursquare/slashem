@@ -92,7 +92,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
 
    /** Helper method for case class extraction */
    private def getForField[F1,M <: Record[M]](f: SlashemField[F1,M], fName: String, doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]): Option[F1] = {
-     if (doc._1.containsKey(fName)) f.valueBoxFromAny(doc._1.get(fName)).toOption else None
+     if (doc._1.containsKey(fName)) f.valueBoxFromAny(doc._1.get(fName).get).toOption else None
    }
    /** Helper method for case class extraction */
    private def getHighlightForField(fName: String, doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]): List[String] = {
