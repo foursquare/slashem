@@ -3,18 +3,23 @@ import com.foursquare.slashem.Ast._
 import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
 import net.liftweb.record.field.{BooleanField, LongField, StringField, IntField, DoubleField}
 import net.liftweb.common.{Box, Empty, Full}
-import com.twitter.util.{Duration, Future}
+import com.twitter.util.{Duration, Future, FutureTask}
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.http.Http
 import net.liftweb.json.JsonParser
 import org.bson.types.ObjectId
 import org.codehaus.jackson.annotate._
 import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper}
+import org.elasticsearch.action.search.SearchResponse
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.transport.InetSocketTransportAddress
 import org.elasticsearch.common.settings.ImmutableSettings
 import org.elasticsearch.node.NodeBuilder._
 import org.elasticsearch.node.Node
+import org.elasticsearch.index.query.{QueryBuilder => ElasticQueryBuilder,
+                                      FilterBuilder => ElasticFilterBuilder,
+                                      AndFilterBuilder};
+import org.elasticsearch.index.query.QueryBuilders.filteredQuery
 import org.elasticsearch.client.Client
 import org.jboss.netty.util.CharsetUtil
 import org.jboss.netty.handler.codec.http.{DefaultHttpRequest, HttpResponseStatus, HttpHeaders, HttpMethod,
@@ -40,24 +45,22 @@ case class SolrResponseException(code: Int, reason: String, solrName: String, qu
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
 
 /** The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results */
-case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[String,Any],HashMap[String,HashMap[String,ArrayList[String]]]) => Y], numFound: Int, start: Int, docs: Array[HashMap[String,Any]], highlighting: HashMap[String,HashMap[String,ArrayList[String]]], fallOf: Option[Double], min: Option[Int]) {
+case class Response[T <: Record[T],Y] (schema: T, creator: Option[(Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => Y], numFound: Int, start: Int, docs: Array[Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]], fallOf: Option[Double], min: Option[Int]) {
   val filteredDocs = filterHighQuality(docs)
   def results[T <: Record[T]](B: Record[T]): List[T] = {
-    filteredDocs.map({doc => val q = B.meta.createRecord
-              val matchingHighlights = if (doc.contains("id") && highlighting != null
-                                           &&highlighting.contains(doc.get("id").toString)) {
-                Some(highlighting.get(doc.get("id").toString))
-              } else {
-                None
-              }
-              doc.foreach(a => {
-                val fname = a._1
-                val value = a._2
-                q.fieldByName(fname).map((field) =>{
+    filteredDocs.map({input =>
+      val doc = input._1
+      val hl = input._2
+      val q = B.meta.createRecord
+      val matchingHighlights = hl
+      doc.foreach(a => {
+                 val fname = a._1
+                 val value = a._2
+                 q.fieldByName(fname).map((field) =>{
                   matchingHighlights match {
                     case Some(mhl) if (mhl.contains(fname)) => {
                       field match {
-                        case f: SlashemField[_,_] => f.setHighlighted(mhl.get(fname).toList)
+                        case f: SlashemField[_,_] => f.setHighlighted(mhl.get(fname).get.toList)
                         case _ => None
                       }
                     }
@@ -71,10 +74,11 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
             }).toList
   }
   // Collect results which are of a high enough lucene score to be relevant.
-  private def filterHighQuality(r: Array[HashMap[String,Any]]): Array[HashMap[String,Any]] = {
+  private def filterHighQuality(r: Array[Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]]):
+  Array[Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]] = {
     (min,fallOf) match {
       case (Some(minR),Some(qualityFallOf)) => {
-        val scores = (r.map(x => if(x.contains("score")) Some(x.get("score").asInstanceOf[Double]) else None).toList)
+        val scores = (r.map(x => if(x._1.contains("score")) Some(x._1.get("score").asInstanceOf[Double]) else None).toList)
         val hqCount = highQuality(scores,
                                 score=0, count=0,minR=minR,qualityFallOf=qualityFallOf)
         r.take(hqCount)
@@ -98,19 +102,19 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(HashMap[Strin
    * Most commonly used for case class based queries */
   def processedResults: List[Y] = {
     creator match {
-      case Some(func) => { filteredDocs.map(func(_, highlighting)).toList }
+      case Some(func) => { filteredDocs.map(func(_)).toList }
       case None => Nil
     }
   }
   /** Special for extracting just ObjectIds without the overhead of record. */
   def oids: List[ObjectId] = {
-    filteredDocs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
+    filteredDocs.map({ doc => doc._1.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
   }
   /** Another special case for extracting just ObjectId & score pairs.
    * Please think twice before using*/
   def oidScorePair: List[(ObjectId, Double)] = {
-    val oids = filteredDocs.map({doc => doc.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
-    val scores = filteredDocs.map({doc => doc.find(x => x._1 == "score").map(x => x._2.asInstanceOf[Double])}).toList.flatten
+    val oids = filteredDocs.map({doc => doc._1.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
+    val scores = filteredDocs.map({doc => doc._1.find(x => x._1 == "score").map(x => x._2.asInstanceOf[Double])}).toList.flatten
     oids zip scores
   }
 
@@ -195,16 +199,27 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
     a
   }
 
-  def extractFromResponse[Y](r: String, creator: Option[(HashMap[String,Any],
-                                                         HashMap[String,HashMap[String,ArrayList[String]]])=> Y],
+  def extractFromResponse[Y](r: String, creator: Option[(Pair[Map[String,Any],
+                                                              Option[Map[String,ArrayList[String]]]]) => Y],
                              fieldstofetch: List[String]=Nil, fallOf: Option[Double] = None,
                              min: Option[Int] = None, queryText: String): Future[SearchResults[T, Y]] = {
     //This intentional avoids lift extract as it is too slow for our use case.
     try {
       val rsr = mapper.readValue(r, classOf[RawSearchResults])
       //Take the raw search result and make the type templated search result.
+      val rawDocs = rsr.response.docs
+      val rawHls = rsr.highlighting
+      val joinedDocs = rawDocs.map(doc => {
+        val hl = if (doc.contains("id") && rsr.highlighting != null
+                     && rsr.highlighting.contains(doc.get("id").toString)
+                   ) {
+          Some(rsr.highlighting.get(doc.get("id").toString).toMap)
+        } else {
+          None
+        }
+        Pair(doc.toMap,hl)})
       Future(SearchResults(rsr.responseHeader, Response(createRecord, creator, rsr.response.numFound, rsr.response.start,
-                                                        rsr.response.docs, rsr.highlighting, fallOf, min)))
+                                                        joinedDocs, fallOf, min)))
 
     } catch {
       case e => Future.exception(new Exception("An error occured while parsing solr result \""+r+
@@ -220,7 +235,7 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
       qse.addParam(x._1, x._2)
     })
 
-    qse
+  qse
   }
 
   // This method performs the actually query / http request. It should probably
@@ -306,7 +321,80 @@ trait SlashemSchema[M <: Record[M]] extends Record[M] {
   def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): SearchResults[M, Y]
   def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): Future[SearchResults[M, Y]]
 }
+trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
+  self: M with SlashemSchema[M] =>
 
+  def meta: ElasticMeta[M]
+
+  def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]):
+  SearchResults[M, Y] = {
+    val (t, retval) = time {
+    queryFuture(qb)(timeout)
+    }
+    meta.logger.log(meta.clusterName + ".query", "FIXME", t)
+
+    retval
+  }
+
+  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]):
+  Future[SearchResults[M, Y]] = {
+    elasticQueryFuture(qb, buildElasticQuery(qb))
+  }
+  def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q], query: ElasticQueryBuilder): Future[SearchResults[M, Y]] = {
+    val future : Future[SearchResults[M,Y]]= new FutureTask({
+      val response: SearchResponse  = meta.client.prepareSearch()
+      .setQuery(query)
+      .setFrom(qb.start.map(_.toInt).getOrElse(qb.DefaultStart))
+      .setSize(qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit))
+      .execute().get
+      constructSearchResults(qb.creator,
+                             qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
+                             qb.fallOf,
+                             qb.min,
+                             response)
+    }
+    )
+    future
+  }
+  def constructSearchResults[Y](creator: Option[(Pair[Map[String,Any],
+                                                      Option[Map[String,ArrayList[String]]]]) => Y],
+                                start: Int,
+                                fallOf: Option[Double],
+                                min: Option[Int],
+                                response: SearchResponse): SearchResults[M, Y] = {
+    val time = response.tookInMillis()
+    val hitCount = response.getHits().totalHits().toInt
+    val docs: Array[(Map[String,Any], Option[Map[String,java.util.ArrayList[String]]])] = response.getHits().getHits().map(doc => {
+      val m = doc.sourceAsMap()
+      //If we don't get the score back
+      //m.put("score",doc.score())
+      val hlf = doc.getHighlightFields()
+      if (hlf == null) {
+        Pair(m.toMap,None)
+      } else {
+        Pair(m.toMap,
+             Some(doc.getHighlightFields()
+                  .mapValues(v => new ArrayList(v.getFragments().toList))
+                  .toMap))
+      }
+    })
+
+   SearchResults(ResponseHeader(200,time.toInt),
+                 Response(this, creator, hitCount, start, docs,
+                        fallOf=fallOf, min=min))
+  }
+  def buildElasticQuery[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): ElasticQueryBuilder = {
+    val baseQuery: ElasticQueryBuilder= qb.clauses.elasticExtend(qb.queryFields)
+    qb.filters match {
+      case Nil => baseQuery
+      case _ => filteredQuery(baseQuery,combineFilters(qb.filters.map(_.elasticFilter(qb.queryFields))))
+    }
+  }
+  def combineFilters(filters: List[ElasticFilterBuilder]): ElasticFilterBuilder = {
+    new AndFilterBuilder(filters:_*)
+  }
+
+}
 trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
   self: M with SlashemSchema[M] =>
 
@@ -389,7 +477,8 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
     solrQueryFuture(qb.creator, queryParams(qb), qb.fieldsToFetch, qb.fallOf, qb.min)
   }
   //The query builder calls into this to do actually execute the query.
-  def solrQueryFuture[Y](creator: Option[(HashMap[String, Any], HashMap[String, HashMap[String, ArrayList[String]]]) => Y],
+  def solrQueryFuture[Y](creator: Option[(Pair[Map[String,Any],
+                                               Option[Map[String,ArrayList[String]]]]) => Y],
                      params: Seq[(String, String)],
                      fieldstofetch: List[String],
                      fallOf: Option[Double],
@@ -501,9 +590,7 @@ class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owne
   }
 }
 class SlashemBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SlashemField[Boolean, T]
-class SlashemDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SlashemField[DateTime, T] {
-
-}
+class SlashemDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SlashemField[DateTime, T]
 //More restrictive type so we can access the geohash
 class SlashemGeoField[T <: SlashemSchema[T]](owner: T) extends StringField[T](owner,0) with SlashemField[String, T] {
   def inRadius(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = owner.geohash.maxCells) = {
@@ -523,7 +610,19 @@ class SlashemGeoField[T <: SlashemSchema[T]](owner: T) extends StringField[T](ow
     }
   }
 }
-
+//Backwards compat
+//Slashem field types
+class SolrStringField[T <: Record[T]](owner: T) extends SlashemStringField[T](owner)
+//Allows for querying against the default filed in solr. This field doesn't have a name
+class SolrDefaultStringField[T <: Record[T]](owner: T) extends SlashemDefaultStringField[T](owner)
+class SolrIntField[T <: Record[T]](owner: T) extends SlashemIntField[T](owner)
+class SolrDoubleField[T <: Record[T]](owner: T) extends SlashemDoubleField[T](owner)
+class SolrLongField[T <: Record[T]](owner: T) extends SlashemLongField[T](owner)
+class SolrObjectIdField[T <: Record[T]](owner: T) extends SlashemObjectIdField[T](owner)
+class SolrIntListField[T <: Record[T]](owner: T) extends SlashemIntListField[T](owner)
+class SolrBooleanField[T <: Record[T]](owner: T) extends SlashemBooleanField[T](owner)
+class SolrDateTimeField[T <: Record[T]](owner: T) extends SlashemDateTimeField[T](owner)
+class SolrGeoField[T <: SlashemSchema[T]](owner: T) extends SlashemGeoField[T](owner)
 // This insanity makes me want to 86 Record all together. DummyField allows us
 // to easily define our own Field types. I use this for ObjectId so that I don't
 // have to import all of MongoRecord. We could trivially reimplement the other
