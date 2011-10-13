@@ -286,7 +286,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   /** Fetch the results for a given query (blocking)*/
   def fetch():  SearchResults[M, Y] = {
     // Gross++
-    fetch(Duration(1, TimeUnit.SECONDS))
+    fetch(Duration(10, TimeUnit.SECONDS))
   }
   /** Fetch the results for a given query (blocking) with a specified timeout*/
   def fetch(timeout: Duration):  SearchResults[M, Y] = {

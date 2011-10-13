@@ -145,13 +145,20 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
   val local = false //Override for unit testing!
   val clusterName = "testCluster" //Override me knthx
   val useTransport = false// Override if you want to use transport client
-  def servers: List[String] //Define if your going to use the transport client
+  def servers: List[String] = List() //Define if your going to use the transport client
   def serverInetSockets = servers.map(x => {val h = x.split(":")
                              val s = h.head
                              val p = h.last
                              new InetSocketTransportAddress(s, p.toInt)})
-  def node: Node = nodeBuilder().client(clientOnly).local(local).clusterName(clusterName).node()
+  def node: Node = {
+    nodeBuilder()
+      .local(local)
+      .client(clientOnly)
+      .clusterName(clusterName)
+      .node()
+  }
   def client: Client = {
+    print("making client!!!!!!!!\n")
     if (useTransport) {
       val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName)
       val tc = new TransportClient(settings);
@@ -341,12 +348,15 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     elasticQueryFuture(qb, buildElasticQuery(qb))
   }
   def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q], query: ElasticQueryBuilder): Future[SearchResults[M, Y]] = {
-    val future : Future[SearchResults[M,Y]]= new FutureTask({
+    println("in thread yarh\n")
+    val future : FutureTask[SearchResults[M,Y]]= new FutureTask({
+      println("Yarh!")
       val response: SearchResponse  = meta.client.prepareSearch()
       .setQuery(query)
       .setFrom(qb.start.map(_.toInt).getOrElse(qb.DefaultStart))
       .setSize(qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit))
       .execute().get
+      print("fnur")
       constructSearchResults(qb.creator,
                              qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
                              qb.fallOf,
@@ -354,6 +364,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
                              response)
     }
     )
+    future.run()
     future
   }
   def constructSearchResults[Y](creator: Option[(Pair[Map[String,Any],
