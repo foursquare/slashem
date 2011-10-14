@@ -2,8 +2,7 @@ package com.foursquare.slashem
 
 object ESimplePanda extends ESimplePanda with ElasticMeta[ESimplePanda] {
   //Force local for testing
-  override val local = true
-  override val clientOnly = false
+  override val useTransport = false
   override val clusterName = "simpletest" //Override me knthx
 
 }
@@ -17,7 +16,7 @@ class ESimplePanda extends ElasticSchema[ESimplePanda] {
 
 object ESimpleGeoPanda extends ESimpleGeoPanda with ElasticMeta[ESimpleGeoPanda] {
   //Force local for testing
-  override val local = true
+  override val useTransport = false
   override val clusterName = "simpletest" //Override me knthx
 
 }
@@ -28,5 +27,3 @@ class ESimpleGeoPanda extends ElasticSchema[ESimpleGeoPanda] {
   object name extends SlashemStringField(this)
   object score extends SlashemDoubleField(this)
 }
-
-
