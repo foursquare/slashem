@@ -347,6 +347,8 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       .setFrom(qb.start.map(_.toInt).getOrElse(qb.DefaultStart))
       .setSize(qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit))
       .execute().get
+      println("Sent query "+query.toString())
+      println("YYYYYYYYYYYYYYYYYYYYYYYYYYAYYYYYYYYYYYYY got back "+response.toString())
       constructSearchResults(qb.creator,
                              qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
                              qb.fallOf,

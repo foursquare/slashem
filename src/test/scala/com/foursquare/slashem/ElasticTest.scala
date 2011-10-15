@@ -11,6 +11,7 @@ class ESimplePanda extends ElasticSchema[ESimplePanda] {
   object default extends SlashemDefaultStringField(this)
   object id extends SlashemObjectIdField(this)
   object name extends SlashemStringField(this)
+  object hobos extends SlashemStringField(this)
   object score extends SlashemDoubleField(this)
 }
 
