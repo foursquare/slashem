@@ -395,7 +395,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
                         fallOf=fallOf, min=min))
   }
   def buildElasticQuery[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): ElasticQueryBuilder = {
-    val baseQuery: ElasticQueryBuilder= qb.clauses.elasticExtend(qb.queryFields)
+    val baseQuery: ElasticQueryBuilder= qb.clauses.elasticExtend(qb.queryFields,qb.phraseBoostFields)
     qb.filters match {
       case Nil => baseQuery
       case _ => filteredQuery(baseQuery,combineFilters(qb.filters.map(_.elasticFilter(qb.queryFields))))
