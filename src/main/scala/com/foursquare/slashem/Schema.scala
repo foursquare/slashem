@@ -141,7 +141,8 @@ trait SlashemMeta[T <: Record[T]] extends MetaRecord[T] {
 trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
   self: MetaRecord[T] with T =>
 
-  val clusterName = "testCluster" //Override me knthx
+  val clusterName = "testcluster" //Override me knthx
+  val indexName = "testindex"//Override me too
   val useTransport = true// Override if you want to use transport client
   def servers: List[String] = List() //Define if your going to use the transport client
   def serverInetSockets = servers.map(x => {val h = x.split(":")
@@ -342,7 +343,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
   def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q], query: ElasticQueryBuilder): Future[SearchResults[M, Y]] = {
     val future : FutureTask[SearchResults[M,Y]]= new FutureTask({
-      val response: SearchResponse  = meta.client.prepareSearch()
+      val response: SearchResponse  = meta.client.prepareSearch(meta.indexName)
       .setQuery(query)
       .setFrom(qb.start.map(_.toInt).getOrElse(qb.DefaultStart))
       .setSize(qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit))
