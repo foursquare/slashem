@@ -10,6 +10,7 @@ import org.elasticsearch.index.query.{QueryBuilder => ElasticQueryBuilder,
                                       RangeQueryBuilder,
                                       RangeFilterBuilder};
 
+import org.elasticsearch.index.query.QueryBuilders._;
 
 object Ast {
 

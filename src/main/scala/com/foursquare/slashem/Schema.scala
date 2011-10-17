@@ -19,7 +19,10 @@ import org.elasticsearch.node.Node
 import org.elasticsearch.index.query.{QueryBuilder => ElasticQueryBuilder,
                                       FilterBuilder => ElasticFilterBuilder,
                                       AndFilterBuilder};
+import org.elasticsearch.action.support.nodes.NodesOperationRequest
+import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest
 import org.elasticsearch.index.query.QueryBuilders.filteredQuery
+import org.elasticsearch.action.search.SearchType
 import org.elasticsearch.client.Client
 import org.jboss.netty.util.CharsetUtil
 import org.jboss.netty.handler.codec.http.{DefaultHttpRequest, HttpResponseStatus, HttpHeaders, HttpMethod,
@@ -143,6 +146,7 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
 
   val clusterName = "testcluster" //Override me knthx
   val indexName = "testindex"//Override me too
+  val docType = "slashemdoc"
   val useTransport = true// Override if you want to use transport client
   def servers: List[String] = List() //Define if your going to use the transport client
   def serverInetSockets = servers.map(x => {val h = x.split(":")
@@ -343,13 +347,15 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
   def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q], query: ElasticQueryBuilder): Future[SearchResults[M, Y]] = {
     val future : FutureTask[SearchResults[M,Y]]= new FutureTask({
-      val response: SearchResponse  = meta.client.prepareSearch(meta.indexName)
-      .setQuery(query)
-      .setFrom(qb.start.map(_.toInt).getOrElse(qb.DefaultStart))
-      .setSize(qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit))
-      .execute().get
-      println("Sent query "+query.toString())
-      println("YYYYYYYYYYYYYYYYYYYYYYYYYYAYYYYYYYYYYYYY got back "+response.toString())
+      val client = meta.client
+      val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
+      val limit =  qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit)
+      val response: SearchResponse  = client.prepareSearch(meta.indexName)
+      .setQuery(query.buildAsBytes())
+      .setFrom(from)
+      .setSize(limit)
+      .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+      .execute().actionGet()
       constructSearchResults(qb.creator,
                              qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
                              qb.fallOf,
