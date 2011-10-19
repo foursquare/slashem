@@ -341,7 +341,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "tags^0.01",
                         "tieBreaker" -> "0.2",
                         "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
-                        "bf" -> "decayedPopularity1^1.0",
+                        "bf" -> "decayedPopularity1",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
@@ -372,7 +372,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "tieBreaker" -> "0.2",
                         "bq" -> "name:(holden's hobohut)",
                         "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
-                        "bf" -> "decayedPopularity1^1.0",
+                        "bf" -> "decayedPopularity1",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
@@ -403,7 +403,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "tieBreaker" -> "0.2",
                         "bq" -> "name:((holden's hobohut)^10.0)",
                         "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
-                        "bf" -> "decayedPopularity1^1.0",
+                        "bf" -> "decayedPopularity1",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
@@ -435,7 +435,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount",
                         "bq" -> "name:((holden's hobohut)^10.0)",
                         "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
-                        "bf" -> "decayedPopularity1^1.0",
+                        "bf" -> "decayedPopularity1",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
@@ -466,7 +466,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount,partitionedPopularity",
                         "bq" -> "name:((holden's hobohut)^10.0)",
                         "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
-                        "bf" -> "decayedPopularity1^1.0",
+                        "bf" -> "decayedPopularity1",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
@@ -498,7 +498,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount,partitionedPopularity",
                         "bq" -> "name:((holden's hobohut)^10.0)",
                         "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
-                        "bf" -> "decayedPopularity1^1.0",
+                        "bf" -> "decayedPopularity1",
                         "rows" -> "10")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)

@@ -49,10 +49,20 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
   @Test
   def testPhraseBoostOrdering {
-    val rWithPhraseBoost = ESimplePanda where (_.name contains "loler skates") phraseBoost(_.name,1000) fetch()
+    val rWithLowPhraseBoost = ESimplePanda where (_.name contains "loler skates") phraseBoost(_.name,10) fetch()
+    val rWithHighPhraseBoost = ESimplePanda where (_.name contains "loler skates") phraseBoost(_.name,10000) fetch()
     val rNoPhraseBoost = ESimplePanda where (_.name contains "loler skates") fetch()
-    Assert.assertEquals(rWithPhraseBoost.response.results.length,3)
+    Assert.assertEquals(rWithLowPhraseBoost.response.results.length,3)
+    Assert.assertEquals(rWithHighPhraseBoost.response.results.length,3)
     Assert.assertEquals(rNoPhraseBoost.response.results.length,3)
+    val doc1b = rWithLowPhraseBoost.response.results.apply(2)
+    val doc2b = rWithHighPhraseBoost.response.results.apply(2)
+    val doc3b = rNoPhraseBoost.response.results.apply(2)
+    val lastResult = List(doc1b,doc2b,doc3b)
+    lastResult.map(doc => Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b13"), doc.id.is))
+    //Make sure the scores are actually impacted by the phraseBoost
+    Assert.assertTrue(doc1b.score.value > doc2b.score.value)
+    Assert.assertTrue(doc3b.score.value > doc1b.score.value)
   }
 
   @Before
@@ -81,7 +91,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     .actionGet();
     val r4 = client.prepareIndex(ESimplePanda.meta.indexName,ESimplePanda.meta.docType,"4c809f4251ada1cdc3790b13").setSource(jsonBuilder()
                                                                           .startObject()
-                                                                          .field("name","loler loler loler loler loler loler loler loler")
+                                                                          .field("name","loler loler loler loler loler loler loler loler chetos are delicious skates skates")
                                                                           .field("hobos","sounds like a robot is eating a")
                                                                           .endObject()
       ).execute()

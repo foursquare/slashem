@@ -164,6 +164,26 @@ object Ast {
     }
   }
 
+  case class PhrasePrefix[T](query: T, escaped: Boolean = true) extends Query[T] {
+    def extend = {'"' + escape(query.toString) + '*' + '"'}
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+      val q = disMaxQuery()
+      q.tieBreaker(1)
+
+      qf.map(f => {
+        val basePhrase = textPhraseQuery(f.fieldName,this.extend)
+        val phraseQuery = f.boost match {
+          case 1 => basePhrase
+          case _ => basePhrase.boost(f.boost.toFloat)
+        }
+        q.add(phraseQuery)
+      }
+           )
+      q
+    }
+  }
+
+
   case class Range[T](q1: Query[T],q2: Query[T]) extends Query[T] {
     def extend = {'['+q1.extend+" TO "+ q2.extend +']'}
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
@@ -186,9 +206,28 @@ object Ast {
   case class BagOfWords[T](query: T) extends Query[T] {
     def extend = escape(query.toString)
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
-      val q = new QueryStringQueryBuilder(this.extend)
-      qf.map(f => q.field(f.fieldName,f.boost.toFloat))
-      q
+      val normalq = new QueryStringQueryBuilder(this.extend)
+      qf.map(f => normalq.field(f.fieldName,f.boost.toFloat))
+      val qfnames = qf.map(_.fieldName).toSet
+      val queriesToGen = pf.filter(qfnames contains _.fieldName)
+        queriesToGen match {
+          case Nil => normalq
+          case _ => {
+            val q = disMaxQuery()
+            q.tieBreaker(1)
+            q.add(normalq)
+            queriesToGen.map(f => {
+              val basePhrase = textPhraseQuery(f.fieldName,this.extend)
+              val phraseQuery = f.boost match {
+                case 1 => basePhrase
+                case _ => basePhrase.boost(f.boost.toFloat)
+              }
+              q.add(phraseQuery)
+            }
+                           )
+            q
+          }
+        }
     }
   }
 

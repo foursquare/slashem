@@ -270,6 +270,8 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
 trait SolrQueryLogger {
   def log(name: String, msg: String, time: Long)
 
+  def debug(msg: String)
+
   // If this returns a string then it will be appended to the query
   // so you can use it to match your query logs with application
   // logs.
@@ -285,6 +287,7 @@ trait SolrQueryLogger {
 /** The default logger, does nothing. */
 object NoopQueryLogger extends SolrQueryLogger {
   override def log(name: String, msg: String, time: Long) = Unit
+  override def debug(msg: String) = println(msg)
 }
 
 //If you want any of the geo queries you will have to implement this
@@ -350,12 +353,14 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       val client = meta.client
       val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
       val limit =  qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit)
+      meta.logger.debug("Query details "+query.toString())
       val response: SearchResponse  = client.prepareSearch(meta.indexName)
       .setQuery(query.buildAsBytes())
       .setFrom(from)
       .setSize(limit)
       .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
       .execute().actionGet()
+      meta.logger.debug("Search response "+response.toString())
       constructSearchResults(qb.creator,
                              qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
                              qb.fallOf,
@@ -376,7 +381,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     val hitCount = response.getHits().totalHits().toInt
     val docs: Array[(Map[String,Any], Option[Map[String,java.util.ArrayList[String]]])] = response.getHits().getHits().map(doc => {
       val m = doc.sourceAsMap()
-      val annotedMap = m.toMap++List("id" -> doc.id())
+      val annotedMap = m.toMap++List("id" -> doc.id(), "score" -> doc.score())
       //If we don't get the score back
       //m.put("score",doc.score())
       val hlf = doc.getHighlightFields()
@@ -396,10 +401,21 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
   def buildElasticQuery[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): ElasticQueryBuilder = {
     val baseQuery: ElasticQueryBuilder= qb.clauses.elasticExtend(qb.queryFields,qb.phraseBoostFields)
-    qb.filters match {
+    //Apply filters if necessary
+    val fq = qb.filters match {
       case Nil => baseQuery
       case _ => filteredQuery(baseQuery,combineFilters(qb.filters.map(_.elasticFilter(qb.queryFields))))
     }
+    //Apply any custom scoring rules (aka emulating Solr's bq/bf)
+    qb.boostFields match {
+      case Nil => fq
+      case _ => customScoreQuery(fq,qb.boostFields)
+    }
+
+  }
+  def customScoreQuery(query: ElasticQueryBuilder, boostFields: List[WeightedField]): ElasticQueryBuilder =  {
+    //TODO: FINISH ME!
+    query
   }
   def combineFilters(filters: List[ElasticFilterBuilder]): ElasticFilterBuilder = {
     new AndFilterBuilder(filters:_*)
@@ -460,7 +476,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
       case Some(a) => List("hl" -> a)
     }
 
-    val bf = qb.boostFields.map({x => ("bf" -> x)})
+    val bf = qb.boostFields.map({x => ("bf" -> x.extend)})
 
     val f = qb.filters.map({x => ("fq" -> x.extend)})
 
