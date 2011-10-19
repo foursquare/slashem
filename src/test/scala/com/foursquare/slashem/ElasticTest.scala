@@ -13,6 +13,8 @@ class ESimplePanda extends ElasticSchema[ESimplePanda] {
   object name extends SlashemStringField(this)
   object hobos extends SlashemStringField(this)
   object score extends SlashemDoubleField(this)
+  object magic extends SlashemStringField(this)
+  object followers extends SlashemIntField(this)
 }
 
 object ESimpleGeoPanda extends ESimpleGeoPanda with ElasticMeta[ESimpleGeoPanda] {

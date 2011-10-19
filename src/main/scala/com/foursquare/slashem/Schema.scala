@@ -16,7 +16,8 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress
 import org.elasticsearch.common.settings.ImmutableSettings
 import org.elasticsearch.node.NodeBuilder._
 import org.elasticsearch.node.Node
-import org.elasticsearch.index.query.{QueryBuilder => ElasticQueryBuilder,
+import org.elasticsearch.index.query.{CustomScoreQueryBuilder,
+                                      QueryBuilder => ElasticQueryBuilder,
                                       FilterBuilder => ElasticFilterBuilder,
                                       AndFilterBuilder};
 import org.elasticsearch.action.support.nodes.NodesOperationRequest
@@ -409,13 +410,20 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     //Apply any custom scoring rules (aka emulating Solr's bq/bf)
     qb.boostFields match {
       case Nil => fq
-      case _ => customScoreQuery(fq,qb.boostFields)
+      case _ => boostFields(fq,qb.boostFields)
     }
 
   }
-  def customScoreQuery(query: ElasticQueryBuilder, boostFields: List[WeightedField]): ElasticQueryBuilder =  {
-    //TODO: FINISH ME!
-    query
+  def boostFields(query: ElasticQueryBuilder, boostFields: List[WeightedField]): ElasticQueryBuilder =  {
+    val boostedQuery = new CustomScoreQueryBuilder(query)
+    val scoreScript = "_score + "+(boostFields.map(f => {
+      f.boost match {
+        case 1.0 => "(doc['"+f.fieldName+"'].value)"
+        case _ => "(doc['"+f.fieldName+"'].value *"+f.boost+")"
+      }
+    }
+      ).mkString(" + "))
+    boostedQuery.script(scoreScript)
   }
   def combineFilters(filters: List[ElasticFilterBuilder]): ElasticFilterBuilder = {
     new AndFilterBuilder(filters:_*)

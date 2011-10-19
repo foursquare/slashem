@@ -64,6 +64,15 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertTrue(doc1b.score.value > doc2b.score.value)
     Assert.assertTrue(doc3b.score.value > doc1b.score.value)
   }
+  @Test
+  def testFieldBoost {
+    val r1 = ESimplePanda where (_.magic contains "yes") fetch()
+    val r2 = ESimplePanda where (_.magic contains "yes") boostField(_.followers,10) fetch()
+    Assert.assertEquals(r1.response.results.length,2)
+    Assert.assertEquals(r2.response.results.length,2)
+    Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
+  }
+
 
   @Before
   def hoboPrepIndex() {
@@ -86,6 +95,8 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .startObject()
                                                                           .field("name","loler loler loler skates")
                                                                           .field("hobos","nyet")
+                                                                          .field("followers",0)
+                                                                          .field("magic","yes yes")
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -93,6 +104,8 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .startObject()
                                                                           .field("name","loler loler loler loler loler loler loler loler chetos are delicious skates skates")
                                                                           .field("hobos","sounds like a robot is eating a")
+                                                                          .field("followers",10)
+                                                                          .field("magic","yes")
                                                                           .endObject()
       ).execute()
     .actionGet();
