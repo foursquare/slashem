@@ -146,6 +146,31 @@ object Ast {
 
   }
 
+  //Name doesn't have to be a field name for Solr
+  //it could be "lat,lng". However for ES it must be
+  //a field
+  abstract class ScoreBoost {
+    def extend(): String
+    def elasticExtend(): String
+  }
+
+  case class GeoDist(name: String, lat: Double, lng: Double, distType: String = "") extends ScoreBoost {
+    def extend = { distType match {
+      case "square" => "sqedist(%s,%s,%s)".format(lat,lng,name)
+      case _ => "dist(2,%s,%s,%s)".format(lat,lng,name)
+    }}
+    def elasticExtend = {
+      distType match {
+        case "square" => "pow(doc['%s'].distanceInKm(%s,%s),2.0)".format(name,lat,lng)//fnur!
+        case "" => "doc['%s'].distanceInKm(%s,%s)".format(name,lat,lng)//fnur!
+      }
+    }
+  }
+  case class Recip(query: ScoreBoost, x: Int, y: Int, z: Int) extends ScoreBoost{
+    def extend = "recip(%s,%d,%d,%d)".format(query.extend,x,y,z)
+    def elasticExtend = "%d*pow((%d*%s+%d),-1.0)".format(x,y,z)
+  }
+
   case class Empty[T]() extends Query[T] {
     def extend = "\"\""
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {

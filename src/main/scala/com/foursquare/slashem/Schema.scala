@@ -624,7 +624,23 @@ class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owne
     }
   }
 }
-class SlashemPointField[T <: Record[T]](owner: T) extends PointField[T](owner) with SlashemField[Pair[Double,Double], T]
+class SlashemPointField[T <: Record[T]](owner: T) extends PointField[T](owner) with SlashemField[Pair[Double,Double], T] {
+  def geo_distance(geolat: Double, geolng: Double) = {
+    GeoDist(this.name,geolat,geolng)
+  }
+  //Shortcut since we normally want the recip not the actual distance
+  def recip_geo_distance(geolat: Double, geolng: Double,x : Int, y: Int, z: Int) = {
+    Recip(GeoDist(this.name,geolat,geolng),x,y,z)
+  }
+  def sqe_geo_distance(geolat: Double, geolng: Double) = {
+    GeoDist(this.name,geolat,geolng,"square")
+  }
+  //Shortcut since we normally want the recip not the actual distance
+  def recip_sqe_geo_distance(geolat: Double, geolng: Double,x : Int, y: Int, z: Int) = {
+    Recip(GeoDist(this.name,geolat,geolng,"square"),x,y,z)
+  }
+
+}
 class SlashemBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SlashemField[Boolean, T]
 class SlashemDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SlashemField[DateTime, T]
 //More restrictive type so we can access the geohash
