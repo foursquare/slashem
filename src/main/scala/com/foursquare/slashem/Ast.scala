@@ -112,11 +112,17 @@ object Ast {
   }
 
   //A field with a query weight
-  case class WeightedField(fieldName: String, boost: Double = 1) {
+  case class WeightedField(fieldName: String, boost: Double = 1) extends ScoreBoost {
     def extend(): String = {
       boost match {
         case 1.0 => fieldName
         case x => fieldName+"^"+x
+      }
+    }
+    def elasticExtend(): String = {
+      boost match {
+        case 1.0 => "(doc['"+fieldName+"'].value)"
+        case _ => "(doc['"+fieldName+"'].value *"+boost+")"
       }
     }
   }
@@ -160,15 +166,16 @@ object Ast {
       case _ => "dist(2,%s,%s,%s)".format(lat,lng,name)
     }}
     def elasticExtend = {
+      val distanceInKm = "doc['%s'].distanceInKm(%s,%s)".format(name,lat,lng)
       distType match {
-        case "square" => "pow(doc['%s'].distanceInKm(%s,%s),2.0)".format(name,lat,lng)//fnur!
-        case "" => "doc['%s'].distanceInKm(%s,%s)".format(name,lat,lng)//fnur!
+        case "square" => "pow(%s,2.0)".format(distanceInKm)
+        case _ => distanceInKm
       }
     }
   }
   case class Recip(query: ScoreBoost, x: Int, y: Int, z: Int) extends ScoreBoost{
     def extend = "recip(%s,%d,%d,%d)".format(query.extend,x,y,z)
-    def elasticExtend = "%d*pow((%d*%s+%d),-1.0)".format(x,y,z)
+    def elasticExtend = "%d.0*pow(((%d.0*(%s))+%d.0),-1.0)".format(y,x,query.elasticExtend,z)
   }
 
   case class Empty[T]() extends Query[T] {

@@ -33,7 +33,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
  boostQueries: List[AbstractClause],
  queryFields: List[WeightedField],
  phraseBoostFields: List[PhraseWeightedField],
- boostFields: List[WeightedField],
+ boostFields: List[ScoreBoost],
  start: Option[Long],
  limit: Option[Long],
  tieBreaker: Option[Double],
@@ -265,6 +265,11 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   def boostField[F](f: M => SlashemField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
     this.copy(boostFields=WeightedField(f(meta).name,boost)::boostFields)
   }
+  /** Handle a more complex field boost */
+  def scoreBoostField(f: M => ScoreBoost): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
+    this.copy(boostFields=f(meta)::boostFields)
+  }
+
 
   //Print out some debugging information.
   def test(): Unit = {

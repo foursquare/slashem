@@ -76,8 +76,24 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
 
   @Test
   def testGeoBoost {
+    //Test GeoBoosting. Note will actually make further away document come up first
+    val geoLat = 74
+    val geoLong = -31
     val r1 = ESimpleGeoPanda where (_.name contains "lolerskates") fetch()
-    val r2 = ESimpleGeoPanda where (_.name contains "lolerskates") fetch()
+    val r2 = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.pos sqeGeoDistance(geoLat, geoLong)) fetch()
+    Assert.assertEquals(r1.response.results.length,2)
+    Assert.assertEquals(r2.response.results.length,2)
+    Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
+  }
+  @Test
+  def testRecipGeoBoost {
+    val geoLat = 74
+    val geoLong = -31
+    val r1 = ESimpleGeoPanda where (_.name contains "lolerskates") fetch()
+    val r2 = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.pos recipSqeGeoDistance(geoLat, geoLong, 1, 5000, 1)) fetch()
+    Assert.assertEquals(r1.response.results.length,2)
+    Assert.assertEquals(r2.response.results.length,2)
+    Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
   }
 
   @Before
@@ -109,14 +125,14 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val geodoc1 = geoClient.prepareIndex(ESimpleGeoPanda.meta.indexName,ESimpleGeoPanda.meta.docType,"4c809f4251ada1cdc3790b10").setSource(jsonBuilder()
                                                                           .startObject()
                                                                           .field("name","lolerskates")
-                                                                          .field("pos",74,-32)
+                                                                          .field("pos",74.0,-31.1)
                                                                           .endObject()
       ).execute()
     .actionGet();
     val geodoc2 = geoClient.prepareIndex(ESimpleGeoPanda.meta.indexName,ESimpleGeoPanda.meta.docType,"4c809f4251ada1cdc3790b11").setSource(jsonBuilder()
                                                                           .startObject()
                                                                           .field("name","lolerskates")
-                                                                          .field("pos",74,-31)
+                                                                          .field("pos",74.0,-31.0)
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -164,13 +180,16 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def hoboDone() {
     ESimplePanda.meta.node = ElasticNode.node
     ESimpleGeoPanda.meta.node = ElasticNode.node
-    val client = ESimplePanda.meta.client
-    //Set up the geo panda index
-    val geoClient = ESimpleGeoPanda.meta.client
-    val geoIndexDelReq = Requests.deleteIndexRequest(ESimpleGeoPanda.meta.indexName)
-    val indexDelReq = Requests.deleteIndexRequest(ESimplePanda.meta.indexName)
-    geoClient.admin.indices().delete(geoIndexDelReq)
-    client.admin.indices().delete(indexDelReq)
+    try {
+      val client = ESimplePanda.meta.client
+      val geoClient = ESimpleGeoPanda.meta.client
+      val geoIndexDelReq = Requests.deleteIndexRequest(ESimpleGeoPanda.meta.indexName)
+      val indexDelReq = Requests.deleteIndexRequest(ESimplePanda.meta.indexName)
+      geoClient.admin.indices().delete(geoIndexDelReq)
+      client.admin.indices().delete(indexDelReq)
+    } catch {
+      case _ => println("Error cleaning up after tests... oh well")
+    }
   }
 
 }

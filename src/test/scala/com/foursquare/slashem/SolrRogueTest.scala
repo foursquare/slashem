@@ -23,6 +23,9 @@ class SVenueTest extends SolrSchema[SVenueTest] {
   object id extends SlashemObjectIdField(this)
   object lat extends SlashemDoubleField(this)
   object lng extends SlashemDoubleField(this)
+  object point extends SlashemPointField(this) {
+    override def name = "lat,lng"
+  }
   object userid extends SlashemLongField(this)
   object text extends SlashemStringField(this)
   object name extends SlashemStringField(this)

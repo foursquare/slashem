@@ -504,6 +504,53 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
   }
   @Test
+  def testGeoDistQuery {
+    val lols="holden's hobohut"
+    val geoLat = 37.7519528215759
+    val geoLong = -122.42086887359619
+    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") scoreBoostField(_.point recipSqeGeoDistance(geoLat, geoLong, 1, 5000, 1))
+    val qp = q.meta.queryParams(q).toList
+    val expected = List("defType" -> "edismax",
+                        "q" -> "(holden's hobohut)",
+                        "bf" -> "recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong),
+                        "start" -> "0",
+                        "rows" -> "10")
+    Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
+    Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
+  }
+  @Test
+  def testAutoComplexQuery9b {
+    val lols="holden's hobohut"
+    val geoLat = 37.7519528215759
+    val geoLong = -122.42086887359619
+    val q = SVenueTest where (_.default contains lols) useQueryType("edismax") phraseBoost(_.text, 1) phraseBoost(_.name,200) phraseBoost(_.aliases,25) queryField(_.text) queryField(_.ngram_name, 0.2) queryField(_.tags, 0.01) tieBreaker(0.2) boostField(_.decayedPopularity1) scoreBoostField(_.point recipSqeGeoDistance(geoLat, geoLong, 1, 5000, 1)) boostQuery(_.name contains(lols, 10)) fetchFields(_.id,_.name,_.userid,_.mayorid,_.category_id_0,_.popularity,_.decayedPopularity1,_.lat,_.lng,_.checkin_info,_.score,_.hasSpecial,_.address,_.crossstreet,_.city,_.state,_.zip,_.country,_.checkinCount,_.partitionedPopularity) filter(_.geo_s2_cell_ids inRadius(geoLat, geoLong, 1))
+    val qp = q.meta.queryParams(q).toList
+    val expected = List("defType" -> "edismax",
+                        "q" -> "(holden's hobohut)",
+                        "start" -> "0",
+                        "pf" -> "text",
+                        "pf2" -> "text",
+                        "pf3" -> "text",
+                        "pf" -> "name^200.0",
+                        "pf2" -> "name^200.0",
+                        "pf3" -> "name^200.0",
+                        "pf" -> "aliases^25.0",
+                        "pf2" -> "aliases^25.0",
+                        "pf3" -> "aliases^25.0",
+                        "qf" -> "text",
+                        "qf" -> "ngram_name^0.2",
+                        "qf" -> "tags^0.01",
+                        "fq" -> "geo_s2_cell_ids:(\"pleaseUseaRealGeoHash\")",
+                        "tieBreaker" -> "0.2",
+                        "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount,partitionedPopularity",
+                        "bq" -> "name:((holden's hobohut)^10.0)",
+                        "bf" -> "recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong),
+                        "bf" -> "decayedPopularity1",
+                        "rows" -> "10")
+    Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
+    Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
+  }
+  @Test
   def testEventQuery1 {
     val geoLat = 37.7519528215759
     val geoLong = -122.42086887359619
