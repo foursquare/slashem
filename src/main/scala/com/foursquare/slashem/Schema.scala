@@ -624,6 +624,7 @@ class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owne
     }
   }
 }
+class SlashemPointField[T <: Record[T]](owner: T) extends PointField[T](owner) with SlashemField[Pair[Double,Double], T]
 class SlashemBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SlashemField[Boolean, T]
 class SlashemDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SlashemField[DateTime, T]
 //More restrictive type so we can access the geohash
@@ -738,6 +739,44 @@ class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int
       case ar: Array[Int] => Full(set(ar.toList))
       case ar: Array[Integer] => Full(set(ar.toList.map(x=>x.intValue)))
       case s: String => Full(set(s.split(" ").map(x => x.toInt).toList))
+      case _ => Empty
+    }
+    } catch {
+      case _ => Empty
+    }
+  }
+  override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
+  override def liftSetFilterToBox(a: Box[ValueType]) = Empty
+  override def toBoxMyType(a: ValueType) = Empty
+  override def defaultValueBox = Empty
+  override def toValueType(a: Box[MyType]) = null.asInstanceOf[ValueType]
+  override def asJValue() = net.liftweb.json.JsonAST.JNothing
+  override def asJs() = net.liftweb.http.js.JE.JsNull
+  override def toForm = Empty
+  override def set(a: ValueType) = {e = Full(a)
+                                    a.asInstanceOf[ValueType]}
+  override def get() = e.get
+  override def is() = e.get
+  def value() = e getOrElse Nil
+  override def valueBox() = e
+}
+class PointField[T <: Record[T]](override val owner: T) extends Field[Pair[Double, Double], T] {
+  type ValueType = Pair[Double, Double]
+  var e: Box[ValueType] = Empty
+
+  def setFromString(s: String) = {
+    val doubles = s.split(",").map(x => x.toDouble).toList
+    doubles.length match {
+      case 2 => Full(set(Pair(doubles.apply(0),doubles.apply(1))))
+      case _ => Empty
+    }
+  }
+  override def setFromAny(a: Any) ={
+  try {
+    a match {
+      case "" => Empty
+      case ar: Array[Double] => Full(set(Pair(ar.apply(0),ar.apply(1))))
+      case s: String => setFromString(s)
       case _ => Empty
     }
     } catch {

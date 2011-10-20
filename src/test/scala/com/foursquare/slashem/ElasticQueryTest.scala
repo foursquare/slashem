@@ -14,6 +14,7 @@ import org.specs.matcher.ScalaCheckMatchers
 
 import org.elasticsearch.node.NodeBuilder._
 import org.elasticsearch.node.Node
+import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.xcontent.XContentFactory._;
 import java.util.UUID;
 
@@ -73,17 +74,62 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
   }
 
+  @Test
+  def testGeoBoost {
+    val r1 = ESimpleGeoPanda where (_.name contains "lolerskates") fetch()
+    val r2 = ESimpleGeoPanda where (_.name contains "lolerskates") fetch()
+  }
 
   @Before
   def hoboPrepIndex() {
     ESimplePanda.meta.node = ElasticNode.node
+    ESimpleGeoPanda.meta.node = ElasticNode.node
     val client = ESimplePanda.meta.client
+
+
+    //Set up the geo panda index
+    val geoClient = ESimpleGeoPanda.meta.client
+    try {
+      val indexReq = Requests.createIndexRequest(ESimpleGeoPanda.meta.indexName)
+      geoClient.admin.indices().create(indexReq).actionGet()
+      geoClient.admin().indices().prepareRefresh().execute().actionGet()
+      val geoPandaIndexName = ESimpleGeoPanda.meta.indexName
+      val mapping = """
+      { "slashemdoc" :{
+        "properties" : {
+          "pos" : { type: "geo_point" }
+        }
+      }}"""
+      val mappingReq = Requests.putMappingRequest(ESimpleGeoPanda.meta.indexName).source(mapping).`type`("slashemdoc")
+      val mappingResponse = geoClient.admin().indices().putMapping(mappingReq).actionGet()
+    } catch {
+      case _ => println("Error creating geopanda stuff, may allready exist")
+    }
+    geoClient.admin().indices().prepareRefresh().execute().actionGet()
+    val geodoc1 = geoClient.prepareIndex(ESimpleGeoPanda.meta.indexName,ESimpleGeoPanda.meta.docType,"4c809f4251ada1cdc3790b10").setSource(jsonBuilder()
+                                                                          .startObject()
+                                                                          .field("name","lolerskates")
+                                                                          .field("pos",74,-32)
+                                                                          .endObject()
+      ).execute()
+    .actionGet();
+    val geodoc2 = geoClient.prepareIndex(ESimpleGeoPanda.meta.indexName,ESimpleGeoPanda.meta.docType,"4c809f4251ada1cdc3790b11").setSource(jsonBuilder()
+                                                                          .startObject()
+                                                                          .field("name","lolerskates")
+                                                                          .field("pos",74,-31)
+                                                                          .endObject()
+      ).execute()
+    .actionGet();
+
+
+    //Set up the regular pandas
     val r = client.prepareIndex(ESimplePanda.meta.indexName,ESimplePanda.meta.docType,"4c809f4251ada1cdc3790b10").setSource(jsonBuilder()
                                                                           .startObject()
                                                                           .field("name","lolerskates")
                                                                           .endObject()
       ).execute()
     .actionGet();
+
     val r2 = client.prepareIndex(ESimplePanda.meta.indexName,ESimplePanda.meta.docType,"4c809f4251ada1cdc3790b11").setSource(jsonBuilder()
                                                                           .startObject()
                                                                           .field("name","loler skates")
@@ -111,10 +157,20 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     .actionGet();
 
     client.admin().indices().prepareRefresh().execute().actionGet()
+    geoClient.admin().indices().prepareRefresh().execute().actionGet()
+
   }
   @After
   def hoboDone() {
-    //TODO: Delete everything from the index
+    ESimplePanda.meta.node = ElasticNode.node
+    ESimpleGeoPanda.meta.node = ElasticNode.node
+    val client = ESimplePanda.meta.client
+    //Set up the geo panda index
+    val geoClient = ESimpleGeoPanda.meta.client
+    val geoIndexDelReq = Requests.deleteIndexRequest(ESimpleGeoPanda.meta.indexName)
+    val indexDelReq = Requests.deleteIndexRequest(ESimplePanda.meta.indexName)
+    geoClient.admin.indices().delete(geoIndexDelReq)
+    client.admin.indices().delete(indexDelReq)
   }
 
 }

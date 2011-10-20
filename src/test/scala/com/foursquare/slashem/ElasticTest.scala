@@ -21,7 +21,7 @@ object ESimpleGeoPanda extends ESimpleGeoPanda with ElasticMeta[ESimpleGeoPanda]
   //Force local for testing
   override val useTransport = false
   override val clusterName = "simpletest" //Override me knthx
-
+  override val indexName = "geopanda"
 }
 class ESimpleGeoPanda extends ElasticSchema[ESimpleGeoPanda] {
   def meta = ESimpleGeoPanda
@@ -29,4 +29,5 @@ class ESimpleGeoPanda extends ElasticSchema[ESimpleGeoPanda] {
   object id extends SlashemObjectIdField(this)
   object name extends SlashemStringField(this)
   object score extends SlashemDoubleField(this)
+  object pos extends SlashemPointField(this)
 }
