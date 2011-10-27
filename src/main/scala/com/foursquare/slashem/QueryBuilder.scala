@@ -37,7 +37,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
  start: Option[Long],
  limit: Option[Long],
  tieBreaker: Option[Double],
- sort: Option[String],
+ sort: Option[Pair[String,String]],
  minimumMatch: Option[String],
  queryType: Option[String],
  fieldsToFetch: List[String],
@@ -169,7 +169,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   def orderAsc[F](f: M => SlashemField[F, M])(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM, Y, H, Q] = {
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields,
                  boostFields, start, limit, tieBreaker,
-                 sort=Some(f(meta).name + " asc"), minimumMatch, queryType, fieldsToFetch,
+                 sort=Some(f(meta).name , "asc"), minimumMatch, queryType, fieldsToFetch,
                  hls, creator, comment, fallOf, min)
   }
 
@@ -178,7 +178,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    * @param f Field to order by */
   def orderDesc[F](f: M => SlashemField[F, M])(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM, Y, H, Q] = {
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields,
-                 start, limit, tieBreaker, sort=Some(f(meta).name + " desc"),
+                 start, limit, tieBreaker, sort=Some(f(meta).name, "desc"),
                  minimumMatch, queryType, fieldsToFetch, hls, creator, comment, fallOf, min)
   }
 

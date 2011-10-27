@@ -11,6 +11,8 @@ import org.bson.types.ObjectId
 import org.codehaus.jackson.annotate._
 import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper}
 import org.elasticsearch.action.search.SearchResponse
+import org.elasticsearch.search.sort.SortOrder
+import org.elasticsearch.client.action.search.SearchRequestBuilder
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.transport.InetSocketTransportAddress
 import org.elasticsearch.common.settings.ImmutableSettings
@@ -355,11 +357,18 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
       val limit =  qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit)
       meta.logger.debug("Query details "+query.toString())
-      val response: SearchResponse  = client.prepareSearch(meta.indexName)
+      val baseRequest: SearchRequestBuilder = client.prepareSearch(meta.indexName)
       .setQuery(query.buildAsBytes())
       .setFrom(from)
       .setSize(limit)
       .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+      val request = qb.sort match {
+        case None => baseRequest
+        case Some(Pair(sort,"asc")) => baseRequest.addSort(sort,SortOrder.ASC)
+        case Some(Pair(sort,"desc")) => baseRequest.addSort(sort,SortOrder.DESC)
+        case _ => baseRequest
+      }
+      val response: SearchResponse  = request
       .execute().actionGet()
       meta.logger.debug("Search response "+response.toString())
       constructSearchResults(qb.creator,
@@ -444,7 +453,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
 
     val s = qb.sort match {
       case None => Nil
-      case Some(sort) => List("sort" -> sort)
+      case Some(sort) => List("sort" -> (sort._1+" "+sort._2))
     }
     val qt = qb.queryType match {
       case None => Nil
