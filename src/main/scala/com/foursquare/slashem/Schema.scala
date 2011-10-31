@@ -159,14 +159,23 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
 
   var node: Node = null
 
+  var myClient: Option[Client]
+
   def client: Client = {
-    if (useTransport) {
-      val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName)
-      val tc = new TransportClient(settings);
-      serverInetSockets.map(tc.addTransportAddress(_))
-      tc
-    } else {
-      node.client()
+    myClient match {
+      case Some(cl) => cl
+      case _ => { myClient = Some({
+        if (useTransport) {
+          val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName)
+          val tc = new TransportClient(settings);
+          serverInetSockets.map(tc.addTransportAddress(_))
+          tc
+        } else {
+          node.client()
+        }
+      })
+     myClient.get
+     }
     }
   }
 }
@@ -314,11 +323,12 @@ trait SlashemSchema[M <: Record[M]] extends Record[M] {
   var geohash: SolrGeoHash = NoopSolrGeoHash
 
   // fixme(jonshea) this should go somewhere else
-  def time[T](f: => T): (Long, T) = {
-    val start = System.currentTimeMillis
-    val rv = f
-    val elapsed = System.currentTimeMillis - start
-    (elapsed, rv)
+  def timeFuture[T](someFuture: Future[T]): Future[(Long, T)] = {
+    val startTime = System.currentTimeMillis
+    someFuture.map(x => {
+      val endTime = System.currentTimeMillis
+      (endTime-startTime,x)
+    })
   }
 
 
@@ -339,12 +349,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
 
   def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]):
   SearchResults[M, Y] = {
-    val (t, retval) = time {
     queryFuture(qb)(timeout)
-    }
-    meta.logger.log(meta.clusterName + ".query", "FIXME", t)
-
-    retval
   }
 
   def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]):
@@ -379,7 +384,11 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     }
     )
     future.run()
-    future
+    timeFuture(future).map( {
+      case (queryTime, result) => {
+        meta.logger.log(meta.indexName+".query",query.toString(), queryTime)
+        result
+      }})
   }
   def constructSearchResults[Y](creator: Option[(Pair[Map[String,Any],
                                                       Option[Map[String,ArrayList[String]]]]) => Y],
@@ -502,12 +511,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
 
   def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]):
   SearchResults[M, Y] = {
-    val (t, retval) = time {
     queryFuture(qb)(timeout)
-    }
-    meta.logger.log(meta.solrName + ".query", meta.queryString(queryParams(qb)).toString, t)
-
-    retval
   }
 
   def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]):
@@ -523,17 +527,19 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
                      min: Option[Int]): Future[SearchResults[M, Y]] = {
     val queryText = meta.queryString(params).toString
 
-    val jsonResponseFuture = meta.rawQueryFuture(params)
-    val formattedFuture = (
-      jsonResponseFuture.flatMap(meta.extractFromResponse(_, creator,
-                                                          fieldstofetch,
-                                                          fallOf,
-                                                          min,
-                                                          queryText))
-      )
-
-    formattedFuture.onSuccess(_ => meta.logger.success(meta.solrName))
-    formattedFuture.onFailure(e => meta.logger.failure(meta.solrName, queryText, e))
+    timeFuture(meta.rawQueryFuture(params)).map({
+      case (queryTime, jsonString) => {
+        meta.logger.log(meta.solrName + ".query", queryText, queryTime)
+        jsonString
+      }}).flatMap(jsonString => {
+      meta.extractFromResponse(jsonString, creator,
+                               fieldstofetch,
+                               fallOf,
+                               min,
+                               queryText)
+                })
+    .onSuccess(_ => meta.logger.success(meta.solrName))
+    .onFailure(e => meta.logger.failure(meta.solrName, queryText, e))
   }
 
 }

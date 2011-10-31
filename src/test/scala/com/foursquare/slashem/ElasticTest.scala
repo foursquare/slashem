@@ -4,7 +4,7 @@ object ESimplePanda extends ESimplePanda with ElasticMeta[ESimplePanda] {
   //Force local for testing
   override val useTransport = false
   override val clusterName = "simpletest" //Override me knthx
-
+  var myClient:Option[org.elasticsearch.client.Client]  = None
 }
 class ESimplePanda extends ElasticSchema[ESimplePanda] {
   def meta = ESimplePanda
@@ -22,6 +22,7 @@ object ESimpleGeoPanda extends ESimpleGeoPanda with ElasticMeta[ESimpleGeoPanda]
   override val useTransport = false
   override val clusterName = "simpletest" //Override me knthx
   override val indexName = "geopanda"
+  var myClient:Option[org.elasticsearch.client.Client]  = None
 }
 class ESimpleGeoPanda extends ElasticSchema[ESimpleGeoPanda] {
   def meta = ESimpleGeoPanda
