@@ -37,7 +37,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
  start: Option[Long],
  limit: Option[Long],
  tieBreaker: Option[Double],
- sort: Option[Pair[String,String]],
+ sort: Option[Pair[ScoreBoost,String]],
  minimumMatch: Option[String],
  queryType: Option[String],
  fieldsToFetch: List[String],
@@ -169,7 +169,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   def orderAsc[F](f: M => SlashemField[F, M])(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM, Y, H, Q] = {
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields,
                  boostFields, start, limit, tieBreaker,
-                 sort=Some(f(meta).name , "asc"), minimumMatch, queryType, fieldsToFetch,
+                 sort=Some(Field(f(meta).name), "asc"), minimumMatch, queryType, fieldsToFetch,
                  hls, creator, comment, fallOf, min)
   }
 
@@ -178,9 +178,23 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    * @param f Field to order by */
   def orderDesc[F](f: M => SlashemField[F, M])(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM, Y, H, Q] = {
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields,
-                 start, limit, tieBreaker, sort=Some(f(meta).name, "desc"),
+                 start, limit, tieBreaker, sort=Some(Field(f(meta).name), "desc"),
                  minimumMatch, queryType, fieldsToFetch, hls, creator, comment, fallOf, min)
   }
+
+  /** Handle a more complex field sort */
+  def complexOrderAsc(f: M => ScoreBoost)(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM, Y, H, Q] = {
+    QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields,
+                 start, limit, tieBreaker, sort=Some(f(meta), "asc"),
+                 minimumMatch, queryType, fieldsToFetch, hls, creator, comment, fallOf, min)
+  }
+  /** Handle a more complex field sort */
+  def complexOrderDesc(f: M => ScoreBoost)(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM, Y, H, Q] = {
+    QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields,
+                 start, limit, tieBreaker, sort=Some(f(meta), "desc"),
+                 minimumMatch, queryType, fieldsToFetch, hls, creator, comment, fallOf, min)
+  }
+
 
   /** If you doing a phrase search this the percent of terms that must match,
    * rounded down. So if you have it set to 50 and then do a search with 3
@@ -306,12 +320,13 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    * Usage example: val res = (SVenue where (_.default eqs "coffee") start(10) limit(40) fetchBatch(10)) {_.response.oids }
    * @param batchSize The size of the batch to be retrieved
    * @param f A function to be applied over the result batches */
-  def fetchBatch[T](batchSize: Int, timeout: Duration = Duration(1, TimeUnit.SECONDS))(f: SearchResults[M,Y] => List[T])(implicit ev: Lim =:= Unlimited): List[T] =  {
+  def fetchBatch[T](batchSize: Int, timeout: Duration = Duration(1, TimeUnit.SECONDS))
+  (f: SearchResults[M,Y] => List[T]): List[T] =  {
     val startPos: Long = this.start.getOrElse(DefaultStart)
     val maxRowsToGet: Option[Long] = this.limit//If not specified try to get all rows
     //There is somewhat of a race condition here. If data is being inserted or deleted during the query
     //some results may not appear and some results may be duplicated.
-    val firstQB = this.limit(batchSize).start(startPos)
+    val firstQB = this.start(startPos).copy(limit=Some(batchSize))
     val firstQuery = meta.query(timeout,firstQB)
     val maxResults = firstQuery.response.numFound - firstQuery.response.start
     val rowsToGet: Long = maxRowsToGet.map(scala.math.min(_,maxResults)) getOrElse maxResults
@@ -320,7 +335,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
     f(firstQuery) ++ (1 to scala.math.ceil(rowsToGet*1.0/batchSize).toInt).flatMap{i =>
       // cannot simply override this.start as it is a val, so removing/adding on queryParams
       val starti = startPos + (i*batchSize)
-      val currentQB = this.limit(batchSize).start(starti)
+      val currentQB = this.start(starti).copy(limit=Some(batchSize))
       f(meta.query(timeout, currentQB))
     }.toList
   }

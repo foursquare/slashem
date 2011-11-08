@@ -111,6 +111,15 @@ object Ast {
 
   }
 
+  case class Field(fieldName: String) extends ScoreBoost {
+    def extend(): String = {
+      fieldName
+    }
+    def elasticExtend(): String = {
+      "(doc['" + fieldName + "'].value)"
+    }
+  }
+
   //A field with a query weight
   case class WeightedField(fieldName: String, boost: Double = 1) extends ScoreBoost {
     def extend(): String = {

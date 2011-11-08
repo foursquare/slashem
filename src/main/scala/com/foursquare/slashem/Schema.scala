@@ -6,7 +6,6 @@ import net.liftweb.common.{Box, Empty, Full}
 import com.twitter.util.{Duration, Future, FutureTask}
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.http.Http
-import net.liftweb.json.JsonParser
 import org.bson.types.ObjectId
 import org.codehaus.jackson.annotate._
 import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper}
@@ -35,7 +34,6 @@ import scala.annotation.tailrec
 
 import org.joda.time.DateTime
 import java.util.{HashMap, ArrayList}
-import java.util.concurrent.TimeUnit
 import java.lang.Integer
 import java.net.InetSocketAddress
 import collection.JavaConversions._
@@ -369,8 +367,8 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
       val request = qb.sort match {
         case None => baseRequest
-        case Some(Pair(sort,"asc")) => baseRequest.addSort(sort,SortOrder.ASC)
-        case Some(Pair(sort,"desc")) => baseRequest.addSort(sort,SortOrder.DESC)
+        case Some(Pair(sort,"asc")) => baseRequest.addSort(sort.elasticExtend(),SortOrder.ASC)
+        case Some(Pair(sort,"desc")) => baseRequest.addSort(sort.elasticExtend(),SortOrder.DESC)
         case _ => baseRequest
       }
       val response: SearchResponse  = request
@@ -462,7 +460,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
 
     val s = qb.sort match {
       case None => Nil
-      case Some(sort) => List("sort" -> (sort._1+" "+sort._2))
+      case Some(sort) => List("sort" -> (sort._1.extend + " " + sort._2))
     }
     val qt = qb.queryType match {
       case None => Nil
