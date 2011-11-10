@@ -556,10 +556,10 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   def contains(v: V, b: Float) = Clause[V](self.name, Boost(Group(BagOfWords(v)),b))
 
   def in(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Phrase(x)})))
-  def nin(v: Iterable[V]) = Clause[V](self.name, groupWithAnd(v.map({x: V => Phrase(x)})),false)
+  def nin(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Phrase(x)})),false)
 
   def in(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b))
-  def nin(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(groupWithAnd(v.map({x: V => Phrase(x)})),b),false)
+  def nin(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b),false)
 
 
   def inRange(v1: V, v2: V) = Clause[V](self.name, Group(Range(BagOfWords(v1),BagOfWords(v2))))
@@ -799,6 +799,8 @@ class PointField[T <: Record[T]](override val owner: T) extends Field[Pair[Doubl
     a match {
       case "" => Empty
       case ar: Array[Double] => Full(set(Pair(ar.apply(0),ar.apply(1))))
+      case (lat : Double)::(lng: Double)::Nil => Full(set(Pair(lat,lng)))
+      case arl: ArrayList[Double] => Full(set(Pair(arl.get(0),arl.get(1))))
       case s: String => setFromString(s)
       case _ => Empty
     }
@@ -818,7 +820,7 @@ class PointField[T <: Record[T]](override val owner: T) extends Field[Pair[Doubl
                                     a.asInstanceOf[ValueType]}
   override def get() = e.get
   override def is() = e.get
-  def value() = e getOrElse Nil
+  def value() = e.get
   override def valueBox() = e
 }
 class DummyField[V, T <: Record[T]](override val owner: T) extends Field[V, T] {

@@ -86,6 +86,16 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
   }
   @Test
+  def testPointExtract {
+    //Test GeoBoosting. Note will actually make further away document come up first
+    val geoLat = 74
+    val geoLong = -31
+    val r = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.pos sqeGeoDistance(geoLat, geoLong)) fetch()
+    Assert.assertEquals(r.response.results.length,2)
+    Assert.assertEquals(r.response.results.apply(0).pos.value._1,74.0,0.9)
+  }
+
+  @Test
   def testRecipGeoBoost {
     val geoLat = 74
     val geoLong = -31
