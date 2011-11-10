@@ -800,7 +800,7 @@ class PointField[T <: Record[T]](override val owner: T) extends Field[Pair[Doubl
       case "" => Empty
       case ar: Array[Double] => Full(set(Pair(ar.apply(0),ar.apply(1))))
       case (lat : Double)::(lng: Double)::Nil => Full(set(Pair(lat,lng)))
-      case arl: ArrayList[Double] => Full(set(Pair(arl.get(0),arl.get(1))))
+      case arl: ArrayList[_] => Full(set(Pair(arl.get(0).asInstanceOf[Double],arl.get(1).asInstanceOf[Double])))
       case s: String => setFromString(s)
       case _ => Empty
     }
