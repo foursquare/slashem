@@ -9,9 +9,7 @@ object ESimplePanda extends ESimplePanda with ElasticMeta[ESimplePanda] {
 class ESimplePanda extends ElasticSchema[ESimplePanda] {
   def meta = ESimplePanda
   object default extends SlashemDefaultStringField(this)
-  object id extends SlashemObjectIdField(this) {
-    override def name = "_id"
-  }
+  object id extends SlashemObjectIdField(this)
   object name extends SlashemStringField(this)
   object hobos extends SlashemStringField(this)
   object score extends SlashemDoubleField(this)
@@ -29,9 +27,7 @@ object ESimpleGeoPanda extends ESimpleGeoPanda with ElasticMeta[ESimpleGeoPanda]
 class ESimpleGeoPanda extends ElasticSchema[ESimpleGeoPanda] {
   def meta = ESimpleGeoPanda
   object default extends SlashemDefaultStringField(this)
-  object id extends SlashemObjectIdField(this) {
-    override def name = "_id"
-  }
+  object id extends SlashemObjectIdField(this)
   object name extends SlashemStringField(this)
   object score extends SlashemDoubleField(this)
   object pos extends SlashemPointField(this)

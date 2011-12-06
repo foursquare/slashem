@@ -141,12 +141,14 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .startObject()
                                                                           .field("name","lolerskates")
                                                                           .field("pos",74.0,-31.1)
+                                                                          .field("id","4c809f4251ada1cdc3790b10")
                                                                           .endObject()
       ).execute()
     .actionGet();
     val geodoc2 = geoClient.prepareIndex(ESimpleGeoPanda.meta.indexName,ESimpleGeoPanda.meta.docType,"4c809f4251ada1cdc3790b11").setSource(jsonBuilder()
                                                                           .startObject()
                                                                           .field("name","lolerskates")
+                                                                          .field("id","4c809f4251ada1cdc3790b11")
                                                                           .field("pos",74.0,-31.0)
                                                                           .endObject()
       ).execute()
@@ -157,6 +159,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val r = client.prepareIndex(ESimplePanda.meta.indexName,ESimplePanda.meta.docType,"4c809f4251ada1cdc3790b10").setSource(jsonBuilder()
                                                                           .startObject()
                                                                           .field("name","lolerskates")
+                                                                          .field("id","4c809f4251ada1cdc3790b10")
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -165,6 +168,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .startObject()
                                                                           .field("name","loler skates")
                                                                           .field("hobos","hobos")
+                                                                          .field("id","4c809f4251ada1cdc3790b11")
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -174,6 +178,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("hobos","nyet")
                                                                           .field("followers",0)
                                                                           .field("magic","yes yes")
+                                                                          .field("id","4c809f4251ada1cdc3790b12")
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -183,6 +188,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("hobos","sounds like a robot is eating a")
                                                                           .field("followers",10)
                                                                           .field("magic","yes")
+                                                                          .field("id","4c809f4251ada1cdc3790b13")
                                                                           .endObject()
       ).execute()
     .actionGet();
