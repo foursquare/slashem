@@ -1,3 +1,5 @@
+// Copyright 2011 Foursquare Labs Inc. All Rights Reserved.
+
 package com.foursquare.slashem
 import com.twitter.util.{Duration, Future}
 import com.foursquare.slashem.Ast._

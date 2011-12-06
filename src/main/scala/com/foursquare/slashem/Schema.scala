@@ -1,3 +1,5 @@
+// Copyright 2011 Foursquare Labs Inc. All Rights Reserved.
+
 package com.foursquare.slashem
 import com.foursquare.slashem.Ast._
 import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
@@ -603,21 +605,10 @@ class SlashemIntField[T <: Record[T]](owner: T) extends IntField[T](owner) with 
 class SlashemDoubleField[T <: Record[T]](owner: T) extends DoubleField[T](owner) with SlashemField[Double, T]
 class SlashemLongField[T <: Record[T]](owner: T) extends LongField[T](owner) with SlashemField[Long, T]
 class SlashemObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](owner) with SlashemField[ObjectId, T] {
-  override def valueBoxFromAny(a: Any) = {
-    try {
-      a match {
-        case "" => Empty
-        case s: String => Full(new ObjectId(s))
-        case i: ObjectId => Full(i)
-        case _ => Empty
-      }
-    } catch {
-      case _ => Empty
-    }
-  }
+  override def valueBoxFromAny(a: Any): Box[ObjectId] = objectIdBoxFromAny(a)
 }
 class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owner) with SlashemField[List[Int], T] {
-  override def valueBoxFromAny(a: Any) ={
+  override def valueBoxFromAny(a: Any) = {
   try {
     a match {
       case "" => Empty
@@ -692,7 +683,13 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
   var e: Box[ValueType] = Empty
 
   def setFromString(s: String) = Full(set(new ObjectId(s)))
-  def valueBoxFromAny(a: Any) = {
+
+  // NOTE(benjy): We can't put this implementation directly in valueBoxFromAny, because SlashemObjectIdField
+  // wouldn't be able to use this definition (it must redefine it so it can add the 'override' modifier, and it
+  // can't call super.valueBoxFromAny because that would, according to the rules of linearization, invoke
+  // SlashemField.valueBoxFromAny, which is not what we want).
+  // TODO: This has bad code smell and indicates a brittle design.
+  def objectIdBoxFromAny(a: Any): Box[ObjectId] = {
     try {
       a match {
         case "" => Empty
@@ -704,6 +701,9 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
       case _ => Empty
     }
   }
+
+  def valueBoxFromAny(a: Any): Box[ObjectId] = objectIdBoxFromAny(a)
+
   override def setFromAny(a: Any) ={
     val vb = valueBoxFromAny(a)
     vb.map(set(_))
