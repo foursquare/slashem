@@ -114,12 +114,12 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[(Pair[Map[Stri
   }
   /** Special for extracting just ObjectIds without the overhead of record. */
   def oids: List[ObjectId] = {
-    filteredDocs.map({ doc => doc._1.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
+    filteredDocs.map({ doc => doc._1.find(x => (x._1 == "id" || x._1 == "_id") ).map(x => new ObjectId(x._2.toString))}).toList.flatten
   }
   /** Another special case for extracting just ObjectId & score pairs.
    * Please think twice before using*/
   def oidScorePair: List[(ObjectId, Double)] = {
-    val oids = filteredDocs.map({doc => doc._1.find(x => x._1 == "id").map(x => new ObjectId(x._2.toString))}).toList.flatten
+    val oids = filteredDocs.map({doc => doc._1.find(x => (x._1 == "id" || x._1 == "_id")).map(x => new ObjectId(x._2.toString))}).toList.flatten
     val scores = filteredDocs.map({doc => doc._1.find(x => x._1 == "score").map(x => x._2.asInstanceOf[Double])}).toList.flatten
     oids zip scores
   }
@@ -400,7 +400,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     val hitCount = response.getHits().totalHits().toInt
     val docs: Array[(Map[String,Any], Option[Map[String,java.util.ArrayList[String]]])] = response.getHits().getHits().map(doc => {
       val m = doc.sourceAsMap()
-      val annotedMap = m.toMap++List("id" -> doc.id(), "score" -> doc.score())
+      val annotedMap = m.toMap++List("_id" -> doc.id(), "score" -> doc.score())
       //If we don't get the score back
       //m.put("score",doc.score())
       val hlf = doc.getHighlightFields()
