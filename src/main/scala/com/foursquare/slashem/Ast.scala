@@ -26,7 +26,10 @@ object Ast {
         || c == '*' || c == '?' || c == '|' || c == '&') {
         sb.append('\\')
       }
-      sb.append(c)
+      //Added (not part of QueryParser.java)
+      if (c != '’') {
+        sb.append(c)
+      }
     }
     sb.toString
   }
