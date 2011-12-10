@@ -22,7 +22,7 @@ class RogueProject(info: ProjectInfo) extends DefaultProject(info) with Credenti
     case _       => "1.6.9"
   }
 
-  val maven = "org.elasticsearch"        % "elasticsearch"  % "0.17.8"
+  val maven = "org.elasticsearch"        % "elasticsearch"  % "0.18.5"
   val junit = "junit"                    % "junit"          % "4.8.2"           % "test" withSources()
   val specs = "org.scala-tools.testing" %% "specs"          % specsVersion      % "test" withSources()
   val scalc = "org.scala-lang"           % "scala-compiler" % buildScalaVersion % "test" withSources()
