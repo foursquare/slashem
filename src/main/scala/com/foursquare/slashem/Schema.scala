@@ -8,6 +8,7 @@ import net.liftweb.common.{Box, Empty, Full}
 import com.twitter.util.{Duration, Future, FutureTask}
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.http.Http
+import com.twitter.finagle.Service
 import org.bson.types.ObjectId
 import org.codehaus.jackson.annotate._
 import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper}
@@ -30,7 +31,7 @@ import org.elasticsearch.action.search.SearchType
 import org.elasticsearch.client.Client
 import org.jboss.netty.util.CharsetUtil
 import org.jboss.netty.handler.codec.http.{DefaultHttpRequest, HttpResponseStatus, HttpHeaders, HttpMethod,
-                                           HttpVersion, QueryStringEncoder}
+                                           HttpVersion, QueryStringEncoder, HttpRequest, HttpResponse}
 
 import scala.annotation.tailrec
 
@@ -194,18 +195,26 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
   def hostConnectionLimit = 1000
   def hostConnectionCoresize = 300
 
+  var myClient: Option[Service[HttpRequest,HttpResponse]] = None
 
   def client = {
-    ClientBuilder()
-    .codec(Http())
-    .hosts(servers.map(x => {val h = x.split(":")
-                             val s = h.head
-                             val p = h.last
-                             new InetSocketAddress(s, p.toInt)}))
-    .hostConnectionLimit(hostConnectionLimit)
-    .hostConnectionCoresize(hostConnectionCoresize)
-    .retries(retries)
-    .build()}
+    myClient match {
+      case Some(cl) => cl
+      case _ => { myClient = Some({
+        ClientBuilder()
+        .codec(Http())
+        .hosts(servers.map(x => {val h = x.split(":")
+                                 val s = h.head
+                                 val p = h.last
+                                 new InetSocketAddress(s, p.toInt)}))
+        .hostConnectionLimit(hostConnectionLimit)
+        .hostConnectionCoresize(hostConnectionCoresize)
+        .retries(retries)
+        .build()})
+        myClient.get
+       }
+    }
+  }
 
   //This is used so the json extractor can do its job
   implicit val formats = net.liftweb.json.DefaultFormats
