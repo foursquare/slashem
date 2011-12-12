@@ -283,7 +283,7 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
         case HttpResponseStatus.OK => response.getContent.toString(CharsetUtil.UTF_8)
         case status => throw SolrResponseException(status.getCode, status.getReasonPhrase, solrName, qse.toString)
       }
-    }).ensure { client.release }
+    })
   }
 
 }
