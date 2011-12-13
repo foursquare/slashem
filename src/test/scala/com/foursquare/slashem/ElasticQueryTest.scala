@@ -44,6 +44,14 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b11"),doc.id.is)
   }
   @Test
+  def testNonEmptySearchOidScorePare {
+    val r = ESimplePanda where (_.hobos contains "hobos") fetch()
+    Assert.assertEquals(1,r.response.results.length)
+    //Lets look at the document and make sure its what we expected
+    val doc = r.response.oidScorePair.apply(0)
+    Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b11"),doc._1)
+  }
+  @Test
   def testManyResultsSearch {
     val r = ESimplePanda where (_.name contains "loler") fetch()
     Assert.assertEquals(r.response.results.length,3)

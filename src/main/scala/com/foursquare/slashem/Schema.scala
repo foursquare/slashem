@@ -409,9 +409,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     val hitCount = response.getHits().totalHits().toInt
     val docs: Array[(Map[String,Any], Option[Map[String,java.util.ArrayList[String]]])] = response.getHits().getHits().map(doc => {
       val m = doc.sourceAsMap()
-      val annotedMap = m.toMap ++ List("score" -> doc.score())
-      //If we don't get the score back
-      //m.put("score",doc.score())
+      val annotedMap = m.toMap ++ List("score" -> doc.score().toDouble)
       val hlf = doc.getHighlightFields()
       if (hlf == null) {
         Pair(annotedMap,None)
