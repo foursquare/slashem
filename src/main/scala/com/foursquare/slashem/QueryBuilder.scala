@@ -59,7 +59,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   }
 
   def or[F](c: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
-    this.copy(meta=meta,clauses=OrClause(c(meta),clauses))
+    this.copy(meta=meta,clauses=OrClause(List(c(meta),clauses)))
   }
 
 
@@ -73,7 +73,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   def orFilter[F](f: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
     filters match {
       case Nil => this.copy(filters=f(meta)::filters)
-      case x::xs => this.copy(filters=OrClause(f(meta),x)::xs)
+      case x::xs => this.copy(filters=OrClause(List(f(meta),x))::xs)
     }
   }
 

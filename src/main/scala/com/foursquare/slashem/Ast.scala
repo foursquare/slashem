@@ -47,18 +47,18 @@ object Ast {
   }
 
   //You can use a OrClause to join two clauses
-  case class OrClause(s1: AbstractClause, s2: AbstractClause) extends AbstractClause {
+  case class OrClause(clauses: List[AbstractClause]) extends AbstractClause {
     def extend(): String = {
-      "("+s1.extend+") OR ("+s2.extend+")"
+      clauses.map(c => "("+c.extend+")").mkString(" OR ")
     }
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
       val q = new BoolQueryBuilder()
-      List(s1,s2).map(_.elasticExtend(qf, pf)).map(q.should(_))
+      clauses.map(_.elasticExtend(qf, pf)).map(q.should(_))
       q
     }
     //By default we can just use the QueryFilterBuilder and the query extender
     override def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
-      new OrFilterBuilder(s1.elasticFilter(qf),s2.elasticFilter(qf))
+      new OrFilterBuilder(clauses.map(_.elasticFilter(qf)):_*)
     }
   }
   case class AndClause(s1: AbstractClause, s2: AbstractClause) extends AbstractClause {
