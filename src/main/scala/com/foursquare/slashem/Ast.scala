@@ -16,6 +16,8 @@ import org.elasticsearch.index.query.QueryBuilders._;
 
 object Ast {
 
+  val escapePattern = """\b(OR|AND|or|and)\b""".r
+
   // ripped from lucene source code QueryParser.java
   def escape(q: String) = {
     val sb = new StringBuilder()
@@ -31,7 +33,8 @@ object Ast {
         sb.append(c)
       }
     }
-    sb.toString
+    //Added (not part of QueryParser.java)
+    escapePattern.replaceAllIn(sb.toString,m => "\""+m.group(0)+"\"")
   }
 
   def quote(q: String) = "\"" + q + "\""
