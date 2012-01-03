@@ -34,6 +34,17 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
+  def testProduceCorrectSimpleEscapedQueryStringWithHighlighting {
+    val q = SUserTest where (_.fullname contains "jon OR") highlighting()
+    val qp = q.meta.queryParams(q).toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "fullname:(jon \"OR\")",
+                                                      "start" -> "0",
+                                                      "hl" -> "on",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
+
+
+  @Test
   def testProduceCorrectSimpleQueryStringContains {
     val q = SUserTest where (_.fullname contains "jon")
     val qp = q.meta.queryParams(q).toList
