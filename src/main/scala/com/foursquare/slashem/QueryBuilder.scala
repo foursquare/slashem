@@ -44,6 +44,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
  queryType: Option[String],
  fieldsToFetch: List[String],
  hls: Option[String],
+ hlFragSize: Option[Int],
  creator: Option[(Pair[Map[String,Any],
                        Option[Map[String,ArrayList[String]]]]) => Y],
  comment: Option[String],
@@ -115,7 +116,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields,
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType, (f1Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, CC](f: M => SlashemField[F1, M], create: (Option[F1], List[String]) => CC)(implicit ev: (Y,H) =:= (NoSelect,YesHighlighting)): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -128,7 +129,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
      QueryBuilder(meta, clauses, filters, boostQueries, queryFields,
                   phraseBoostFields, boostFields, start, limit, tieBreaker,
                   sort, minimumMatch, queryType, (f1Name::fieldsToFetch).distinct,
-                  hls, transformer, comment, fallOf, min)
+                  hls, hlFragSize, transformer, comment, fallOf, min)
   }
 
 
@@ -150,6 +151,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def highlighting()(implicit ev: (Y,H) =:= (NoSelect,NoHighlighting)): QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting, Q] = {
      this.copy(hls=Some("on"))
    }
+   def highlighting(fragSize: Int)(implicit ev: (Y,H) =:= (NoSelect,NoHighlighting)): QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting, Q] = {
+     this.copy(hls=Some("on"), hlFragSize = Some(fragSize))
+   }
+
 
    /** Turn on quality filtering.
     */
@@ -172,7 +177,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields,
                  boostFields, start, limit, tieBreaker,
                  sort=Some(Field(f(meta).name), "asc"), minimumMatch, queryType, fieldsToFetch,
-                 hls, creator, comment, fallOf, min)
+                 hls, hlFragSize, creator, comment, fallOf, min)
   }
 
   /** Order the results by a specific field in descending order.
@@ -181,20 +186,20 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   def orderDesc[F](f: M => SlashemField[F, M])(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM, Y, H, Q] = {
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields,
                  start, limit, tieBreaker, sort=Some(Field(f(meta).name), "desc"),
-                 minimumMatch, queryType, fieldsToFetch, hls, creator, comment, fallOf, min)
+                 minimumMatch, queryType, fieldsToFetch, hls, hlFragSize, creator, comment, fallOf, min)
   }
 
   /** Handle a more complex field sort */
   def complexOrderAsc(f: M => ScoreBoost)(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM, Y, H, Q] = {
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields,
                  start, limit, tieBreaker, sort=Some(f(meta), "asc"),
-                 minimumMatch, queryType, fieldsToFetch, hls, creator, comment, fallOf, min)
+                 minimumMatch, queryType, fieldsToFetch, hls, hlFragSize, creator, comment, fallOf, min)
   }
   /** Handle a more complex field sort */
   def complexOrderDesc(f: M => ScoreBoost)(implicit ev: Ord =:= Unordered): QueryBuilder[M, Ordered, Lim, MM, Y, H, Q] = {
     QueryBuilder(meta, clauses, filters, boostQueries, queryFields, phraseBoostFields, boostFields,
                  start, limit, tieBreaker, sort=Some(f(meta), "desc"),
-                 minimumMatch, queryType, fieldsToFetch, hls, creator, comment, fallOf, min)
+                 minimumMatch, queryType, fieldsToFetch, hls, hlFragSize, creator, comment, fallOf, min)
   }
 
 
@@ -361,7 +366,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M], create: (Option[F1], Option[F2]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -379,7 +384,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -404,7 +409,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M], create: (Option[F1], Option[F2], Option[F3]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -426,7 +431,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -456,7 +461,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M], create: (Option[F1], Option[F2], Option[F3], Option[F4]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -482,7 +487,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String] ,Option[F5], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -517,7 +522,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -547,7 +552,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String] ,Option[F5], List[String] ,Option[F6], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -587,7 +592,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -621,7 +626,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -659,7 +664,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  phraseBoostFields, boostFields, start, limit, tieBreaker,
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -702,7 +707,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -749,7 +754,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -800,7 +805,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -855,7 +860,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -914,7 +919,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -977,7 +982,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M],f14: M => SlashemField[F14, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -1044,7 +1049,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::f14Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M],f14: M => SlashemField[F14, M],f15: M => SlashemField[F15, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -1115,7 +1120,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  sort, minimumMatch, queryType,
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::f14Name::f15Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M],f14: M => SlashemField[F14, M],f15: M => SlashemField[F15, M],f16: M => SlashemField[F16, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -1191,7 +1196,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::f14Name::f15Name::f16Name::
                  fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16, F17,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M],f14: M => SlashemField[F14, M],f15: M => SlashemField[F15, M],f16: M => SlashemField[F16, M],f17: M => SlashemField[F17, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16], Option[F17]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -1271,7 +1276,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::f14Name::f15Name::f16Name::
                  f17Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
    /** Select into a case class */
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16, F17, F18,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M],f14: M => SlashemField[F14, M],f15: M => SlashemField[F15, M],f16: M => SlashemField[F16, M],f17: M => SlashemField[F17, M],f18: M => SlashemField[F18, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16], Option[F17], Option[F18]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
@@ -1355,7 +1360,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
                  (f1Name::f2Name::f3Name::f4Name::f5Name::f6Name::f7Name::f8Name::
                  f9Name::f10Name::f11Name::f12Name::f13Name::f14Name::f15Name::f16Name::
                  f17Name::f18Name::fieldsToFetch).distinct,
-                 hls, transformer, comment, fallOf, min)
+                 hls, hlFragSize, transformer, comment, fallOf, min)
   }
 }
 object Helpers {

@@ -34,7 +34,7 @@ object Ast {
       }
     }
     //Added (not part of QueryParser.java)
-    escapePattern.replaceAllIn(sb.toString,m => "\""+m.group(0)+"\"")
+    escapePattern.replaceAllIn(sb.toString,m => "\"" + m.group(0) + "\"")
   }
 
   def quote(q: String) = "\"" + q + "\""
@@ -52,7 +52,7 @@ object Ast {
   //You can use a OrClause to join two clauses
   case class OrClause(clauses: List[AbstractClause]) extends AbstractClause {
     def extend(): String = {
-      clauses.map(c => "("+c.extend+")").mkString(" OR ")
+      clauses.map(c => "(" + c.extend + ")").mkString(" OR ")
     }
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
       val q = new BoolQueryBuilder()

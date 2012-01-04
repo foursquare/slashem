@@ -345,7 +345,7 @@ trait SlashemSchema[M <: Record[M]] extends Record[M] {
     QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil,
                  phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None,
                  tieBreaker=None, sort=None, minimumMatch=None ,queryType=None,
-                 fieldsToFetch=Nil, hls=None, creator=None, comment=None,
+                 fieldsToFetch=Nil, hls=None, hlFragSize=None, creator=None, comment=None,
                  fallOf=None, min=None)
   }
   def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): SearchResults[M, Y]
@@ -498,9 +498,10 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
       case Some(x) => List("tieBreaker" -> x.toString)
     }
 
-    val hlp = qb.hls match {
-      case None => Nil
-      case Some(a) => List("hl" -> a)
+    val hlp = (qb.hls,qb.hlFragSize) match {
+      case (Some(a),Some(b)) => List("hl" -> a, "hl.fragsize" -> b.toString)
+      case (Some(a),None) => List("hl" -> a)
+      case (None,_) => Nil
     }
 
     val bf = qb.boostFields.map({x => ("bf" -> x.extend)})
