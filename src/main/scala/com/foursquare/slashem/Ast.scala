@@ -1,6 +1,7 @@
 // Copyright 2011 Foursquare Labs Inc. All Rights Reserved.
 
 package com.foursquare.slashem
+
 import org.elasticsearch.index.query.{QueryBuilder => ElasticQueryBuilder,
                                       FilterBuilder => ElasticFilterBuilder,
                                       QueryFilterBuilder,

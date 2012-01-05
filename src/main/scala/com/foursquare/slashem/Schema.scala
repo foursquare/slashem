@@ -1,6 +1,7 @@
 // Copyright 2011 Foursquare Labs Inc. All Rights Reserved.
 
 package com.foursquare.slashem
+
 import com.foursquare.slashem.Ast._
 import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
 import net.liftweb.record.field.{BooleanField, LongField, StringField, IntField, DoubleField}
@@ -41,6 +42,7 @@ import java.lang.Integer
 import java.net.InetSocketAddress
 import collection.JavaConversions._
 
+
 case class SolrResponseException(code: Int, reason: String, solrName: String, query: String) extends RuntimeException {
   override def getMessage(): String = {
      "Solr %s request resulted in HTTP %s: %s\n%s: %s".format(solrName, code, reason, solrName, query)
@@ -51,8 +53,15 @@ case class SolrResponseException(code: Int, reason: String, solrName: String, qu
  * we don't at present. */
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
 
-/** The response its self. The "docs" field is not type safe, you should use one of results or oids to access the results */
-case class Response[T <: Record[T],Y] (schema: T, creator: Option[(Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => Y], numFound: Int, start: Int, docs: Array[Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]], fallOf: Option[Double], min: Option[Int]) {
+object Response {
+  type RawDoc = (Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]])
+}
+/** The response its self.
+ * The "docs" field is not type safe, you should use one of results or oids to access the results
+ * Y is the type that we are extracting from the response (e.g. a case class) */
+case class Response[T <: Record[T],Y] (schema: T, creator: Option[Response.RawDoc => Y],
+                                       numFound: Int, start: Int, docs: Array[Response.RawDoc],
+                                       fallOf: Option[Double], min: Option[Int]) {
   val filteredDocs = filterHighQuality(docs)
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     filteredDocs.map({input =>

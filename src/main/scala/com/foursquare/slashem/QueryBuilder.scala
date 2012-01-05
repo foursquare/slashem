@@ -1,6 +1,7 @@
 // Copyright 2011 Foursquare Labs Inc. All Rights Reserved.
 
 package com.foursquare.slashem
+
 import com.twitter.util.{Duration, Future}
 import com.foursquare.slashem.Ast._
 import net.liftweb.record.{Record}
@@ -148,10 +149,12 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
 
    /** Turn on highlighting. Must be done prior to select case
     */
-   def highlighting()(implicit ev: (Y,H) =:= (NoSelect,NoHighlighting)): QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting, Q] = {
+   def highlighting()(implicit ev: (Y,H) =:= (NoSelect,NoHighlighting)):
+  QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting, Q] = {
      this.copy(hls=Some("on"))
    }
-   def highlighting(fragSize: Int)(implicit ev: (Y,H) =:= (NoSelect,NoHighlighting)): QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting, Q] = {
+   def highlighting(fragSize: Int)(implicit ev: (Y,H) =:= (NoSelect,NoHighlighting)):
+  QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting, Q] = {
      this.copy(hls=Some("on"), hlFragSize = Some(fragSize))
    }
 
