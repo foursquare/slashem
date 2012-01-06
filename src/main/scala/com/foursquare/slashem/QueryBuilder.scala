@@ -56,12 +56,18 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   val DefaultStart = 0
   import Helpers._
 
-  def and[F](c: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
-    this.copy(meta=meta,clauses=AndClause(c(meta),clauses))
+  def and(c: M => AbstractClause): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
+    clauses match{
+      case AndClause(elements) => this.copy(meta=meta,clauses=AndClause(c(meta)::elements))
+      case _ => this.copy(meta=meta,clauses=AndClause(List(c(meta),clauses)))
+    }
   }
 
-  def or[F](c: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
-    this.copy(meta=meta,clauses=OrClause(List(c(meta),clauses)))
+  def or(c: M => AbstractClause): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] = {
+    clauses match{
+      case OrClause(elements) => this.copy(meta=meta,clauses=OrClause(c(meta)::elements))
+      case _ => this.copy(meta=meta,clauses=OrClause(List(c(meta),clauses)))
+    }
   }
 
 

@@ -7,6 +7,7 @@ import org.elasticsearch.index.query.{QueryBuilder => ElasticQueryBuilder,
                                       QueryFilterBuilder,
                                       QueryStringQueryBuilder,
                                       BoolQueryBuilder,
+                                      BoolFilterBuilder,
                                       BoostingQueryBuilder,
                                       AndFilterBuilder,
                                       OrFilterBuilder,
@@ -48,6 +49,12 @@ object Ast {
     def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
       new QueryFilterBuilder(this.elasticExtend(qf, Nil))
     }
+    def or(clauses: AbstractClause*) = {
+      OrClause(this::clauses.toList)
+    }
+    def and(clauses: AbstractClause*) = {
+      AndClause(this::clauses.toList)
+    }
   }
 
   //You can use a OrClause to join two clauses
@@ -65,18 +72,19 @@ object Ast {
       new OrFilterBuilder(clauses.map(_.elasticFilter(qf)):_*)
     }
   }
-  case class AndClause(s1: AbstractClause, s2: AbstractClause) extends AbstractClause {
+  case class AndClause(clauses: List[AbstractClause]) extends AbstractClause {
     def extend(): String = {
-      "("+s1.extend+") AND ("+s2.extend+")"
+      clauses.map(c => "(" + c.extend + ")").mkString(" AND ")
     }
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
       val q = new BoolQueryBuilder()
-      List(s1,s2).map(_.elasticExtend(qf, pf)).map(q.must(_))
+      clauses.map(_.elasticExtend(qf, pf)).map(q.must(_))
       q
     }
     //By default we can just use the QueryFilterBuilder and the query extender
     override def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
-      new AndFilterBuilder(s1.elasticFilter(qf),s2.elasticFilter(qf))
+      val filters = clauses.map(_.elasticFilter(qf))
+      new AndFilterBuilder(filters:_*)
     }
   }
 
@@ -107,7 +115,11 @@ object Ast {
         case "" => qf
         case _ => List(WeightedField(fieldName))
       }
-      query.elasticExtend(fields, pf)
+      val baseQuery = query.elasticExtend(fields, pf)
+      plus match {
+        case true => baseQuery
+        case false => (new BoolQueryBuilder()).mustNot(baseQuery)
+      }
     }
     override def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
       //If its on a specific field support that
@@ -115,7 +127,11 @@ object Ast {
         case "" => qf
         case _ => List(WeightedField(fieldName))
       }
-      query.elasticFilter(fields)
+      val baseQuery = query.elasticFilter(fields)
+      plus match {
+        case true => baseQuery
+        case false => (new BoolFilterBuilder()).mustNot(baseQuery)
+      }
     }
 
   }

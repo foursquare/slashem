@@ -52,6 +52,19 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b11"),doc._1)
   }
   @Test
+  def testSimpleInQuery {
+    val r = ESimplePanda where (_.hobos in List("hobos")) fetch()
+    Assert.assertEquals(1,r.response.results.length)
+    //Lets look at the document and make sure its what we expected
+    val doc = r.response.oidScorePair.apply(0)
+    Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b11"),doc._1)
+  }
+  @Test
+  def testSimpleNInQuery {
+    val r = ESimplePanda where (_.hobos nin List("hobos")) fetch()
+    Assert.assertEquals(3,r.response.results.length)
+  }
+  @Test
   def testManyResultsSearch {
     val r = ESimplePanda where (_.name contains "loler") fetch()
     Assert.assertEquals(r.response.results.length,3)
@@ -60,6 +73,11 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testAndSearch {
     val r = ESimplePanda where (_.name contains "loler") and (_.hobos contains "nyet") fetch()
     Assert.assertEquals(r.response.results.length,1)
+  }
+  @Test
+  def testAndOrSearch {
+    val r = ESimplePanda where (_.name contains "loler") and (x => (x.hobos contains "nyet") or (x.hobos contains "robot")) fetch()
+    Assert.assertEquals(r.response.results.length,2)
   }
   @Test
   def testPhraseBoostOrdering {
