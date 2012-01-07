@@ -153,6 +153,9 @@ case class RawSearchResults @JsonCreator()(@JsonProperty("responseHeader") respo
 trait SlashemMeta[T <: Record[T]] extends MetaRecord[T] {
   self: MetaRecord[T] with T =>
   var logger: SolrQueryLogger = NoopQueryLogger
+  //Default timeout
+  val timeout = 2
+
 }
 trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
   self: MetaRecord[T] with T =>
