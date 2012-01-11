@@ -323,29 +323,33 @@ object Ast {
   } */
 
 
-  case class And[T](q1: Query[T], q2: Query[T]) extends Query[T] {
-    def extend = "%s AND %s".format(q1.extend, q2.extend)
+  case class And[T](queries: Query[T]*) extends Query[T] {
+    def extend(): String = {
+      "("+queries.map(c => c.extend).mkString(" AND ")+")"
+    }
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
       val q = new BoolQueryBuilder()
-      List(q1,q2).map(_.elasticExtend(qf, pf)).map(q.must(_))
+      queries.map(_.elasticExtend(qf, pf)).map(q.must(_))
       q
     }
     //By default we can just use the QueryFilterBuilder and the query extender
     override def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
-      new AndFilterBuilder(q1.elasticFilter(qf),q2.elasticFilter(qf))
+      new AndFilterBuilder(queries.map(_.elasticFilter(qf)):_*)
     }
   }
 
-  case class Or[T](q1: Query[T], q2: Query[T]) extends Query[T] {
-    def extend = "%s OR %s".format(q1.extend, q2.extend)
+  case class Or[T](queries: Query[T]*) extends Query[T] {
+    def extend(): String = {
+      queries.map(c => c.extend).mkString(" OR ")
+    }
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
       val q = new BoolQueryBuilder()
-      List(q1,q2).map(_.elasticExtend(qf, pf)).map(q.should(_))
+      queries.map(_.elasticExtend(qf, pf)).map(q.should(_))
       q
     }
     //By default we can just use the QueryFilterBuilder and the query extender
     override def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
-      new OrFilterBuilder(q1.elasticFilter(qf),q2.elasticFilter(qf))
+      new OrFilterBuilder(queries.map(_.elasticFilter(qf)):_*)
     }
   }
 

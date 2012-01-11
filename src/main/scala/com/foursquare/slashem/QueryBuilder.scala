@@ -4,10 +4,10 @@ package com.foursquare.slashem
 
 import com.twitter.util.{Duration, Future}
 import com.foursquare.slashem.Ast._
-import net.liftweb.record.{Record}
-import java.util.{ArrayList, HashMap}
-import collection.JavaConversions._
+import java.util.ArrayList
 import java.util.concurrent.TimeUnit
+import net.liftweb.record.Record
+import scala.collection.JavaConversions._
 
 // Phantom types
 /** Used for an Ordered query */

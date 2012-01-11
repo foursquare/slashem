@@ -25,8 +25,6 @@ import org.elasticsearch.index.query.{CustomScoreQueryBuilder,
                                       QueryBuilder => ElasticQueryBuilder,
                                       FilterBuilder => ElasticFilterBuilder,
                                       AndFilterBuilder};
-import org.elasticsearch.action.support.nodes.NodesOperationRequest
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest
 import org.elasticsearch.index.query.QueryBuilders.filteredQuery
 import org.elasticsearch.action.search.SearchType
 import org.elasticsearch.client.Client
@@ -37,10 +35,10 @@ import org.jboss.netty.handler.codec.http.{DefaultHttpRequest, HttpResponseStatu
 import scala.annotation.tailrec
 
 import org.joda.time.DateTime
-import java.util.{HashMap, ArrayList}
+import java.util.{ArrayList, HashMap}
 import java.lang.Integer
 import java.net.InetSocketAddress
-import collection.JavaConversions._
+import scala.collection.JavaConversions._
 
 
 case class SolrResponseException(code: Int, reason: String, solrName: String, query: String) extends RuntimeException {
@@ -407,7 +405,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     future.run()
     timeFuture(future).map( {
       case (queryTime, result) => {
-        meta.logger.log(meta.indexName+".query",query.toString(), queryTime)
+        meta.logger.log("e" + meta.indexName + ".query",query.toString(), queryTime)
         result
       }})
   }
