@@ -1377,13 +1377,13 @@ object Helpers {
     if (v.isEmpty)
       Group(Empty[V])
     else
-      Group(v.tail.foldLeft(v.head: Query[V])({(l, r) => Or(l, r)}))
+      Or(v.toList:_*)
   }
 
   def groupWithAnd[V](v: Iterable[Query[V]]): Query[V] = {
     if (v.isEmpty)
       Group(Empty[V])
     else
-      Group(v.tail.foldLeft(v.head: Query[V])({(l, r) => And(l, r)}))
+      And(v.toList:_*)
   }
 }

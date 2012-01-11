@@ -325,7 +325,7 @@ object Ast {
 
   case class And[T](queries: Query[T]*) extends Query[T] {
     def extend(): String = {
-      "("+queries.map(c => c.extend).mkString(" AND ")+")"
+      "(" + queries.map(c => c.extend).mkString(" AND ") + ")"
     }
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
       val q = new BoolQueryBuilder()
