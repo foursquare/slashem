@@ -74,6 +74,23 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val r = ESimplePanda where (_.name contains "loler") and (_.hobos contains "nyet") fetch()
     Assert.assertEquals(r.response.results.length,1)
   }
+  @Test def orderDesc {
+    var r = ESimplePanda where (_.name contains "ordertest") orderDesc(_.followers) fetch()
+    Assert.assertEquals(2,r.response.results.length)
+    val doc0 = r.response.oidScorePair.apply(0)
+    val doc1= r.response.oidScorePair.apply(1)
+    Assert.assertEquals(doc0._1,new ObjectId("4c809f4251ada1cdc3790b14"))
+    Assert.assertEquals(doc1._1,new ObjectId("4c809f4251ada1cdc3790b15"))
+  }
+  @Test def orderAsc {
+    var r = ESimplePanda where (_.name contains "ordertest") orderAsc(_.followers) fetch()
+    Assert.assertEquals(2,r.response.results.length)
+    val doc0 = r.response.oidScorePair.apply(0)
+    val doc1= r.response.oidScorePair.apply(1)
+    Assert.assertEquals(doc0._1,new ObjectId("4c809f4251ada1cdc3790b15"))
+    Assert.assertEquals(doc1._1,new ObjectId("4c809f4251ada1cdc3790b14"))
+  }
+
   @Test
   def testAndOrSearch {
     val r = ESimplePanda where (_.name contains "loler") and (x => (x.hobos contains "nyet") or (x.hobos contains "robot")) fetch()
@@ -215,6 +232,22 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("followers",10)
                                                                           .field("magic","yes")
                                                                           .field("id","4c809f4251ada1cdc3790b13")
+                                                                          .endObject()
+      ).execute()
+    .actionGet();
+    val orderdoc1 = client.prepareIndex(ESimplePanda.meta.indexName,ESimplePanda.meta.docType,"4c809f4251ada1cdc3790b14").setSource(jsonBuilder()
+                                                                          .startObject()
+                                                                          .field("name","ordertest")
+                                                                          .field("followers",20)
+                                                                          .field("id","4c809f4251ada1cdc3790b14")
+                                                                          .endObject()
+      ).execute()
+    .actionGet();
+    val orderdoc2 = client.prepareIndex(ESimplePanda.meta.indexName,ESimplePanda.meta.docType,"4c809f4251ada1cdc3790b15").setSource(jsonBuilder()
+                                                                          .startObject()
+                                                                          .field("name","ordertest")
+                                                                          .field("followers",10)
+                                                                          .field("id","4c809f4251ada1cdc3790b15")
                                                                           .endObject()
       ).execute()
     .actionGet();

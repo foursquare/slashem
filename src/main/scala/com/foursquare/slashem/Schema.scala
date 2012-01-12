@@ -14,7 +14,7 @@ import org.bson.types.ObjectId
 import org.codehaus.jackson.annotate._
 import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper}
 import org.elasticsearch.action.search.SearchResponse
-import org.elasticsearch.search.sort.SortOrder
+import org.elasticsearch.search.sort.{ScriptSortBuilder, SortOrder}
 import org.elasticsearch.client.action.search.SearchRequestBuilder
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.transport.InetSocketTransportAddress
@@ -388,8 +388,13 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
       val request = qb.sort match {
         case None => baseRequest
-        case Some(Pair(sort,"asc")) => baseRequest.addSort(sort.elasticExtend(),SortOrder.ASC)
-        case Some(Pair(sort,"desc")) => baseRequest.addSort(sort.elasticExtend(),SortOrder.DESC)
+        //Handle sorting by fields quickly
+        case Some(Pair(Field(fieldName),"asc")) => baseRequest.addSort(fieldName,SortOrder.ASC)
+        case Some(Pair(Field(fieldName),"desc")) => baseRequest.addSort(fieldName,SortOrder.DESC)
+        //Handle sorting by scripts in general
+        case Some(Pair(sort,"asc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticExtend(),"number").order(SortOrder.ASC))
+        case Some(Pair(sort,"desc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticExtend(),"number").order(SortOrder.DESC))
+
         case _ => baseRequest
       }
       val response: SearchResponse  = request
