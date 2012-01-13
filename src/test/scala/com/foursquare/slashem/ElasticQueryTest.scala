@@ -62,7 +62,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   @Test
   def testSimpleNInQuery {
     val r = ESimplePanda where (_.hobos nin List("hobos")) fetch()
-    Assert.assertEquals(3,r.response.results.length)
+    Assert.assertEquals(5,r.response.results.length)
   }
   @Test
   def testManyResultsSearch {
@@ -74,7 +74,8 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val r = ESimplePanda where (_.name contains "loler") and (_.hobos contains "nyet") fetch()
     Assert.assertEquals(r.response.results.length,1)
   }
-  @Test def orderDesc {
+  @Test
+   def orderDesc {
     var r = ESimplePanda where (_.name contains "ordertest") orderDesc(_.followers) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
@@ -82,7 +83,8 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(doc0._1,new ObjectId("4c809f4251ada1cdc3790b14"))
     Assert.assertEquals(doc1._1,new ObjectId("4c809f4251ada1cdc3790b15"))
   }
-  @Test def orderAsc {
+  @Test
+  def orderAsc {
     var r = ESimplePanda where (_.name contains "ordertest") orderAsc(_.followers) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
@@ -90,6 +92,23 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(doc0._1,new ObjectId("4c809f4251ada1cdc3790b15"))
     Assert.assertEquals(doc1._1,new ObjectId("4c809f4251ada1cdc3790b14"))
   }
+  @Test def geoOrderDesc {
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.pos sqeGeoDistance(74.0,-31.0)) fetch()
+    Assert.assertEquals(2,r.response.results.length)
+    val doc0 = r.response.oidScorePair.apply(0)
+    val doc1= r.response.oidScorePair.apply(1)
+    Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b16"),doc0._1)
+    Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b17"),doc1._1)
+  }
+  @Test def geoOrderAsc {
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.pos sqeGeoDistance(74.0,-31.0)) fetch()
+    Assert.assertEquals(2,r.response.results.length)
+    val doc0 = r.response.oidScorePair.apply(0)
+    val doc1= r.response.oidScorePair.apply(1)
+    Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b17"),doc0._1)
+    Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b16"),doc1._1)
+  }
+
 
   @Test
   def testAndOrSearch {
@@ -248,6 +267,23 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("name","ordertest")
                                                                           .field("followers",10)
                                                                           .field("id","4c809f4251ada1cdc3790b15")
+                                                                          .endObject()
+      ).execute()
+    .actionGet();
+
+    val geoOrderdoc1 = client.prepareIndex(ESimpleGeoPanda.meta.indexName,ESimpleGeoPanda.meta.docType,"4c809f4251ada1cdc3790b16").setSource(jsonBuilder()
+                                                                          .startObject()
+                                                                          .field("name","ordertest")
+                                                                          .field("id","4c809f4251ada1cdc3790b16")
+                                                                          .field("pos",74.0,-32.0)
+                                                                          .endObject()
+      ).execute()
+    .actionGet();
+    val geoOrderdoc2 = geoClient.prepareIndex(ESimpleGeoPanda.meta.indexName,ESimpleGeoPanda.meta.docType,"4c809f4251ada1cdc3790b17").setSource(jsonBuilder()
+                                                                          .startObject()
+                                                                          .field("name","ordertest")
+                                                                          .field("id","4c809f4251ada1cdc3790b17")
+                                                                          .field("pos",74.0,-31.0)
                                                                           .endObject()
       ).execute()
     .actionGet();
