@@ -112,7 +112,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
   @Test
   def geoOrderIntAsc {
-    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.pos sqeGeoDistance(74,-31)) fetch()
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.pos sqeGeoDistance(74,-31)) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
     val doc1= r.response.oidScorePair.apply(1)
