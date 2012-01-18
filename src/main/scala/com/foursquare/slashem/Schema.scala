@@ -645,6 +645,23 @@ class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owne
     }
   }
 }
+
+class SlashemStringListField[T <: Record[T]](owner: T) extends StringListField[T](owner) with SlashemField[List[String], T] {
+  override def valueBoxFromAny(a: Any) = {
+    try {
+      a match {
+        case "" => Full(List(""))
+        case strArr:     Array[String]  => Full(strArr.toList)
+        case intArr:     Array[Int]     => Full(intArr.toList.map(int => int.toString))
+        case integerArr: Array[Integer] => Full(integerArr.toList.map(integer => integer.toString))
+        case _ => Empty
+      }
+    } catch {
+      case _ => Empty
+    }
+  }
+}
+
 class SlashemPointField[T <: Record[T]](owner: T) extends PointField[T](owner) with SlashemField[Pair[Double,Double], T] {
   def geoDistance(geolat: Double, geolng: Double) = {
     GeoDist(this.name,geolat,geolng)
@@ -693,6 +710,7 @@ class SolrDoubleField[T <: Record[T]](owner: T) extends SlashemDoubleField[T](ow
 class SolrLongField[T <: Record[T]](owner: T) extends SlashemLongField[T](owner)
 class SolrObjectIdField[T <: Record[T]](owner: T) extends SlashemObjectIdField[T](owner)
 class SolrIntListField[T <: Record[T]](owner: T) extends SlashemIntListField[T](owner)
+class SolrStringListField[T <: Record[T]](owner: T) extends SlashemStringListField[T](owner)
 class SolrBooleanField[T <: Record[T]](owner: T) extends SlashemBooleanField[T](owner)
 class SolrDateTimeField[T <: Record[T]](owner: T) extends SlashemDateTimeField[T](owner)
 class SolrGeoField[T <: SlashemSchema[T]](owner: T) extends SlashemGeoField[T](owner)
@@ -806,6 +824,41 @@ class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int
   def value() = e getOrElse Nil
   override def valueBox() = e
 }
+
+class StringListField[T <: Record[T]](override val owner: T) extends Field[List[String], T] {
+  type ValueType = List[String]
+  var e: Box[ValueType] = Empty
+  def setFromString(s: String) = {
+    Full(set(s.split(" ").toList))
+  }
+  override def setFromAny(a: Any) = {
+    try {
+      a match {
+        case "" => Empty
+        case arr: Array[String] => Full(arr.toList)
+        case str: String        => setFromString(str)
+        case _ => Empty
+      }
+    } catch {
+      case _ => Empty
+    }
+  }
+  override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
+  override def liftSetFilterToBox(a: Box[ValueType]) = Empty
+  override def toBoxMyType(a: ValueType) = Empty
+  override def defaultValueBox = Empty
+  override def toValueType(a: Box[MyType]) = null.asInstanceOf[ValueType]
+  override def asJValue() = net.liftweb.json.JsonAST.JNothing
+  override def asJs() = net.liftweb.http.js.JE.JsNull
+  override def toForm = Empty
+  override def set(a: ValueType) = {e = Full(a)
+                                    a.asInstanceOf[ValueType]}
+  override def get() = e.get
+  override def is() = e.get
+  def value() = e getOrElse Nil
+  override def valueBox() = e
+}
+
 class PointField[T <: Record[T]](override val owner: T) extends Field[Pair[Double, Double], T] {
   type ValueType = Pair[Double, Double]
   var e: Box[ValueType] = Empty

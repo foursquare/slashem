@@ -52,6 +52,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
         "popularity":15,
         "decayedPopularity1":0.00306415687810945,
         "partitionedPopularity":"0 0 1 0 0 1 2 2 0 1 0 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0 0 1 0 0 0 1 1 0 0 0 0 0 0 0 0 0 1 0 0 0",
+        "commentList":"hi there how are you",
         "lat":3.014217,
         "lng":101.495239,
         "hasSpecial":false},
@@ -73,6 +74,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
         "popularity":15,
         "decayedPopularity1":0.00306415687810945,
         "partitionedPopularity":"0 0 1 0 0 1 2 2 0 1 0 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0 0 1 0 0 0 1 1 0 0 0 0 0 0 0 0 0 1 0 0 0",
+        "commentList":["hi", "there", "how", "are", "you"],
         "lat":3.014217,
         "lng":101.495239,
         "hasSpecial":false}]
@@ -88,7 +90,10 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
                         List(0, 0, 1, 0, 0, 1, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0))
     Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).partitionedPopularity.valueBox,
                         Full(List(0, 0, 1, 0, 0, 1, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0)))
-
+    Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).commentList.value,
+                        List("hi", "there", "how", "are", "you"))
+    Assert.assertEquals(parsed.response.results(SVenueTest).apply(0).commentList.valueBox,
+                        Full(List("hi", "there", "how", "are", "you")))
     Assert.assertEquals(parsed.response.results.apply(0).name.value, "test")
     Assert.assertEquals(parsed.response.results.apply(0).name.valueBox, Full("test"))
     Assert.assertEquals(parsed.response.results.apply(0).decayedPopularity1.value, 0.00306415687810945, 0.000000001)
@@ -98,6 +103,11 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
                         List(0, 0, 1, 0, 0, 1, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0))
     Assert.assertEquals(parsed.response.results.apply(0).partitionedPopularity.valueBox,
                         Full(List(0, 0, 1, 0, 0, 1, 2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0)))
+    Assert.assertEquals(parsed.response.results.apply(0).commentList.value,
+                        List("hi", "there", "how", "are", "you"))
+    Assert.assertEquals(parsed.response.results.apply(0).commentList.valueBox,
+                        Full(List("hi", "there", "how", "are", "you")))
+
   }
   @Test
   def testOidandScoreExtract = {
@@ -197,6 +207,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
         "popularity":15,
         "decayedPopularity1":0.00306415687810945,
         "partitionedPopularity":"0 0 1 0 0 1 2 2 0 1 0 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0 0 1 0 0 0 1 1 0 0 0 0 0 0 0 0 0 1 0 0 0",
+        "commentList":"hi there how are you",
         "lat":3.014217,
         "lng":101.495239,
         "hasSpecial":false},
@@ -218,6 +229,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
         "popularity":15,
         "decayedPopularity1":0.00306415687810945,
         "partitionedPopularity":"0 0 1 0 0 1 2 2 0 1 0 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0 0 1 0 0 0 1 1 0 0 0 0 0 0 0 0 0 1 0 0 0",
+        "commentList":["hi", "there", "how", "are", "you"],
         "lat":3.014217,
         "lng":101.495239,
         "hasSpecial":false}]

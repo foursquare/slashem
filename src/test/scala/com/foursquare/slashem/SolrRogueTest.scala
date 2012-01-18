@@ -54,6 +54,7 @@ class SVenueTest extends SolrSchema[SVenueTest] {
   object category_ids extends SlashemStringField(this)
   object decayedPopularity1 extends SlashemDoubleField(this)
   object geo_s2_cell_ids extends SlashemGeoField(this)
+  object commentList extends SlashemStringListField(this)
 }
 
 object STipTest extends STipTest with SolrMeta[STipTest] {
