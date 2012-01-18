@@ -92,7 +92,8 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(doc0._1,new ObjectId("4c809f4251ada1cdc3790b15"))
     Assert.assertEquals(doc1._1,new ObjectId("4c809f4251ada1cdc3790b14"))
   }
-  @Test def geoOrderDesc {
+  @Test
+   def geoOrderDesc {
     var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.pos sqeGeoDistance(74.0,-31.0)) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
@@ -100,8 +101,18 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b16"),doc0._1)
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b17"),doc1._1)
   }
-  @Test def geoOrderAsc {
+  @Test
+   def geoOrderAsc {
     var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.pos sqeGeoDistance(74.0,-31.0)) fetch()
+    Assert.assertEquals(2,r.response.results.length)
+    val doc0 = r.response.oidScorePair.apply(0)
+    val doc1= r.response.oidScorePair.apply(1)
+    Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b17"),doc0._1)
+    Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b16"),doc1._1)
+  }
+  @Test
+  def geoOrderIntAsc {
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.pos sqeGeoDistance(74,-31)) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
     val doc1= r.response.oidScorePair.apply(1)
