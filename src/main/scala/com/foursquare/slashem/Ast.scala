@@ -31,7 +31,7 @@ object Ast {
         sb.append('\\')
       }
       //Added (not part of QueryParser.java)
-      if (c != '’') {
+      if (c != '\u2019') {
         sb.append(c)
       }
     }
