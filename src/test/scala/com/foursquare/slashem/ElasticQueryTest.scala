@@ -44,6 +44,14 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b11"),doc.id.is)
   }
   @Test
+  def testNonEmptyMM100Search {
+    val r = ESimplePanda where (_.name contains "loler eating hobo") minimumMatchPercent(100) fetch()
+    Assert.assertEquals(1,r.response.results.length)
+    //Lets look at the document and make sure its what we expected
+    val doc = r.response.results.apply(0)
+    Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b18"),doc.id.is)
+  }
+  @Test
   def testNonEmptySearchOidScorePare {
     val r = ESimplePanda where (_.hobos contains "hobos") fetch()
     Assert.assertEquals(1,r.response.results.length)
@@ -62,17 +70,17 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   @Test
   def testSimpleNInQuery {
     val r = ESimplePanda where (_.hobos nin List("hobos")) fetch()
-    Assert.assertEquals(5,r.response.results.length)
+    Assert.assertEquals(6,r.response.results.length)
   }
   @Test
   def testManyResultsSearch {
     val r = ESimplePanda where (_.name contains "loler") fetch()
-    Assert.assertEquals(r.response.results.length,3)
+    Assert.assertEquals(4,r.response.results.length)
   }
   @Test
   def testAndSearch {
     val r = ESimplePanda where (_.name contains "loler") and (_.hobos contains "nyet") fetch()
-    Assert.assertEquals(r.response.results.length,1)
+    Assert.assertEquals(1,r.response.results.length)
   }
   @Test
    def orderDesc {
@@ -131,9 +139,9 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val rWithLowPhraseBoost = ESimplePanda where (_.name contains "loler skates") phraseBoost(_.name,10) fetch()
     val rWithHighPhraseBoost = ESimplePanda where (_.name contains "loler skates") phraseBoost(_.name,10000) fetch()
     val rNoPhraseBoost = ESimplePanda where (_.name contains "loler skates") fetch()
-    Assert.assertEquals(rWithLowPhraseBoost.response.results.length,3)
-    Assert.assertEquals(rWithHighPhraseBoost.response.results.length,3)
-    Assert.assertEquals(rNoPhraseBoost.response.results.length,3)
+    Assert.assertEquals(4,rWithLowPhraseBoost.response.results.length)
+    Assert.assertEquals(4,rWithHighPhraseBoost.response.results.length)
+    Assert.assertEquals(4,rNoPhraseBoost.response.results.length)
     val doc1b = rWithLowPhraseBoost.response.results.apply(2)
     val doc2b = rWithHighPhraseBoost.response.results.apply(2)
     val doc3b = rNoPhraseBoost.response.results.apply(2)
@@ -147,8 +155,8 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testFieldBoost {
     val r1 = ESimplePanda where (_.magic contains "yes") fetch()
     val r2 = ESimplePanda where (_.magic contains "yes") boostField(_.followers,10) fetch()
-    Assert.assertEquals(r1.response.results.length,2)
-    Assert.assertEquals(r2.response.results.length,2)
+    Assert.assertEquals(2,r1.response.results.length)
+    Assert.assertEquals(2,r2.response.results.length)
     Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
   }
 
@@ -262,6 +270,14 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("followers",10)
                                                                           .field("magic","yes")
                                                                           .field("id","4c809f4251ada1cdc3790b13")
+                                                                          .endObject()
+      ).execute()
+    .actionGet();
+   val r5 = client.prepareIndex(ESimplePanda.meta.indexName,ESimplePanda.meta.docType,"4c809f4251ada1cdc3790b18").setSource(jsonBuilder()
+                                                                          .startObject()
+                                                                          .field("name","loler eating a hobo")
+                                                                          .field("followers",10)
+                                                                          .field("id","4c809f4251ada1cdc3790b18")
                                                                           .endObject()
       ).execute()
     .actionGet();
