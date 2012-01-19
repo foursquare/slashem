@@ -44,10 +44,12 @@ object Ast {
 
   abstract class AbstractClause {
     def extend: String
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder
+    def elasticExtend(qf: List[WeightedField],
+                      pf: List[PhraseWeightedField],
+                      mm: Option[String]): ElasticQueryBuilder
     //By default we can just use the QueryFilterBuilder and the query extender
     def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
-      new QueryFilterBuilder(this.elasticExtend(qf, Nil))
+      new QueryFilterBuilder(this.elasticExtend(qf, Nil, None))
     }
     def or(clauses: AbstractClause*) = {
       OrClause(this::clauses.toList)
@@ -62,9 +64,9 @@ object Ast {
     def extend(): String = {
       clauses.map(c => "(" + c.extend + ")").mkString(" OR ")
     }
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = new BoolQueryBuilder()
-      clauses.map(_.elasticExtend(qf, pf)).map(q.should(_))
+      clauses.map(_.elasticExtend(qf, pf, mm)).map(q.should(_))
       q
     }
     //By default we can just use the QueryFilterBuilder and the query extender
@@ -76,9 +78,9 @@ object Ast {
     def extend(): String = {
       clauses.map(c => "(" + c.extend + ")").mkString(" AND ")
     }
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = new BoolQueryBuilder()
-      clauses.map(_.elasticExtend(qf, pf)).map(q.must(_))
+      clauses.map(_.elasticExtend(qf, pf, mm)).map(q.must(_))
       q
     }
     //By default we can just use the QueryFilterBuilder and the query extender
@@ -109,13 +111,13 @@ object Ast {
       }
     }
 
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       //If its on a specific field support that
       val fields = fieldName match {
         case "" => qf
         case _ => List(WeightedField(fieldName))
       }
-      val baseQuery = query.elasticExtend(fields, pf)
+      val baseQuery = query.elasticExtend(fields, pf, mm)
       plus match {
         case true => baseQuery
         case false => (new BoolQueryBuilder()).mustNot(baseQuery)
@@ -179,9 +181,9 @@ object Ast {
     def and(c: Query[T]): Query[T] = And(this, c)
     def or(c: Query[T]): Query[T] = Or(this, c)
     def boost(b: Float): Query[T] = Boost(this, b)
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder
     def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
-      new QueryFilterBuilder(this.elasticExtend(qf, Nil))
+      new QueryFilterBuilder(this.elasticExtend(qf, Nil, None))
     }
 
   }
@@ -214,7 +216,7 @@ object Ast {
 
   case class Empty[T]() extends Query[T] {
     def extend = "\"\""
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = new QueryStringQueryBuilder(this.extend)
       qf.map(f => q.field(f.fieldName,f.boost.toFloat))
       q
@@ -223,7 +225,7 @@ object Ast {
 
   case class Phrase[T](query: T, escaped: Boolean = true) extends Query[T] {
     def extend = {'"' + escape(query.toString) + '"'}
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = new QueryStringQueryBuilder(this.extend)
       qf.map(f => q.field(f.fieldName,f.boost.toFloat))
       q
@@ -232,7 +234,7 @@ object Ast {
 
   case class PhrasePrefix[T](query: T, escaped: Boolean = true) extends Query[T] {
     def extend = {'"' + escape(query.toString) + '*' + '"'}
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = disMaxQuery()
       q.tieBreaker(1)
 
@@ -252,7 +254,7 @@ object Ast {
 
   case class Range[T](q1: Query[T],q2: Query[T]) extends Query[T] {
     def extend = {'['+q1.extend+" TO "+ q2.extend +']'}
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = new RangeQueryBuilder(qf.head.fieldName)
       q.from(q1)
       q.to(q2)
@@ -271,8 +273,13 @@ object Ast {
   //corresponding phrase boost queries.
   case class BagOfWords[T](query: T) extends Query[T] {
     def extend = escape(query.toString)
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val normalq = new QueryStringQueryBuilder(this.extend)
+      //If we are matching 100% then set operation to "and"
+      mm match {
+        case Some("100%") => normalq.defaultOperator(QueryStringQueryBuilder.Operator.AND)
+        case _ => {}
+      }
       qf.map(f => normalq.field(f.fieldName,f.boost.toFloat))
       val qfnames = qf.map(_.fieldName).toSet
       val queriesToGen = pf.filter(qfnames contains _.fieldName)
@@ -299,8 +306,8 @@ object Ast {
 
   case class Group[T](items: Query[T]) extends Query[T] {
     def extend = {"(%s)".format(items.extend)}
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
-      items.elasticExtend(qf, pf)
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
+      items.elasticExtend(qf, pf, mm)
     }
     //By default we can just use the QueryFilterBuilder and the query extender
     override def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
@@ -327,9 +334,9 @@ object Ast {
     def extend(): String = {
       "(" + queries.map(c => c.extend).mkString(" AND ") + ")"
     }
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = new BoolQueryBuilder()
-      queries.map(_.elasticExtend(qf, pf)).map(q.must(_))
+      queries.map(_.elasticExtend(qf, pf, mm)).map(q.must(_))
       q
     }
     //By default we can just use the QueryFilterBuilder and the query extender
@@ -342,9 +349,9 @@ object Ast {
     def extend(): String = {
       queries.map(c => c.extend).mkString(" OR ")
     }
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = new BoolQueryBuilder()
-      queries.map(_.elasticExtend(qf, pf)).map(q.should(_))
+      queries.map(_.elasticExtend(qf, pf, mm)).map(q.should(_))
       q
     }
     //By default we can just use the QueryFilterBuilder and the query extender
@@ -356,7 +363,7 @@ object Ast {
   case class Splat[T]() extends Query[T] {
     def extend = "*"
     //Is there a better way to do this?
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = new QueryStringQueryBuilder(this.extend)
       qf.map(f => q.field(f.fieldName,f.boost.toFloat))
       q
@@ -365,12 +372,12 @@ object Ast {
 
   case class Boost[T](q: Query[T], boost: Float) extends Query[T] {
     def extend = q.extend + "^" + boost.toString
-    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField]): ElasticQueryBuilder = {
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val boostedQuery = new BoostingQueryBuilder()
       if (boost > 0) {
-        boostedQuery.positive(q.elasticExtend(qf, pf))
+        boostedQuery.positive(q.elasticExtend(qf, pf, mm))
       } else {
-        boostedQuery.negative(q.elasticExtend(qf, pf))
+        boostedQuery.negative(q.elasticExtend(qf, pf, mm))
       }
       boostedQuery.boost(boost.abs)
       boostedQuery
