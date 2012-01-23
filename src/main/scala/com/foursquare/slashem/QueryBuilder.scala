@@ -7,7 +7,7 @@ import com.foursquare.slashem.Ast._
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit
 import net.liftweb.record.Record
-import scala.collection.JavaConversions._
+import scalaj.collection.Imports._
 
 // Phantom types
 /** Used for an Ordered query */
@@ -101,13 +101,23 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   }
 
    /** Helper method for case class extraction */
-   private def getForField[F1,M <: Record[M]](f: SlashemField[F1,M], fName: String, doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]): Option[F1] = {
-     if (doc._1.containsKey(fName)) f.valueBoxFromAny(doc._1.get(fName).get).toOption else None
+   private def getForField[F1,M <: Record[M]](f: SlashemField[F1,M],
+                                              fName: String,
+                                              doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]): Option[F1] = {
+     val mainDoc = doc._1
+     mainDoc.get(fName) match {
+       case Some(v) => f.valueBoxFromAny(v).toOption
+       case _ => None
+     }
    }
    /** Helper method for case class extraction */
    private def getHighlightForField(fName: String, doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]): List[String] = {
-     doc._2 match {
-       case Some(hl) => if (hl.containsKey(fName)) hl.get(fName).get.toList else  Nil
+     val hlDoc = doc._2
+     hlDoc match {
+       case Some(hl) => hl.get(fName) match {
+         case Some(v) => v.asScala.toList
+         case _ =>  Nil
+       }
        case _ => Nil
      }
    }

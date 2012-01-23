@@ -38,7 +38,7 @@ import org.joda.time.DateTime
 import java.util.{ArrayList, HashMap}
 import java.lang.Integer
 import java.net.InetSocketAddress
-import scala.collection.JavaConversions._
+import scalaj.collection.Imports._
 
 
 case class SolrResponseException(code: Int, reason: String, solrName: String, query: String) extends RuntimeException {
@@ -74,7 +74,7 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[Response.RawDo
                   matchingHighlights match {
                     case Some(mhl) if (mhl.contains(fname)) => {
                       field match {
-                        case f: SlashemField[_,_] => f.setHighlighted(mhl.get(fname).get.toList)
+                        case f: SlashemField[_,_] => f.setHighlighted(mhl.get(fname).get.asScala.toList)
                         case _ => None
                       }
                     }
@@ -245,11 +245,15 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
       //Take the raw search result and make the type templated search result.
       val rawDocs = rsr.response.docs
       val rawHls = rsr.highlighting
-      val joinedDocs = rawDocs.map(doc => {
-        val hl = if (doc.contains("id") && rsr.highlighting != null
-                     && rsr.highlighting.contains(doc.get("id").toString)
-                   ) {
-          Some(rsr.highlighting.get(doc.get("id").toString).toMap)
+      val joinedDocs: Array[(Map[String,Any], Option[Map[String,java.util.ArrayList[String]]])] = rawDocs.map(jdoc => {
+        val doc = jdoc.asScala
+        val hl = if (doc.contains("id") && rsr.highlighting != null) {
+          val scalaHl = rsr.highlighting.asScala
+          val key = doc.get("id").get.toString
+          scalaHl.get(key) match {
+            case Some(v) => Some(v.asScala.toMap)
+            case _ => None
+          }
         } else {
           None
         }
@@ -424,14 +428,18 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     val hitCount = response.getHits().totalHits().toInt
     val docs: Array[(Map[String,Any], Option[Map[String,java.util.ArrayList[String]]])] = response.getHits().getHits().map(doc => {
       val m = doc.sourceAsMap()
-      val annotedMap = m.toMap ++ List("score" -> doc.score().toDouble)
+      val annotedMap = (m.asScala ++ List("score" -> doc.score().toDouble)).toMap
       val hlf = doc.getHighlightFields()
       if (hlf == null) {
         Pair(annotedMap,None)
       } else {
         Pair(annotedMap,
-             Some(doc.getHighlightFields()
-                  .mapValues(v => new ArrayList(v.getFragments().toList))
+             Some(doc.getHighlightFields().asScala
+                  .mapValues(v => {
+                    val fragments: Array[String] = v.getFragments()
+                    val fragmentList: List[String] = Nil++fragments
+                    new ArrayList(fragmentList.asJava) }
+                           )
                   .toMap))
       }
     })

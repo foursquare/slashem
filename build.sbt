@@ -33,7 +33,8 @@ libraryDependencies <++= (scalaVersion) { scalaVersion =>
     "org.codehaus.jackson" % "jackson-mapper-asl" % "1.8.0" % "compile",
     "org.scala-tools.testing" %% "scalacheck"         % scalaCheckVersion   % "test"    withSources(),
     "com.twitter"             % "finagle"             % "1.8.0"  % "compile"           intransitive(),
-    "com.twitter"             % "finagle-core"        % "1.8.0" % "compile"
+    "com.twitter"             % "finagle-core"        % "1.8.0" % "compile",
+    "org.scalaj"              %% "scalaj-collection" % "1.2"
   )
 }
 
