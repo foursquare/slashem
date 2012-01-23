@@ -249,7 +249,8 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
         val doc = jdoc.asScala
         val hl = if (doc.contains("id") && rsr.highlighting != null) {
           val scalaHl = rsr.highlighting.asScala
-          scalaHl.get(doc.get("id").toString) match {
+          val key = doc.get("id").get.toString
+          scalaHl.get(key) match {
             case Some(v) => Some(v.asScala.toMap)
             case _ => None
           }
