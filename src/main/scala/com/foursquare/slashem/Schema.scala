@@ -596,6 +596,8 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   def in(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b))
   def nin(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b),false)
 
+  def in(v: List[String]) = Clause[String](self.name, groupWithOr(v.map({x: String => Phrase(x)})))
+  def nin(v: List[String]) = Clause[String](self.name, groupWithOr(v.map({x: String => Phrase(x)})),false)
 
   def inRange(v1: V, v2: V) = Clause[V](self.name, Group(Range(BagOfWords(v1),BagOfWords(v2))))
   def ninRange(v1: V, v2: V) = Clause[V](self.name, Group(Range(BagOfWords(v1),BagOfWords(v2))),false)
