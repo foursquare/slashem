@@ -867,6 +867,8 @@ class StringListField[T <: Record[T]](override val owner: T) extends Field[List[
   override def is() = e.get
   def value() = e getOrElse Nil
   override def valueBox() = e
+  def in(v: List[String]) = Clause[String](self.name, groupWithOr(v.map({x: String => Phrase(x)})))
+  def nin(v: List[String]) = Clause[String](self.name, groupWithOr(v.map({x: String => Phrase(x)})),false)
 }
 
 class PointField[T <: Record[T]](override val owner: T) extends Field[Pair[Double, Double], T] {
