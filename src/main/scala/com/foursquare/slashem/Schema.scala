@@ -99,7 +99,7 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[Response.RawDo
                                   count=0,
                                   minR=minR,
                                   qualityFallOf=qualityFallOf,
-                                  individualQualityFallOf=qualityFallOf/2)
+                                  individualQualityFallOf=(qualityFallOf*1.1))
         r.take(hqCount)
       }
       case _ => r
@@ -119,8 +119,9 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[Response.RawDo
                                                                           lscore=x,
                                                                           count=(count+1),
                                                                           minR=minR,
-                                                                          qualityFallOf=qualityFallOf)
-      case None :: xs if (score == 0) => highQuality(xs, score, count + 1)
+                                                                          qualityFallOf=qualityFallOf,
+                                                                          individualQualityFallOf=individualQualityFallOf)
+      case None :: xs if (score == 0) => highQuality(xs, score, lscore, count + 1)
       case None :: xs => count
       case _ => count
     }
