@@ -255,14 +255,14 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   * @param f The field to query
   * @param boost The (optional) amount to boost the query weight for the provided field */
   def queryField[F](f: M => SlashemField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] ={
-    this.copy(queryFields=WeightedField(f(meta).name,boost)::queryFields)
+    this.copy(queryFields=WeightedField(f(meta).queryName,boost)::queryFields)
   }
 
   /** Same as queryField but takes a list of fields.
   * @param fs A list of fields to query
   * @param boost The (optional) amount to boost the query weight for the provided field */
   def queryFields(fs: List[M => SlashemField[_,M]], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM, Y, H, Q] ={
-    this.copy(queryFields=fs.map(f => WeightedField(f(meta).name,boost))++queryFields)
+    this.copy(queryFields=fs.map(f => WeightedField(f(meta).queryName,boost))++queryFields)
   }
 
   /** Certain query parsers allow you to set a phraseBoost field. Generally
@@ -371,10 +371,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M], create: (Option[F1], List[String] ,Option[F2], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f1HL =  getHighlightForField(f1Name, doc)
@@ -391,10 +391,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M], create: (Option[F1], Option[F2]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -409,13 +409,13 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f1HL =  getHighlightForField(f1Name, doc)
@@ -434,13 +434,13 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M], create: (Option[F1], Option[F2], Option[F3]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -456,16 +456,16 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f1HL =  getHighlightForField(f1Name, doc)
@@ -486,16 +486,16 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M], create: (Option[F1], Option[F2], Option[F3], Option[F4]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -512,19 +512,19 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String] ,Option[F5], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f1HL =  getHighlightForField(f1Name, doc)
@@ -547,19 +547,19 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -577,22 +577,22 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M], create: (Option[F1], List[String] ,Option[F2], List[String] ,Option[F3], List[String] ,Option[F4], List[String] ,Option[F5], List[String] ,Option[F6], List[String]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f1HL =  getHighlightForField(f1Name, doc)
@@ -617,22 +617,22 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -651,25 +651,25 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -689,28 +689,28 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
 
      val f8Field : SlashemField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Name : String = f8Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -732,31 +732,31 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
 
      val f8Field : SlashemField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Name : String = f8Field.queryName
 
      val f9Field : SlashemField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Name : String = f9Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -779,34 +779,34 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
 
      val f8Field : SlashemField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Name : String = f8Field.queryName
 
      val f9Field : SlashemField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Name : String = f9Field.queryName
 
      val f10Field : SlashemField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Name : String = f10Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -830,37 +830,37 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
 
      val f8Field : SlashemField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Name : String = f8Field.queryName
 
      val f9Field : SlashemField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Name : String = f9Field.queryName
 
      val f10Field : SlashemField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Name : String = f10Field.queryName
 
      val f11Field : SlashemField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Name : String = f11Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -885,40 +885,40 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
 
      val f8Field : SlashemField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Name : String = f8Field.queryName
 
      val f9Field : SlashemField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Name : String = f9Field.queryName
 
      val f10Field : SlashemField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Name : String = f10Field.queryName
 
      val f11Field : SlashemField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Name : String = f11Field.queryName
 
      val f12Field : SlashemField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Name : String = f12Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -944,43 +944,43 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
 
      val f8Field : SlashemField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Name : String = f8Field.queryName
 
      val f9Field : SlashemField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Name : String = f9Field.queryName
 
      val f10Field : SlashemField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Name : String = f10Field.queryName
 
      val f11Field : SlashemField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Name : String = f11Field.queryName
 
      val f12Field : SlashemField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Name : String = f12Field.queryName
 
      val f13Field : SlashemField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
+     val f13Name : String = f13Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -1007,46 +1007,46 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M],f14: M => SlashemField[F14, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
 
      val f8Field : SlashemField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Name : String = f8Field.queryName
 
      val f9Field : SlashemField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Name : String = f9Field.queryName
 
      val f10Field : SlashemField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Name : String = f10Field.queryName
 
      val f11Field : SlashemField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Name : String = f11Field.queryName
 
      val f12Field : SlashemField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Name : String = f12Field.queryName
 
      val f13Field : SlashemField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
+     val f13Name : String = f13Field.queryName
 
      val f14Field : SlashemField[F14, M] = f14(meta)
-     val f14Name : String = f14Field.name
+     val f14Name : String = f14Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -1074,49 +1074,49 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M],f14: M => SlashemField[F14, M],f15: M => SlashemField[F15, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
 
      val f8Field : SlashemField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Name : String = f8Field.queryName
 
      val f9Field : SlashemField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Name : String = f9Field.queryName
 
      val f10Field : SlashemField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Name : String = f10Field.queryName
 
      val f11Field : SlashemField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Name : String = f11Field.queryName
 
      val f12Field : SlashemField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Name : String = f12Field.queryName
 
      val f13Field : SlashemField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
+     val f13Name : String = f13Field.queryName
 
      val f14Field : SlashemField[F14, M] = f14(meta)
-     val f14Name : String = f14Field.name
+     val f14Name : String = f14Field.queryName
 
      val f15Field : SlashemField[F15, M] = f15(meta)
-     val f15Name : String = f15Field.name
+     val f15Name : String = f15Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -1145,52 +1145,52 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M],f14: M => SlashemField[F14, M],f15: M => SlashemField[F15, M],f16: M => SlashemField[F16, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
 
      val f8Field : SlashemField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Name : String = f8Field.queryName
 
      val f9Field : SlashemField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Name : String = f9Field.queryName
 
      val f10Field : SlashemField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Name : String = f10Field.queryName
 
      val f11Field : SlashemField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Name : String = f11Field.queryName
 
      val f12Field : SlashemField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Name : String = f12Field.queryName
 
      val f13Field : SlashemField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
+     val f13Name : String = f13Field.queryName
 
      val f14Field : SlashemField[F14, M] = f14(meta)
-     val f14Name : String = f14Field.name
+     val f14Name : String = f14Field.queryName
 
      val f15Field : SlashemField[F15, M] = f15(meta)
-     val f15Name : String = f15Field.name
+     val f15Name : String = f15Field.queryName
 
      val f16Field : SlashemField[F16, M] = f16(meta)
-     val f16Name : String = f16Field.name
+     val f16Name : String = f16Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -1221,55 +1221,55 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16, F17,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M],f14: M => SlashemField[F14, M],f15: M => SlashemField[F15, M],f16: M => SlashemField[F16, M],f17: M => SlashemField[F17, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16], Option[F17]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
 
      val f8Field : SlashemField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Name : String = f8Field.queryName
 
      val f9Field : SlashemField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Name : String = f9Field.queryName
 
      val f10Field : SlashemField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Name : String = f10Field.queryName
 
      val f11Field : SlashemField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Name : String = f11Field.queryName
 
      val f12Field : SlashemField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Name : String = f12Field.queryName
 
      val f13Field : SlashemField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
+     val f13Name : String = f13Field.queryName
 
      val f14Field : SlashemField[F14, M] = f14(meta)
-     val f14Name : String = f14Field.name
+     val f14Name : String = f14Field.queryName
 
      val f15Field : SlashemField[F15, M] = f15(meta)
-     val f15Name : String = f15Field.name
+     val f15Name : String = f15Field.queryName
 
      val f16Field : SlashemField[F16, M] = f16(meta)
-     val f16Name : String = f16Field.name
+     val f16Name : String = f16Field.queryName
 
      val f17Field : SlashemField[F17, M] = f17(meta)
-     val f17Name : String = f17Field.name
+     val f17Name : String = f17Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
@@ -1301,58 +1301,58 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
    def selectCase [F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F16, F17, F18,  CC](f1: M => SlashemField[F1, M],f2: M => SlashemField[F2, M],f3: M => SlashemField[F3, M],f4: M => SlashemField[F4, M],f5: M => SlashemField[F5, M],f6: M => SlashemField[F6, M],f7: M => SlashemField[F7, M],f8: M => SlashemField[F8, M],f9: M => SlashemField[F9, M],f10: M => SlashemField[F10, M],f11: M => SlashemField[F11, M],f12: M => SlashemField[F12, M],f13: M => SlashemField[F13, M],f14: M => SlashemField[F14, M],f15: M => SlashemField[F15, M],f16: M => SlashemField[F16, M],f17: M => SlashemField[F17, M],f18: M => SlashemField[F18, M], create: (Option[F1], Option[F2], Option[F3], Option[F4], Option[F5], Option[F6], Option[F7], Option[F8], Option[F9], Option[F10], Option[F11], Option[F12], Option[F13], Option[F14], Option[F15], Option[F16], Option[F17], Option[F18]) => CC)(implicit ev: Y =:= NoSelect): QueryBuilder[M, Ord, Lim, MM, CC, H, Q] = {
 
      val f1Field : SlashemField[F1, M] = f1(meta)
-     val f1Name : String = f1Field.name
+     val f1Name : String = f1Field.queryName
 
      val f2Field : SlashemField[F2, M] = f2(meta)
-     val f2Name : String = f2Field.name
+     val f2Name : String = f2Field.queryName
 
      val f3Field : SlashemField[F3, M] = f3(meta)
-     val f3Name : String = f3Field.name
+     val f3Name : String = f3Field.queryName
 
      val f4Field : SlashemField[F4, M] = f4(meta)
-     val f4Name : String = f4Field.name
+     val f4Name : String = f4Field.queryName
 
      val f5Field : SlashemField[F5, M] = f5(meta)
-     val f5Name : String = f5Field.name
+     val f5Name : String = f5Field.queryName
 
      val f6Field : SlashemField[F6, M] = f6(meta)
-     val f6Name : String = f6Field.name
+     val f6Name : String = f6Field.queryName
 
      val f7Field : SlashemField[F7, M] = f7(meta)
-     val f7Name : String = f7Field.name
+     val f7Name : String = f7Field.queryName
 
      val f8Field : SlashemField[F8, M] = f8(meta)
-     val f8Name : String = f8Field.name
+     val f8Name : String = f8Field.queryName
 
      val f9Field : SlashemField[F9, M] = f9(meta)
-     val f9Name : String = f9Field.name
+     val f9Name : String = f9Field.queryName
 
      val f10Field : SlashemField[F10, M] = f10(meta)
-     val f10Name : String = f10Field.name
+     val f10Name : String = f10Field.queryName
 
      val f11Field : SlashemField[F11, M] = f11(meta)
-     val f11Name : String = f11Field.name
+     val f11Name : String = f11Field.queryName
 
      val f12Field : SlashemField[F12, M] = f12(meta)
-     val f12Name : String = f12Field.name
+     val f12Name : String = f12Field.queryName
 
      val f13Field : SlashemField[F13, M] = f13(meta)
-     val f13Name : String = f13Field.name
+     val f13Name : String = f13Field.queryName
 
      val f14Field : SlashemField[F14, M] = f14(meta)
-     val f14Name : String = f14Field.name
+     val f14Name : String = f14Field.queryName
 
      val f15Field : SlashemField[F15, M] = f15(meta)
-     val f15Name : String = f15Field.name
+     val f15Name : String = f15Field.queryName
 
      val f16Field : SlashemField[F16, M] = f16(meta)
-     val f16Name : String = f16Field.name
+     val f16Name : String = f16Field.queryName
 
      val f17Field : SlashemField[F17, M] = f17(meta)
-     val f17Name : String = f17Field.name
+     val f17Name : String = f17Field.queryName
 
      val f18Field : SlashemField[F18, M] = f18(meta)
-     val f18Name : String = f18Field.name
+     val f18Name : String = f18Field.queryName
      val transformer = Some(((doc: Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]) => {
      val f1 = getForField(f1Field, f1Name, doc)
      val f2 = getForField(f2Field, f2Name, doc)
