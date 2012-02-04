@@ -90,20 +90,36 @@ case class Response[T <: Record[T],Y] (schema: T, creator: Option[Response.RawDo
   // Collect results which are of a high enough lucene score to be relevant.
   private def filterHighQuality(r: Array[Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]]):
   Array[Pair[Map[String,Any],Option[Map[String,ArrayList[String]]]]] = {
-    (min,fallOf) match {
+    (min, fallOf) match {
       case (Some(minR),Some(qualityFallOf)) => {
         val scores = (r.map(x => x._1.get("score").map(_.asInstanceOf[Double])).toList)
         val hqCount = highQuality(scores,
-                                score=0, count=0,minR=minR,qualityFallOf=qualityFallOf)
+                                  score=0,
+                                  lscore=0,
+                                  count=0,
+                                  minR=minR,
+                                  qualityFallOf=qualityFallOf,
+                                  individualQualityFallOf=qualityFallOf/2)
         r.take(hqCount)
       }
       case _ => r
     }
   }
-  @tailrec private def highQuality(l: List[Option[Double]], score: Double = 0, count: Int = 0, minR: Int = 1, qualityFallOf: Double = 0): Int = {
-    val minScore = qualityFallOf * (score / count)
+  @tailrec private def highQuality(l: List[Option[Double]],
+                                   score: Double = 0,
+                                   lscore: Double = 0,
+                                   count: Int = 0,
+                                   minR: Int = 1,
+                                   qualityFallOf: Double = 0,
+                                   individualQualityFallOf: Double = 0): Int = {
+    val minScore = scala.math.min(qualityFallOf * (score / count), individualQualityFallOf*lscore)
     l match {
-      case Some(x) :: xs if (count < minR || x > minScore) => highQuality(xs,score=(score+x),count=(count+1),minR=minR,qualityFallOf=qualityFallOf)
+      case Some(x) :: xs if (count < minR || x > minScore) => highQuality(xs,
+                                                                          score=(score+x),
+                                                                          lscore=x,
+                                                                          count=(count+1),
+                                                                          minR=minR,
+                                                                          qualityFallOf=qualityFallOf)
       case None :: xs if (score == 0) => highQuality(xs, score, count + 1)
       case None :: xs => count
       case _ => count
@@ -466,7 +482,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
   def boostFields(query: ElasticQueryBuilder, boostFields: List[ScoreBoost]): ElasticQueryBuilder =  {
     val boostedQuery = new CustomScoreQueryBuilder(query)
-    val scoreScript = "_score + "+(boostFields.map(_.elasticExtend).mkString(" + "))
+    val scoreScript = "_score * (1 +"+(boostFields.map(_.elasticExtend).mkString(" + ") + " )")
     boostedQuery.script(scoreScript)
   }
   def combineFilters(filters: List[ElasticFilterBuilder]): ElasticFilterBuilder = {
@@ -583,32 +599,32 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   import Helpers._
 
   //Not eqs and neqs results in phrase queries!
-  def eqs(v: V) = Clause[V](self.name, Group(Phrase(v)))
-  def neqs(v: V) = Clause[V](self.name, Phrase(v),false)
+  def eqs(v: V) = Clause[V](self.queryName, Group(Phrase(v)))
+  def neqs(v: V) = Clause[V](self.queryName, Phrase(v),false)
 
   //This allows for bag of words style matching.
-  def contains(v: V) = Clause[V](self.name, Group(BagOfWords(v)))
-  def contains(v: V, b: Float) = Clause[V](self.name, Boost(Group(BagOfWords(v)),b))
+  def contains(v: V) = Clause[V](self.queryName, Group(BagOfWords(v)))
+  def contains(v: V, b: Float) = Clause[V](self.queryName, Boost(Group(BagOfWords(v)),b))
 
-  def in(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Phrase(x)})))
-  def nin(v: Iterable[V]) = Clause[V](self.name, groupWithOr(v.map({x: V => Phrase(x)})),false)
+  def in(v: Iterable[V]) = Clause[V](self.queryName, groupWithOr(v.map({x: V => Phrase(x)})))
+  def nin(v: Iterable[V]) = Clause[V](self.queryName, groupWithOr(v.map({x: V => Phrase(x)})),false)
 
-  def in(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b))
-  def nin(v: Iterable[V], b: Float) = Clause[V](self.name, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b),false)
+  def in(v: Iterable[V], b: Float) = Clause[V](self.queryName, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b))
+  def nin(v: Iterable[V], b: Float) = Clause[V](self.queryName, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b),false)
 
-  def in(v: List[String]) = Clause[String](self.name, groupWithOr(v.map({x: String => Phrase(x)})))
-  def nin(v: List[String]) = Clause[String](self.name, groupWithOr(v.map({x: String => Phrase(x)})),false)
+  def in(v: List[String]) = Clause[String](self.queryName, groupWithOr(v.map({x: String => Phrase(x)})))
+  def nin(v: List[String]) = Clause[String](self.queryName, groupWithOr(v.map({x: String => Phrase(x)})),false)
 
-  def inRange(v1: V, v2: V) = Clause[V](self.name, Group(Range(BagOfWords(v1),BagOfWords(v2))))
-  def ninRange(v1: V, v2: V) = Clause[V](self.name, Group(Range(BagOfWords(v1),BagOfWords(v2))),false)
+  def inRange(v1: V, v2: V) = Clause[V](self.queryName, Group(Range(BagOfWords(v1),BagOfWords(v2))))
+  def ninRange(v1: V, v2: V) = Clause[V](self.queryName, Group(Range(BagOfWords(v1),BagOfWords(v2))),false)
 
-  def lessThan(v: V) = Clause[V](self.name, Group(Range(Splat[V](),BagOfWords[V](v))))
-  def greaterThan(v: V) = Clause[V](self.name, Group(Range(BagOfWords[V](v),Splat[V]())))
+  def lessThan(v: V) = Clause[V](self.queryName, Group(Range(Splat[V](),BagOfWords[V](v))))
+  def greaterThan(v: V) = Clause[V](self.queryName, Group(Range(BagOfWords[V](v),Splat[V]())))
 
 
-  def any = Clause[V](self.name,Splat[V]())
+  def any = Clause[V](self.queryName,Splat[V]())
 
-  def query(q: Query[V]) = Clause[V](self.name, q)
+  def query(q: Query[V]) = Clause[V](self.queryName, q)
 
   def setFromAny(a: Any): Box[V]
 
@@ -627,6 +643,11 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   def setHighlighted(a: List[String]) = {
     hl = a
   }
+
+  // Allow for a seperate name to be used for queries
+  // useful for ES where a name might be stored as "name"
+  // and then indexed as "name.edgengram" etc.
+  def queryName = name
 
 }
 
@@ -706,6 +727,13 @@ class SlashemGeoField[T <: SlashemSchema[T]](owner: T) extends StringField[T](ow
   def inBox(topRight: (Double, Double), botLeft: (Double, Double), maxCells: Int = owner.geohash.maxCells) = {
     val cellIds = owner.geohash.rectCoverString(topRight,botLeft, maxCells = maxCells)
     //If we have an empty cover we default to everything.
+    cellIds match {
+      case Nil => this.any
+      case _ => this.in(cellIds)
+    }
+  }
+  def inBounds(bounds: GeoCover, maxCells: Int = owner.geohash.maxCells) = {
+    val cellIds = bounds.boundsCoverString(maxCells = maxCells)
     cellIds match {
       case Nil => this.any
       case _ => this.in(cellIds)
