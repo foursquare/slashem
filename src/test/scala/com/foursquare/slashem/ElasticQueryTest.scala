@@ -1,6 +1,8 @@
 package com.foursquare.slashem
 import com.foursquare.slashem._
 
+import com.twitter.util.Duration
+
 import org.bson.types.ObjectId
 import org.junit.Test
 import org.junit._
@@ -16,7 +18,10 @@ import org.elasticsearch.node.NodeBuilder._
 import org.elasticsearch.node.Node
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.xcontent.XContentFactory._;
+
+import java.util.concurrent.TimeUnit
 import java.util.UUID;
+
 
 object ElasticNode {
   val myUUID = UUID.randomUUID();
@@ -46,6 +51,14 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   @Test
   def testNonEmptyMM100Search {
     val r = ESimplePanda where (_.name contains "loler eating hobo") minimumMatchPercent(100) fetch()
+    Assert.assertEquals(1,r.response.results.length)
+    //Lets look at the document and make sure its what we expected
+    val doc = r.response.results.apply(0)
+    Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b18"),doc.id.is)
+  }
+  @Test
+  def testNonEmptyMM100SearchWithTimeout {
+    val r = ESimplePanda where (_.name contains "loler eating hobo") minimumMatchPercent(100) fetch(Duration(1, TimeUnit.SECONDS))
     Assert.assertEquals(1,r.response.results.length)
     //Lets look at the document and make sure its what we expected
     val doc = r.response.results.apply(0)
