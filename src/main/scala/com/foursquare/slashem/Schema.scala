@@ -17,6 +17,7 @@ import org.elasticsearch.action.search.SearchResponse
 import org.elasticsearch.search.sort.{ScriptSortBuilder, SortOrder}
 import org.elasticsearch.client.action.search.SearchRequestBuilder
 import org.elasticsearch.client.transport.TransportClient
+import org.elasticsearch.common.unit.TimeValue
 import org.elasticsearch.common.transport.InetSocketTransportAddress
 import org.elasticsearch.common.settings.ImmutableSettings
 import org.elasticsearch.node.NodeBuilder._
@@ -389,14 +390,24 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
 
   def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]):
   SearchResults[M, Y] = {
-    queryFuture(qb)(timeout)
+    queryFuture(qb, Some(timeout))(timeout)
   }
 
   def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]):
   Future[SearchResults[M, Y]] = {
-    elasticQueryFuture(qb, buildElasticQuery(qb))
+    elasticQueryFuture(qb, buildElasticQuery(qb), None)
   }
-  def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q], query: ElasticQueryBuilder): Future[SearchResults[M, Y]] = {
+  /*
+   * queryFuture constructs a future query
+   * @qb: The query builder representing the query to be executed
+   * @timeoutOpt: An option type that requests a server side timeout for the query
+   */
+  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q], timeoutOpt: Option[Duration]):
+  Future[SearchResults[M, Y]] = {
+    elasticQueryFuture(qb, buildElasticQuery(qb), timeoutOpt)
+  }
+
+  def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q], query: ElasticQueryBuilder, timeoutOpt: Option[Duration]): Future[SearchResults[M, Y]] = {
     val future : FutureTask[SearchResults[M,Y]]= new FutureTask({
       val client = meta.client
       val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
@@ -418,7 +429,14 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
 
         case _ => baseRequest
       }
-      val response: SearchResponse  = request
+
+      /* Set the server side timeout */
+      val timeLimmitedRequest = timeoutOpt match {
+        case Some(timeout) => request.setTimeout(TimeValue.timeValueMillis(timeout.inMillis))
+        case _ => request
+      }
+
+      val response: SearchResponse  = timeLimmitedRequest
       .execute().actionGet()
       meta.logger.debug("Search response "+response.toString())
       constructSearchResults(qb.creator,
@@ -479,7 +497,6 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       case Nil => fq
       case _ => boostFields(fq,qb.boostFields)
     }
-
   }
   def boostFields(query: ElasticQueryBuilder, boostFields: List[ScoreBoost]): ElasticQueryBuilder =  {
     val boostedQuery = new CustomScoreQueryBuilder(query)
