@@ -1,6 +1,8 @@
 package com.foursquare.slashem
 import com.foursquare.slashem._
 
+import com.twitter.util.Duration
+
 import org.bson.types.ObjectId
 import org.junit.Test
 import org.junit._
@@ -16,7 +18,10 @@ import org.elasticsearch.node.NodeBuilder._
 import org.elasticsearch.node.Node
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.xcontent.XContentFactory._;
+
+import java.util.concurrent.TimeUnit
 import java.util.UUID;
+
 
 object ElasticNode {
   val myUUID = UUID.randomUUID();
@@ -52,6 +57,19 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b18"),doc.id.is)
   }
   @Test
+  def testNonEmptyMM100SearchWithTimeout {
+    val r = ESimplePanda where (_.name contains "loler eating hobo") minimumMatchPercent(100) fetch(Duration(1, TimeUnit.SECONDS))
+    Assert.assertEquals(1,r.response.results.length)
+    //Lets look at the document and make sure its what we expected
+    val doc = r.response.results.apply(0)
+    Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b18"),doc.id.is)
+  }
+  @Test
+  def testNonEmptyMultiFieldSearch {
+    val r = ESimplePanda.where(_.default contains "onlyinnamefield").queryField(_.name).queryField(_.hobos) fetch()
+    Assert.assertEquals(1,r.response.results.length)
+  }
+  @Test
   def testNonEmptySearchOidScorePare {
     val r = ESimplePanda where (_.hobos contains "hobos") fetch()
     Assert.assertEquals(1,r.response.results.length)
@@ -70,7 +88,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   @Test
   def testSimpleNInQuery {
     val r = ESimplePanda where (_.hobos nin List("hobos")) fetch()
-    Assert.assertEquals(6,r.response.results.length)
+    Assert.assertEquals(7,r.response.results.length)
   }
   @Test
   def testManyResultsSearch {
@@ -314,6 +332,15 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .endObject()
       ).execute()
     .actionGet();
+    val multifieldoc = client.prepareIndex(ESimplePanda.meta.indexName,ESimplePanda.meta.docType,"4c809f4251ada1cdc3790b19").setSource(jsonBuilder()
+                                                                          .startObject()
+                                                                          .field("name","ilikecheetos onlyinnamefield allright")
+                                                                          .field("followers",10)
+                                                                          .field("id","4c809f4251ada1cdc3790b19")
+                                                                          .endObject()
+      ).execute()
+    .actionGet();
+
 
     client.admin().indices().prepareRefresh().execute().actionGet()
     geoClient.admin().indices().prepareRefresh().execute().actionGet()
