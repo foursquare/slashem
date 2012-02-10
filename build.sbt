@@ -1,6 +1,6 @@
 name := "slashem"
 
-version := "0.6.2"
+version := "0.6.2.1"
 
 organization := "com.foursquare"
 
@@ -29,11 +29,11 @@ libraryDependencies <++= (scalaVersion) { scalaVersion =>
     "org.scala-tools.testing" %% "specs"               % specsVersion % "test",
     "org.scala-lang"           % "scala-compiler"      % scalaVersion % "test",
     "org.elasticsearch"        % "elasticsearch"  % "0.18.5" % "compile",
-    "com.twitter"             % "finagle-core"        % "1.8.0" % "compile",
     "org.codehaus.jackson" % "jackson-mapper-asl" % "1.8.0" % "compile",
     "org.scala-tools.testing" %% "scalacheck"         % scalaCheckVersion   % "test"    withSources(),
-    "com.twitter"             % "finagle"             % "1.8.0"  % "compile"           intransitive(),
-    "com.twitter"             % "finagle-core"        % "1.8.0" % "compile",
+    "com.twitter"             % "finagle"             % "1.9.12"  % "compile"           intransitive(),
+    "com.twitter"             % "finagle-core"        % "1.9.12" % "compile",
+    "com.twitter"             % "finagle-http"        % "1.9.12" % "compile",
     "org.scalaj"              %% "scalaj-collection" % "1.2"
   )
 }
