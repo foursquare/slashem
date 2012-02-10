@@ -1,6 +1,6 @@
 name := "slashem"
 
-version := "0.6.1"
+version := "0.6.2"
 
 organization := "com.foursquare"
 
@@ -39,11 +39,11 @@ libraryDependencies <++= (scalaVersion) { scalaVersion =>
 }
 
 publishTo <<= (version) { v =>
-  val nexus = "http://nexus.scala-tools.org/content/repositories/"
+  val nexus = "https://oss.sonatype.org/"
   if (v.endsWith("-SNAPSHOT"))
-    Some("snapshots" at nexus+"snapshots/")
+    Some("snapshots" at nexus+"content/repositories/snapshots/")
   else
-    Some("releases" at nexus+"releases/")
+    Some("releases" at nexus+"service/local/staging/deploy/maven2")
 }
 
 resolvers += "Bryan J Swift Repository" at "http://repos.bryanjswift.com/maven2/"
@@ -67,11 +67,11 @@ testFrameworks += new TestFramework("com.novocode.junit.JUnitFrameworkNoMarker")
 
 
 credentials ++= {
-  val scalaTools = ("Sonatype Nexus Repository Manager", "nexus.scala-tools.org")
+  val sonaType = ("Sonatype Nexus Repository Manager", "oss.sonatype.org")
   def loadMavenCredentials(file: java.io.File) : Seq[Credentials] = {
     xml.XML.loadFile(file) \ "servers" \ "server" map (s => {
       val host = (s \ "id").text
-      val realm = if (host == scalaTools._2) scalaTools._1 else "Unknown"
+      val realm = if (host == sonaType._2) sonaType._1 else "Unknown"
       Credentials(realm, host, (s \ "username").text, (s \ "password").text)
     })
   }
@@ -83,3 +83,43 @@ credentials ++= {
     case _ => Nil
   }
 }
+
+publishMavenStyle := true
+
+pomIncludeRepository := { x => false }
+
+pomExtra := (
+<url>https://github.com/foursquare/slashem</url>
+<licenses>
+  <license>
+    <name>Apache 2</name>
+    <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    <distribution>repo</distribution>
+    <comments>A business-friendly OSS license</comments>
+  </license>
+</licenses>
+<scm>
+ <url>git@github.com/foursquare/slashem.git</url>
+ <connection>scm:git:git@github.com/foursquare/slashem.git</connection>
+</scm>
+<developers>
+ <developer>
+ <id>holdenkarau></id>
+ <name>Holden Karau</name>
+ <email>holden@foursquare.com</email>
+ </developer>
+ <developer>
+ <id>jonshea</id>
+ <name>Jon Shea</name>
+ <email>jonshea@foursquare.com</email>
+ </developer>
+ <developer>
+ <name>Govind Kabra</name>
+ <email>govind@foursquare.com</email>
+ </developer>
+ <developer>
+ <name>Adam Alix</name>
+ <email>aalix@foursquare.com</email>
+ </developer>
+</developers>
+)
