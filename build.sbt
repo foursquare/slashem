@@ -1,6 +1,6 @@
 name := "slashem"
 
-version := "0.6.2.2"
+version := "0.6.2.5"
 
 organization := "com.foursquare"
 
@@ -88,15 +88,6 @@ publishMavenStyle := true
 
 pomIncludeRepository := { x => false }
 
-ivyXML := (
-<dependencies>
- <exclude module="jms"/>
- <exclude module="jmxtools"/>
- <exclude module="jmxri"/>
-</dependencies>
-)
-
-
 pomExtra := (
 <url>https://github.com/foursquare/slashem</url>
 <licenses>
@@ -111,6 +102,12 @@ pomExtra := (
  <url>git@github.com/foursquare/slashem.git</url>
  <connection>scm:git:git@github.com/foursquare/slashem.git</connection>
 </scm>
+<dependencies>
+ <exclude module="jms"/>
+ <exclude module="jmxtools"/>
+ <exclude module="jmxri"/>
+ <exclude module="thrift"/>
+</dependencies>
 <developers>
  <developer>
  <id>holdenkarau></id>
