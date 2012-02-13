@@ -1,6 +1,6 @@
 name := "slashem"
 
-version := "0.6.2.5"
+version := "0.6.3"
 
 organization := "com.foursquare"
 
@@ -28,12 +28,12 @@ libraryDependencies <++= (scalaVersion) { scalaVersion =>
     "ch.qos.logback"           % "logback-classic"     % "0.9.26"     % "provided",
     "org.scala-tools.testing" %% "specs"               % specsVersion % "test",
     "org.scala-lang"           % "scala-compiler"      % scalaVersion % "test",
-    "org.elasticsearch"        % "elasticsearch"  % "0.18.5" % "compile",
+    "org.elasticsearch"        % "elasticsearch"  % "0.18.5" % "compile" exclude("log4j", "log4j") exclude("com.sun.jmx","jmxri") exclude("com.sun.jdmk","jmxtools"),
     "org.codehaus.jackson" % "jackson-mapper-asl" % "1.8.0" % "compile",
     "org.scala-tools.testing" %% "scalacheck"         % scalaCheckVersion   % "test"    withSources(),
-    "com.twitter"             % "finagle"             % "1.9.12"  % "compile"           intransitive(),
-    "com.twitter"             % "finagle-core"        % "1.9.12" % "compile",
-    "com.twitter"             % "finagle-http"        % "1.9.12" % "compile",
+    "com.twitter"             % "finagle"             % "1.9.12"  % "compile" exclude("thrift","libthrift") intransitive(),
+    "com.twitter"             % "finagle-core"        % "1.9.12" % "compile" exclude("thrift","libthrift"),
+    "com.twitter"             % "finagle-http"        % "1.9.12" % "compile" exclude("thrift","libthrift"),
     "org.scalaj"              %% "scalaj-collection" % "1.2"
   )
 }
@@ -102,12 +102,6 @@ pomExtra := (
  <url>git@github.com/foursquare/slashem.git</url>
  <connection>scm:git:git@github.com/foursquare/slashem.git</connection>
 </scm>
-<dependencies>
- <exclude module="jms"/>
- <exclude module="jmxtools"/>
- <exclude module="jmxri"/>
- <exclude module="thrift"/>
-</dependencies>
 <developers>
  <developer>
  <id>holdenkarau></id>
