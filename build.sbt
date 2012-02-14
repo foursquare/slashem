@@ -1,6 +1,6 @@
 name := "slashem"
 
-version := "0.6.4.2"
+version := "0.6.4.10-SNAPSHOT"
 
 organization := "com.foursquare"
 
@@ -24,17 +24,17 @@ libraryDependencies <++= (scalaVersion) { scalaVersion =>
   Seq(
     "net.liftweb"             %% "lift-record" % liftVersion  % "compile",
     "org.mongodb"              % "mongo-java-driver"    % "[2.6.5,)" % "compile",
-    "junit"                    % "junit"               % "4.5"        % "test",
-    "com.novocode"             % "junit-interface"     % "0.6"        % "test",
+    "junit"                    % "junit"               % "[4.8.2,)"        % "test",
+    "com.novocode"             % "junit-interface"     % "[0.7,)"        % "test" ,
     "org.scala-tools.testing" %% "specs"               % specsVersion % "test",
-    "org.scala-lang"           % "scala-compiler"      % scalaVersion % "test",
-    "org.elasticsearch"        % "elasticsearch"  % "0.18.5" % "compile" exclude("log4j", "log4j") exclude("com.sun.jmx","jmxri") exclude("com.sun.jdmk","jmxtools"),
-    "org.codehaus.jackson" % "jackson-mapper-asl" % "1.8.0",
-    "org.scala-tools.testing" %% "scalacheck"         % scalaCheckVersion   % "test"    withSources(),
-    "com.twitter"             % "finagle"             % "1.9.12"  % "compile" exclude("thrift","libthrift") intransitive(),
-    "com.twitter"             % "finagle-core"        % "1.9.12" % "compile" exclude("thrift","libthrift"),
-    "com.twitter"             % "finagle-http"        % "1.9.12" % "compile" exclude("thrift","libthrift"),
-    "org.scalaj"              %% "scalaj-collection" % "1.2"
+    "org.elasticsearch"        % "elasticsearch"  % "0.18.5" % "compile" exclude("log4j", "log4j") exclude("com.sun.jmx","jmxri") exclude("com.sun.jdmk","jmxtools") exclude("com.codahale","jerkson_2.8.1") exclude("com.codahale","jerkson") exclude("com.twitter","streamyj_2.8.1") exclude("org.codehaus.jackson" , "jackson-mapper-asl") exclude("org.codehas.jackson" , "jackson-core-asl"),
+    "org.codehaus.jackson"     % "jackson-mapper-asl" % "1.8.8" ,
+    "org.codehaus.jackson"     % "jackson-core-asl" % "1.8.8",
+    "org.scala-tools.testing" %% "scalacheck"         % scalaCheckVersion   % "test",
+    "com.twitter"             % "finagle"             % "1.9.12"  % "compile" exclude("thrift","libthrift") exclude("com.codahale","jerkson_2.8.1") exclude("com.codahale","jerkson") exclude("com.twitter","streamyj_2.8.1")  exclude("log4j", "log4j") exclude("com.sun.jmx","jmxri") exclude("com.sun.jdmk","jmxtools") exclude("com.codahale","jerkson_2.8.1") exclude("com.codahale","jerkson") exclude("com.twitter","streamyj_2.8.1") exclude("org.codehaus.jackson" , "jackson-mapper-asl") exclude("org.codehas.jackson" , "jackson-core-asl") intransitive(),
+    "com.twitter"             % "finagle-core"        % "1.9.12" % "compile" exclude("thrift","libthrift") exclude("com.codahale","jerkson_2.8.1") exclude("com.codahale","jerkson") exclude("com.twitter","streamyj_2.8.1")  exclude("log4j", "log4j") exclude("com.sun.jmx","jmxri") exclude("com.sun.jdmk","jmxtools") exclude("com.codahale","jerkson_2.8.1") exclude("com.codahale","jerkson") exclude("com.twitter","streamyj_2.8.1") exclude("org.codehaus.jackson" , "jackson-mapper-asl") exclude("org.codehas.jackson" , "jackson-core-asl"),
+    "com.twitter"             % "finagle-http"        % "1.9.12" % "compile" exclude("thrift","libthrift") exclude("com.codahale","jerkson_2.8.1") exclude("com.codahale","jerkson") exclude("com.twitter","streamyj_2.8.1")  exclude("log4j", "log4j") exclude("com.sun.jmx","jmxri") exclude("com.sun.jdmk","jmxtools") exclude("com.codahale","jerkson_2.8.1") exclude("com.codahale","jerkson") exclude("com.twitter","streamyj_2.8.1") exclude("org.codehaus.jackson" , "jackson-mapper-asl") exclude("org.codehas.jackson" , "jackson-core-asl"),
+    "org.scalaj"              %% "scalaj-collection" % "1.2"  exclude("log4j", "log4j") exclude("com.sun.jmx","jmxri") exclude("com.sun.jdmk","jmxtools") exclude("com.codahale","jerkson_2.8.1") exclude("com.codahale","jerkson") exclude("com.twitter","streamyj_2.8.1") exclude("org.codehaus.jackson" , "jackson-mapper-asl") exclude("org.codehas.jackson" , "jackson-core-asl")
   )
 }
 
