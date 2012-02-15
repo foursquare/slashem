@@ -377,8 +377,8 @@ trait SlashemSchema[M <: Record[M]] extends Record[M] {
     QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil,
                  phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None,
                  tieBreaker=None, sort=None, minimumMatch=None ,queryType=None,
-                 fieldsToFetch=Nil, hls=None, hlFragSize=None, creator=None, comment=None,
-                 fallOf=None, min=None)
+                 fieldsToFetch=Nil, facetField=None, hls=None, hlFragSize=None,
+                 creator=None, comment=None, fallOf=None, min=None)
   }
   def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): SearchResults[M, Y]
   def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): Future[SearchResults[M, Y]]
