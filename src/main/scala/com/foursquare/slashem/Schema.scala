@@ -167,7 +167,11 @@ case class RawResponse @JsonCreator()(@JsonProperty("numFound")numFound: Int, @J
 //This is the raw representation of the response from solr, you probably don't want to poke at it directly.
 case class RawSearchResults @JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
                                            @JsonProperty("response") response: RawResponse,
-                                           @JsonProperty("highlighting") highlighting: HashMap[String,HashMap[String,ArrayList[String]]])
+                                           @JsonProperty("highlighting") highlighting: HashMap[String,HashMap[String,ArrayList[String]]],
+                                           @JsonProperty("facet_counts") facetCounts: RawFacetCounts)
+
+//This is the raw rep of the facet counts
+case class RawFacetCounts @JsonCreator()(@JsonProperty("facet_fields") facetFields: HashMap[String,ArrayList[Object]])
 
 trait SlashemMeta[T <: Record[T]] extends MetaRecord[T] {
   self: MetaRecord[T] with T =>
@@ -260,6 +264,14 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
                                                               Option[Map[String,ArrayList[String]]]]) => Y],
                              fieldstofetch: List[String]=Nil, fallOf: Option[Double] = None,
                              min: Option[Int] = None, queryText: String): Future[SearchResults[T, Y]] = {
+    def parseFacetCounts(a: List[Object]): List[(String,Int)] = {
+      a match {
+        case Nil => Nil
+        case (x: String)::(y: Integer)::z => (x,y.toInt)::parseFacetCounts(z)
+        //Shouldn't happen, but fail silently for now
+        case _ => Nil
+      }
+    }
     //This intentional avoids lift extract as it is too slow for our use case.
     try {
       val rsr = mapper.readValue(r, classOf[RawSearchResults])
@@ -279,8 +291,15 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
           None
         }
         Pair(doc.toMap,hl)})
+      val facetCounts = rsr.facetCounts
+
+      val facets: scala.collection.immutable.Map[String,scala.collection.immutable.Map[String,Int]] = if (facetCounts != null) {
+        facetCounts.facetFields.asScala.map(magic => (magic._1,parseFacetCounts(magic._2.asScala.toList).toMap)).toMap
+      } else {
+        Map.empty
+      }
       Future(SearchResults(rsr.responseHeader, Response(createRecord, creator, rsr.response.numFound, rsr.response.start,
-                                                        joinedDocs, fallOf, min, Map.empty)))
+                                                        joinedDocs, fallOf, min, facets)))
 
     } catch {
       case e => Future.exception(new Exception("An error occured while parsing solr result \""+r+
