@@ -15,6 +15,9 @@ import org.codehaus.jackson.annotate._
 import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper}
 import org.elasticsearch.action.search.SearchResponse
 import org.elasticsearch.search.sort.{ScriptSortBuilder, SortOrder}
+import org.elasticsearch.search.facet.AbstractFacetBuilder
+import org.elasticsearch.search.facet.terms.TermsFacetBuilder
+import org.elasticsearch.search.facet.terms.strings.InternalStringTermsFacet
 import org.elasticsearch.client.action.search.SearchRequestBuilder
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.unit.TimeValue
@@ -60,7 +63,7 @@ object Response {
  * Y is the type that we are extracting from the response (e.g. a case class) */
 case class Response[T <: Record[T],Y] (schema: T, creator: Option[Response.RawDoc => Y],
                                        numFound: Int, start: Int, docs: Array[Response.RawDoc],
-                                       fallOf: Option[Double], min: Option[Int]) {
+                                       fallOf: Option[Double], min: Option[Int], fieldFacets: Map[String,Map[String,Int]]) {
   val filteredDocs = filterHighQuality(docs)
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     filteredDocs.map({input =>
@@ -164,7 +167,11 @@ case class RawResponse @JsonCreator()(@JsonProperty("numFound")numFound: Int, @J
 //This is the raw representation of the response from solr, you probably don't want to poke at it directly.
 case class RawSearchResults @JsonCreator()(@JsonProperty("responseHeader") responseHeader: ResponseHeader,
                                            @JsonProperty("response") response: RawResponse,
-                                           @JsonProperty("highlighting") highlighting: HashMap[String,HashMap[String,ArrayList[String]]])
+                                           @JsonProperty("highlighting") highlighting: HashMap[String,HashMap[String,ArrayList[String]]],
+                                           @JsonProperty("facet_counts") facetCounts: RawFacetCounts)
+
+//This is the raw rep of the facet counts
+case class RawFacetCounts @JsonCreator()(@JsonProperty("facet_fields") facetFields: HashMap[String,ArrayList[Object]])
 
 trait SlashemMeta[T <: Record[T]] extends MetaRecord[T] {
   self: MetaRecord[T] with T =>
@@ -257,6 +264,14 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
                                                               Option[Map[String,ArrayList[String]]]]) => Y],
                              fieldstofetch: List[String]=Nil, fallOf: Option[Double] = None,
                              min: Option[Int] = None, queryText: String): Future[SearchResults[T, Y]] = {
+    def parseFacetCounts(a: List[Object]): List[(String,Int)] = {
+      a match {
+        case Nil => Nil
+        case (x: String)::(y: Integer)::z => (x,y.toInt)::parseFacetCounts(z)
+        //Shouldn't happen, but fail silently for now
+        case _ => Nil
+      }
+    }
     //This intentional avoids lift extract as it is too slow for our use case.
     try {
       val rsr = mapper.readValue(r, classOf[RawSearchResults])
@@ -276,8 +291,15 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
           None
         }
         Pair(doc.toMap,hl)})
+      val facetCounts = rsr.facetCounts
+
+      val facets: scala.collection.immutable.Map[String,scala.collection.immutable.Map[String,Int]] = if (facetCounts != null) {
+        facetCounts.facetFields.asScala.map(magic => (magic._1,parseFacetCounts(magic._2.asScala.toList).toMap)).toMap
+      } else {
+        Map.empty
+      }
       Future(SearchResults(rsr.responseHeader, Response(createRecord, creator, rsr.response.numFound, rsr.response.start,
-                                                        joinedDocs, fallOf, min)))
+                                                        joinedDocs, fallOf, min, facets)))
 
     } catch {
       case e => Future.exception(new Exception("An error occured while parsing solr result \""+r+
@@ -377,8 +399,8 @@ trait SlashemSchema[M <: Record[M]] extends Record[M] {
     QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil,
                  phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None,
                  tieBreaker=None, sort=None, minimumMatch=None ,queryType=None,
-                 fieldsToFetch=Nil, hls=None, hlFragSize=None, creator=None, comment=None,
-                 fallOf=None, min=None)
+                 fieldsToFetch=Nil, facetFieldList=Nil, hls=None, hlFragSize=None,
+                 creator=None, comment=None, fallOf=None, min=None)
   }
   def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): SearchResults[M, Y]
   def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): Future[SearchResults[M, Y]]
@@ -436,7 +458,17 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
         case _ => request
       }
 
-      val response: SearchResponse  = timeLimmitedRequest
+      /* Add a facet to the request */
+      val facetedRequest = qb.facetFieldList match {
+        case Nil => timeLimmitedRequest
+        case _ => {
+          termFacetQuery(qb.facetFieldList).foreach(timeLimmitedRequest.addFacet(_))
+          timeLimmitedRequest
+        }
+      }
+
+
+      val response: SearchResponse  = facetedRequest
       .execute().actionGet()
       meta.logger.debug("Search response "+response.toString())
       constructSearchResults(qb.creator,
@@ -479,9 +511,20 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       }
     })
 
+    val fieldFacet: Map[String,Map[String,Int]] = {
+      val facets = response.facets()
+      if (facets != null) {
+        facets.facets().asScala.filter(_.getType() == "terms").
+        map(f => f.asInstanceOf[InternalStringTermsFacet]).
+        map(f => f.name() -> (f.getEntries().asScala.map(t => t.term() -> t.count())).toMap).toMap
+      } else {
+        Map.empty
+      }
+    }
+
    SearchResults(ResponseHeader(200,time.toInt),
                  Response(this, creator, hitCount, start, docs,
-                        fallOf=fallOf, min=min))
+                        fallOf=fallOf, min=min, fieldFacet))
   }
   def buildElasticQuery[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q]): ElasticQueryBuilder = {
     val baseQuery: ElasticQueryBuilder= qb.clauses.elasticExtend(qb.queryFields,
@@ -493,10 +536,16 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       case _ => filteredQuery(baseQuery,combineFilters(qb.filters.map(_.elasticFilter(qb.queryFields))))
     }
     //Apply any custom scoring rules (aka emulating Solr's bq/bf)
-    qb.boostFields match {
+    val boostedQuery = qb.boostFields match {
       case Nil => fq
-      case _ => boostFields(fq,qb.boostFields)
+      case _ => boostFields(fq, qb.boostFields)
     }
+    boostedQuery
+  }
+  def termFacetQuery(facetFields: List[Ast.Field]): List[AbstractFacetBuilder] = {
+    val fieldNames = facetFields.map(_.extend())
+    val facetQueries = fieldNames.map(name => new TermsFacetBuilder(name).field(name))
+    facetQueries
   }
   def boostFields(query: ElasticQueryBuilder, boostFields: List[ScoreBoost]): ElasticQueryBuilder =  {
     val boostedQuery = new CustomScoreQueryBuilder(query)
@@ -524,21 +573,35 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
 
   //This is the part which generates most of the solr request
   def queryParamsNoBounds[Ord, Lim, MM <: MinimumMatchType, Select, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Select, H, Q]): Seq[(String,String)] = {
+
+    //The actual query
     val p = List(("q" -> qb.clauses.extend))
 
     val s = qb.sort match {
       case None => Nil
       case Some(sort) => List("sort" -> (sort._1.extend + " " + sort._2))
     }
+
+    //The query type. Most likely edismax or dismax
     val qt = qb.queryType match {
       case None => Nil
       case Some(method) => List("defType" -> method)
     }
+
+    // Minimum match. If this is set to 100% then it is the same as setting
+    // the default operation as AND
     val mm = qb.minimumMatch match {
       case None => Nil
       case Some(mmParam) => List("mm" -> mmParam)
     }
 
+    //Facet field
+    val ff = qb.facetFieldList match {
+      case Nil => Nil
+      case _ => ("facet" -> "true")::(qb.facetFieldList.map(field => "facet.Field" -> field.extend))
+    }
+
+    //Boost queries only impact scoring
     val bq = qb.boostQueries.map({ x => ("bq" -> x.extend)})
 
     val qf = qb.queryFields.filter({x => x.boost != 0}).map({x => ("qf" -> x.extend)})

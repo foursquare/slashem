@@ -170,6 +170,14 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertTrue(doc3b.score.value > doc1b.score.value)
   }
   @Test
+  def testFieldFaceting {
+    val r = ESimplePanda where (_.name contains "loler skates") facetField(_.foreign) fetch()
+    Assert.assertEquals(4,r.response.results.length)
+    Assert.assertEquals(1,r.response.fieldFacets.get("foreign").get("b"))
+    Assert.assertEquals(3,r.response.fieldFacets.get("foreign").get("pants"))
+  }
+
+  @Test
   def testFieldBoost {
     val r1 = ESimplePanda where (_.magic contains "yes") fetch()
     val r2 = ESimplePanda where (_.magic contains "yes") boostField(_.followers,10) fetch()
@@ -268,6 +276,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("name","loler skates")
                                                                           .field("hobos","hobos")
                                                                           .field("id","4c809f4251ada1cdc3790b11")
+                                                                          .field("foreign","pants")
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -278,6 +287,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("followers",0)
                                                                           .field("magic","yes yes")
                                                                           .field("id","4c809f4251ada1cdc3790b12")
+                                                                          .field("foreign","pants")
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -288,6 +298,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("followers",10)
                                                                           .field("magic","yes")
                                                                           .field("id","4c809f4251ada1cdc3790b13")
+                                                                          .field("foreign","pants")
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -296,6 +307,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("name","loler eating a hobo")
                                                                           .field("followers",10)
                                                                           .field("id","4c809f4251ada1cdc3790b18")
+                                                                          .field("foreign","b")
                                                                           .endObject()
       ).execute()
     .actionGet();
