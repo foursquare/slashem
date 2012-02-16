@@ -492,9 +492,16 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       }
     })
 
-    val fieldFacet = (response.facets().facets().asScala.filter(_.getType() == "terms").
-                      map(f => f.asInstanceOf[InternalStringTermsFacet]).
-                      map(f => f.name() -> (f.getEntries().asScala.map(t => t.term() -> t.count())).toMap)).toMap
+    val fieldFacet: Map[String,Map[String,Int]] = {
+      val facets = response.facets()
+      if (facets != null) {
+        facets.facets().asScala.filter(_.getType() == "terms").
+        map(f => f.asInstanceOf[InternalStringTermsFacet]).
+        map(f => f.name() -> (f.getEntries().asScala.map(t => t.term() -> t.count())).toMap).toMap
+      } else {
+        Map.empty
+      }
+    }
 
    SearchResults(ResponseHeader(200,time.toInt),
                  Response(this, creator, hitCount, start, docs,

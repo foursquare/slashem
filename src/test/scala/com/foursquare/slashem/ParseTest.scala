@@ -141,7 +141,7 @@ class ParseTest extends SpecsMatchers with ScalaCheckMatchers {
                         List((new ObjectId("4c809f4251ada1cdc3790b10") -> 9.185221),
                            (new ObjectId("4d102d0d6331a093714e5594") -> 9.185220)))
   }
-  @Test
+ @Test
   def testScoreFiltering = {
     val r = """{
   "responseHeader":{
