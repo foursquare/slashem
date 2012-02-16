@@ -15,6 +15,7 @@ class ESimplePanda extends ElasticSchema[ESimplePanda] {
   object score extends SlashemDoubleField(this)
   object magic extends SlashemStringField(this)
   object followers extends SlashemIntField(this)
+  object foreign extends SlashemStringField(this)
 }
 
 object ESimpleGeoPanda extends ESimpleGeoPanda with ElasticMeta[ESimpleGeoPanda] {
