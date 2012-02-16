@@ -173,8 +173,8 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testFieldFaceting {
     val r = ESimplePanda where (_.name contains "loler skates") facetField(_.foreign) fetch()
     Assert.assertEquals(4,r.response.results.length)
-    Assert.assertEquals(Some(1),r.response.fieldFacets.get("b"))
-    Assert.assertEquals(Some(3),r.response.fieldFacets.get("pants"))
+    Assert.assertEquals(1,r.response.fieldFacets.get("foreign").get("b"))
+    Assert.assertEquals(3,r.response.fieldFacets.get("foreign").get("pants"))
   }
 
   //@Test

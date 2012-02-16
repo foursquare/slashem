@@ -63,7 +63,7 @@ object Response {
  * Y is the type that we are extracting from the response (e.g. a case class) */
 case class Response[T <: Record[T],Y] (schema: T, creator: Option[Response.RawDoc => Y],
                                        numFound: Int, start: Int, docs: Array[Response.RawDoc],
-                                       fallOf: Option[Double], min: Option[Int], fieldFacets: Map[String,Int]) {
+                                       fallOf: Option[Double], min: Option[Int], fieldFacets: Map[String,Map[String,Int]]) {
   val filteredDocs = filterHighQuality(docs)
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     filteredDocs.map({input =>
@@ -442,7 +442,10 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       /* Add a facet to the request */
       val facetedRequest = qb.facetFieldList match {
         case Nil => timeLimmitedRequest
-        case _ => timeLimmitedRequest.addFacet(termFacetQuery(qb.facetFieldList))
+        case _ => {
+          termFacetQuery(qb.facetFieldList).foreach(timeLimmitedRequest.addFacet(_))
+          timeLimmitedRequest
+        }
       }
 
 
@@ -491,7 +494,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
 
     val fieldFacet = (response.facets().facets().asScala.filter(_.getType() == "terms").
                       map(f => f.asInstanceOf[InternalStringTermsFacet]).
-                      flatMap(_.getEntries().asScala)).map(t => t.term() -> t.count()).toMap
+                      map(f => f.name() -> (f.getEntries().asScala.map(t => t.term() -> t.count())).toMap)).toMap
 
    SearchResults(ResponseHeader(200,time.toInt),
                  Response(this, creator, hitCount, start, docs,
@@ -513,9 +516,10 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     }
     boostedQuery
   }
-  def termFacetQuery(facetFields: List[Ast.Field]): AbstractFacetBuilder = {
-    val facetQuery = new TermsFacetBuilder("field").fields(facetFields.map(_.extend()):_*)
-    facetQuery
+  def termFacetQuery(facetFields: List[Ast.Field]): List[AbstractFacetBuilder] = {
+    val fieldNames = facetFields.map(_.extend())
+    val facetQueries = fieldNames.map(name => new TermsFacetBuilder(name).field(name))
+    facetQueries
   }
   def boostFields(query: ElasticQueryBuilder, boostFields: List[ScoreBoost]): ElasticQueryBuilder =  {
     val boostedQuery = new CustomScoreQueryBuilder(query)
