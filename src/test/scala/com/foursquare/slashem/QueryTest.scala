@@ -32,6 +32,16 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                       "hl" -> "on",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
+  @Test
+  def testProduceCorrectSimpleQueryStringWithFaceting {
+    val q = SUserTest where (_.fullname eqs "jon") facetField(_.fullname)
+    val qp = q.meta.queryParams(q).toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "fullname:(\"jon\")",
+                                                      "start" -> "0",
+                                                      "facet" -> "true",
+                                                      "facet.field" -> "fullname",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
 
   @Test
   def testProduceCorrectSimpleEscapedQueryStringWithHighlighting {

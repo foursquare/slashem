@@ -598,7 +598,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
     //Facet field
     val ff = qb.facetFieldList match {
       case Nil => Nil
-      case _ => ("facet" -> "true")::(qb.facetFieldList.map(field => "facet.Field" -> field.extend))
+      case _ => ("facet" -> "true")::(qb.facetFieldList.map(field => "facet.field" -> field.extend))
     }
 
     //Boost queries only impact scoring
@@ -635,7 +635,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
       case Some(a) => List("comment" -> a)
     }
 
-     ct ++ t ++ mm ++ qt ++ bq ++ qf ++ p ++ s ++ f ++ pf ++ fl ++ bf ++ hlp
+     ct ++ t ++ mm ++ qt ++ bq ++ qf ++ p ++ s ++ f ++ pf ++ fl ++ bf ++ hlp ++ ff
   }
 
 
