@@ -575,7 +575,10 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
   def queryParamsNoBounds[Ord, Lim, MM <: MinimumMatchType, Select, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Select, H, Q]): Seq[(String,String)] = {
 
     //The actual query
-    val p = List(("q" -> qb.clauses.extend))
+    val p = qb.clauses match {
+      case AndClause(clauses: List[AbstractClause]) => clauses.map("q" -> _.extend)
+      case _ => List(("q" -> qb.clauses.extend))
+    }
 
     val s = qb.sort match {
       case None => Nil
