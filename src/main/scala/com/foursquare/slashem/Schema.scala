@@ -462,7 +462,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       val facetedRequest = qb.facetFieldList match {
         case Nil => timeLimmitedRequest
         case _ => {
-          termFacetQuery(qb.facetFieldList).foreach(timeLimmitedRequest.addFacet(_))
+          termFacetQuery(qb.facetFieldList,qb.facetMinCount).foreach(timeLimmitedRequest.addFacet(_))
           timeLimmitedRequest
         }
       }
@@ -542,9 +542,16 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     }
     boostedQuery
   }
-  def termFacetQuery(facetFields: List[Ast.Field]): List[AbstractFacetBuilder] = {
+  def termFacetQuery(facetFields: List[Ast.Field], minCount: Option[Int]): List[AbstractFacetBuilder] = {
     val fieldNames = facetFields.map(_.extend())
-    val facetQueries = fieldNames.map(name => new TermsFacetBuilder(name).field(name))
+    val facetQueries = fieldNames.map(name => {
+      val q = new TermsFacetBuilder(name).field(name)
+      minCount match {
+        case None => q
+        case Some(c) => q.param("min",c)
+      }
+    }
+    )
     facetQueries
   }
   def boostFields(query: ElasticQueryBuilder, boostFields: List[ScoreBoost]): ElasticQueryBuilder =  {
@@ -599,6 +606,12 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
     val ff = qb.facetFieldList match {
       case Nil => Nil
       case _ => ("facet" -> "true")::(qb.facetFieldList.map(field => "facet.field" -> field.extend))
+    }
+
+    //Facet settings
+    val facetSettings = qb.facetMinCount match {
+      case None => Nil
+      case Some(x) => List("facet.mincount" -> x)
     }
 
     //Boost queries only impact scoring

@@ -184,6 +184,14 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
      this.copy(hls=Some("on"), hlFragSize = Some(fragSize))
    }
 
+  /** Set a minimum facet count
+   */
+   def minimumFacetCount(mfc: Int)(implicit ev: (minFacetCount) =:= (NoMinimumFacetCount)):
+  QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting, Q, minFacetCount] = {
+     this.copy(facetMinCount=Some(mfc))
+   }
+
+
 
    /** Turn on quality filtering.
     */
