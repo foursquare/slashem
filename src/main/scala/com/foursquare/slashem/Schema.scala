@@ -402,20 +402,20 @@ trait SlashemSchema[M <: Record[M]] extends Record[M] {
                  fieldsToFetch=Nil, facetFieldList=Nil, facetMinCount=None, hls=None, hlFragSize=None,
                  creator=None, comment=None, fallOf=None, min=None)
   }
-  def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, _]): SearchResults[M, Y]
-  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, _]): Future[SearchResults[M, Y]]
+  def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC]): SearchResults[M, Y]
+  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC]): Future[SearchResults[M, Y]]
 }
 trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   self: M with SlashemSchema[M] =>
 
   def meta: ElasticMeta[M]
 
-  def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, _]):
+  def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC]):
   SearchResults[M, Y] = {
     queryFuture(qb, Some(timeout))(timeout)
   }
 
-  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, _]):
+  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC]):
   Future[SearchResults[M, Y]] = {
     elasticQueryFuture(qb, buildElasticQuery(qb), None)
   }
@@ -424,12 +424,12 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
    * @qb: The query builder representing the query to be executed
    * @timeoutOpt: An option type that requests a server side timeout for the query
    */
-  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, _], timeoutOpt: Option[Duration]):
+  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC], timeoutOpt: Option[Duration]):
   Future[SearchResults[M, Y]] = {
     elasticQueryFuture(qb, buildElasticQuery(qb), timeoutOpt)
   }
 
-  def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, _], query: ElasticQueryBuilder, timeoutOpt: Option[Duration]): Future[SearchResults[M, Y]] = {
+  def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC], query: ElasticQueryBuilder, timeoutOpt: Option[Duration]): Future[SearchResults[M, Y]] = {
     val future : FutureTask[SearchResults[M,Y]]= new FutureTask({
       val client = meta.client
       val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
@@ -462,7 +462,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       val facetedRequest = qb.facetFieldList match {
         case Nil => timeLimmitedRequest
         case _ => {
-          termFacetQuery(qb.facetFieldList,qb.facetMinCount).foreach(timeLimmitedRequest.addFacet(_))
+          termFacetQuery(qb.facetFieldList).foreach(timeLimmitedRequest.addFacet(_))
           timeLimmitedRequest
         }
       }
@@ -526,7 +526,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
                  Response(this, creator, hitCount, start, docs,
                         fallOf=fallOf, min=min, fieldFacet))
   }
-  def buildElasticQuery[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, _]): ElasticQueryBuilder = {
+  def buildElasticQuery[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC]): ElasticQueryBuilder = {
     val baseQuery: ElasticQueryBuilder= qb.clauses.elasticExtend(qb.queryFields,
                                                                  qb.phraseBoostFields,
                                                                  qb.minimumMatch)
@@ -542,14 +542,10 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     }
     boostedQuery
   }
-  def termFacetQuery(facetFields: List[Ast.Field], minCount: Option[Int]): List[AbstractFacetBuilder] = {
+  def termFacetQuery(facetFields: List[Ast.Field]): List[AbstractFacetBuilder] = {
     val fieldNames = facetFields.map(_.extend())
     val facetQueries = fieldNames.map(name => {
       val q = new TermsFacetBuilder(name).field(name)
-      minCount match {
-        case None => q
-        case Some(c) => q.param("min",c)
-      }
     }
     )
     facetQueries
@@ -570,16 +566,16 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
   def meta: SolrMeta[M]
   // 'Where' is the entry method for a SolrRogue query.
 
-  def queryParams[Ord, Lim, MM <: MinimumMatchType, Select, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Select, H, Q, _]): Seq[(String, String)] = queryParamsWithBounds(qb,qb.start, qb.limit)
+  def queryParams[Ord, Lim, MM <: MinimumMatchType, Select, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](qb: QueryBuilder[M, Ord, Lim, MM, Select, H, Q, FC]): Seq[(String, String)] = queryParamsWithBounds(qb,qb.start, qb.limit)
 
-  def queryParamsWithBounds[Ord, Lim, MM <: MinimumMatchType, Select, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Select, H, Q, _], qstart: Option[Long], qrows: Option[Long]): Seq[(String,String)] = {
+  def queryParamsWithBounds[Ord, Lim, MM <: MinimumMatchType, Select, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](qb: QueryBuilder[M, Ord, Lim, MM, Select, H, Q, FC], qstart: Option[Long], qrows: Option[Long]): Seq[(String,String)] = {
     val bounds = List(("start" -> (qstart.getOrElse {qb.DefaultStart}).toString),
                  ("rows" -> (qrows.getOrElse {qb.DefaultLimit}).toString))
     bounds ++ queryParamsNoBounds(qb)
   }
 
   //This is the part which generates most of the solr request
-  def queryParamsNoBounds[Ord, Lim, MM <: MinimumMatchType, Select, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Select, H, Q, _]): Seq[(String,String)] = {
+  def queryParamsNoBounds[Ord, Lim, MM <: MinimumMatchType, Select, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](qb: QueryBuilder[M, Ord, Lim, MM, Select, H, Q, FC]): Seq[(String,String)] = {
 
     //The actual query
     val p = List(("q" -> qb.clauses.extend))
@@ -652,12 +648,12 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
 
 
-  def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, _]):
+  def query[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](timeout: Duration, qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC]):
   SearchResults[M, Y] = {
     queryFuture(qb)(timeout)
   }
 
-  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, _]):
+  def queryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC]):
   Future[SearchResults[M, Y]] = {
     solrQueryFuture(qb.creator, queryParams(qb), qb.fieldsToFetch, qb.fallOf, qb.min)
   }

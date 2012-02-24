@@ -177,6 +177,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(3,r.response.fieldFacets.get("foreign").get("pants"))
   }
 
+
   @Test
   def testFieldBoost {
     val r1 = ESimplePanda where (_.magic contains "yes") fetch()

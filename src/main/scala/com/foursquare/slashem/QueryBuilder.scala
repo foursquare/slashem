@@ -99,7 +99,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   }
 
   /** Add a field based facet */
-  def facetField[F](f: M => SlashemField[F,M]) = {
+  def facetField[F](f: M => SlashemField[F,M]): QueryBuilder[M, Ord, Lim, MM, Y, H, Q, minFacetCount] = {
     this.copy(facetFieldList=Field(f(meta).name)::facetFieldList)
   }
 
@@ -184,14 +184,13 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
      this.copy(hls=Some("on"), hlFragSize = Some(fragSize))
    }
 
-  /** Set a minimum facet count
+  /** Set a minimum facet match count
+   * Not supported with elastic search
    */
    def minimumFacetCount(mfc: Int)(implicit ev: (minFacetCount) =:= (NoMinimumFacetCount)):
-  QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting, Q, minFacetCount] = {
+  QueryBuilder[M, Ord, Lim, MM, Y, YesHighlighting, Q, MinimumFacetCount] = {
      this.copy(facetMinCount=Some(mfc))
    }
-
-
 
    /** Turn on quality filtering.
     */
