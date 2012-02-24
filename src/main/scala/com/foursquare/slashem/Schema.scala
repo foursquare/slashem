@@ -464,7 +464,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       val facetedRequest = qb.facetSettings.facetFieldList match {
         case Nil => timeLimmitedRequest
         case _ => {
-          termFacetQuery(qb.facetSettings.facetFieldList).foreach(timeLimmitedRequest.addFacet(_))
+          termFacetQuery(qb.facetSettings.facetFieldList, qb.facetSettings.facetLimit).foreach(timeLimmitedRequest.addFacet(_))
           timeLimmitedRequest
         }
       }
@@ -544,11 +544,17 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     }
     boostedQuery
   }
-  def termFacetQuery(facetFields: List[Ast.Field]): List[AbstractFacetBuilder] = {
+  def termFacetQuery(facetFields: List[Ast.Field], facetLimit: Option[Int]): List[AbstractFacetBuilder] = {
     val fieldNames = facetFields.map(_.extend())
     val facetQueries = fieldNames.map(name => {
       val q = new TermsFacetBuilder(name).field(name)
-      q
+      facetLimit match {
+        case Some(c) => {
+          println("using size of "+c);
+          q.size(c)
+        }
+        case _ => q
+      }
     }
     )
     facetQueries
@@ -608,10 +614,13 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
     }
 
     //Facet settings
-    val facetSettings = qb.facetSettings.facetMinCount match {
+    val fs = (qb.facetSettings.facetMinCount match {
       case None => Nil
-      case Some(x) => List("facet.mincount" -> x)
-    }
+      case Some(x) => List("facet.mincount" -> x.toString)
+    }) ++ (qb.facetSettings.facetLimit match {
+      case None => Nil
+      case Some(x) => List("facet.limit" -> x.toString)
+    })
 
     //Boost queries only impact scoring
     val bq = qb.boostQueries.map({ x => ("bq" -> x.extend)})
@@ -647,7 +656,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
       case Some(a) => List("comment" -> a)
     }
 
-     ct ++ t ++ mm ++ qt ++ bq ++ qf ++ p ++ s ++ f ++ pf ++ fl ++ bf ++ hlp ++ ff
+     ct ++ t ++ mm ++ qt ++ bq ++ qf ++ p ++ s ++ f ++ pf ++ fl ++ bf ++ hlp ++ ff ++ fs
   }
 
 
