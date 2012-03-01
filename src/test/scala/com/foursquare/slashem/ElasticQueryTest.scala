@@ -178,6 +178,15 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
+  def testMaxCountFieldFaceting {
+    val r = ESimplePanda where (_.name contains "loler skates") facetField(_.foreign) facetLimit(1) fetch()
+    Assert.assertEquals(4,r.response.results.length)
+    Assert.assertEquals(Some(None),r.response.fieldFacets.get("foreign").map(_.get("b")))
+    Assert.assertEquals(3,r.response.fieldFacets.get("foreign").get("pants"))
+  }
+
+
+  @Test
   def testFieldBoost {
     val r1 = ESimplePanda where (_.magic contains "yes") fetch()
     val r2 = ESimplePanda where (_.magic contains "yes") boostField(_.followers,10) fetch()
