@@ -625,7 +625,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
     //Boost queries only impact scoring
     val bq = qb.boostQueries.map({ x => ("bq" -> x.extend)})
 
-    val qf = qb.queryFields.filter({x => x.boost != 0}).map({x => ("qf" -> x.extend)})
+    val qf = qb.queryFields.filter({x => x.weight != 0}).map({x => ("qf" -> x.extend)})
 
     val pf = qb.phraseBoostFields.filter(x => x.pf).map({x => ("pf" -> x.extend)})++
     qb.phraseBoostFields.filter(x => x.pf2).map({x => ("pf2" -> x.extend)})++
@@ -779,6 +779,9 @@ class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owne
       case _ => Empty
     }
   }
+/*  override def contains(v: Iterable[Int]) = {
+    Clause[Iterable[Int]](queryName, Helpers.groupWithOr(v.map({x: Int => BagOfWords(x)})))
+  }*/
 }
 
 class SlashemStringListField[T <: Record[T]](owner: T) extends StringListField[T](owner) with SlashemField[List[String], T] {
@@ -985,6 +988,9 @@ class StringListField[T <: Record[T]](override val owner: T) extends Field[List[
       case _ => Empty
     }
   }
+/*  def contains(lst: Seq[String]) = {
+    Clause[Seq[String]]
+  }*/
   override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
   override def liftSetFilterToBox(a: Box[ValueType]) = Empty
   override def toBoxMyType(a: ValueType) = Empty
