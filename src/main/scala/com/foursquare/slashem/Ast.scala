@@ -164,7 +164,7 @@ object Ast {
         case Splat() => query
         case _ => Group(query)
       }
-      //If a field does not have a name then do not attempt to specify it
+      // If a field does not have a name then do not attempt to specify it
       val qstr = fieldName match {
         case "" => q.extend()
         case x => x + ":" + q.extend()
@@ -209,7 +209,7 @@ object Ast {
   }
 
   /**
-   * Class representing a field that can be boosted.
+   * Class representing a field that can have its score boosted.
    * @see ScoreBoost
    */
   case class Field(fieldName: String) extends ScoreBoost {
@@ -222,7 +222,7 @@ object Ast {
   }
 
   /**
-   * A boostable field with a query weight
+   * Class representing a field that can have its score boosted by a weight.
    * @see ScoreBoost
    */
   case class WeightedField(fieldName: String, weight: Double = 1) extends ScoreBoost {
@@ -240,7 +240,8 @@ object Ast {
     }
   }
 
-  /**A phrase weighted field. Results in a document scoring bost
+  /**
+   * A phrase weighted field. Results in a document scoring boost
    * @param pf Traditional phrase query
    * @param pf2 In edismax type queries two word shingle matches
    * @param pf3 In edismax type queries three word shingle matches
@@ -264,10 +265,28 @@ object Ast {
    * @define elasticFilter
    */
   abstract class Query[T]() {
+    /**
+     * @return String Query's string representation
+     */
     def extend(): String
+    /**
+     * Combine two queries using an AND
+     * @see And
+     */
     def and(c: Query[T]): Query[T] = And(this, c)
+    /**
+     * Combine two queries using an Or
+     * @see Or
+     */
     def or(c: Query[T]): Query[T] = Or(this, c)
-    def boost(b: Float): Query[T] = Boost(this, b)
+    /**
+     * Boost a query by a weight
+     * @see Boost
+     */
+    def boost(weight: Float): Query[T] = Boost(this, weight)
+    /**
+     * @return String Query's string representation
+     */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder
     def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
       EFilterBuilders.queryFilter(this.elasticExtend(qf, Nil, None))
@@ -293,12 +312,14 @@ object Ast {
   }
 
   case class GeoDist(name: String, lat: Double, lng: Double, distType: String = "") extends ScoreBoost {
+    /** @inheritdoc */
     def boost(): String = {
       distType match {
         case "square" => "sqedist(%s,%s,%s)".format(lat,lng,name)
         case _ => "dist(2,%s,%s,%s)".format(lat,lng,name)
       }
     }
+    /** @inheritdoc */
     def elasticBoost(): String = {
       val distanceInKm = "doc['%s'].distanceInKm(%s,%s)".format(name,lat,lng)
       distType match {
@@ -309,12 +330,16 @@ object Ast {
   }
 
   case class Recip(query: ScoreBoost, x: Int, y: Int, z: Int) extends ScoreBoost {
+    /** @inheritdoc */
     def boost: String = "recip(%s,%d,%d,%d)".format(query.boost, x, y, z)
+    /** @inheritdoc */
     def elasticBoost(): String = "%d.0*pow(((%d.0*(%s))+%d.0),-1.0)".format(y, x, query.elasticBoost(), z)
   }
 
   case class Empty[T]() extends Query[T] {
+    /** @inheritdoc */
     def extend(): String = "\"\""
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.queryString(this.extend())
       qf.map(f => q.field(f.fieldName,f.weight.toFloat))
@@ -323,7 +348,9 @@ object Ast {
   }
 
   case class Phrase[T](query: T, escaped: Boolean = true) extends Query[T] {
+    /** @inheritdoc */
     def extend(): String = {'"' + escape(query.toString) + '"'}
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.queryString(this.extend())
       qf.map(f => q.field(f.fieldName,f.weight.toFloat))
@@ -332,7 +359,9 @@ object Ast {
   }
 
   case class PhrasePrefix[T](query: T, escaped: Boolean = true) extends Query[T] {
+    /** @inheritdoc */
     def extend(): String = {'"' + escape(query.toString) + '*' + '"'}
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.disMaxQuery()
       q.tieBreaker(1)
@@ -351,7 +380,9 @@ object Ast {
 
 
   case class Range[T](q1: Query[T],q2: Query[T]) extends Query[T] {
+    /** @inheritdoc */
     def extend(): String = {'[' + q1.extend() + " TO " + q2.extend() +']'}
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.rangeQuery(qf.head.fieldName)
       q.from(q1)
@@ -370,7 +401,9 @@ object Ast {
   //and the list of phrase boost fields and generate
   //corresponding phrase boost queries.
   case class BagOfWords[T](query: T) extends Query[T] {
+    /** @inheritdoc */
     def extend(): String = escape(query.toString)
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val normalq = EQueryBuilders.queryString(this.extend())
       //If we are matching 100% then set operation to "and"
@@ -403,7 +436,9 @@ object Ast {
   }
 
   case class Group[T](items: Query[T]) extends Query[T] {
+    /** @inheritdoc */
     def extend(): String = {"(%s)".format(items.extend)}
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       items.elasticExtend(qf, pf, mm)
     }
@@ -413,25 +448,12 @@ object Ast {
     }
   }
 
-
-  // Override the constructor for Group so that it gobbles nested Groups, ie
-  // Group(Group(foo))) => Group(foo)
-  // Fails to compile with 'method apply is defined twice'
-/*  object Group {
-    def apply[T](items: Query[T]) = {
-      new Group(Phrase("asdf"))}
-      items match {
-        case x: Group[_] => items
-        case x => new Group(x)
-      }
-    }
-  } */
-
-
   case class And[T](queries: Query[T]*) extends Query[T] {
+    /** @inheritdoc */
     def extend(): String = {
       "(" + queries.map(c => c.extend()).mkString(" AND ") + ")"
     }
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val eqb = EQueryBuilders.boolQuery
       // Extend the queries and add them to the ElasticQueryBuilder
@@ -445,9 +467,11 @@ object Ast {
   }
 
   case class Or[T](queries: Query[T]*) extends Query[T] {
+    /** @inheritdoc */
     def extend(): String = {
       queries.map(c => c.extend()).mkString(" OR ")
     }
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val query = EQueryBuilders.boolQuery
       queries.map(q => q.elasticExtend(qf, pf, mm)).map(q => query.should(q))
@@ -460,7 +484,9 @@ object Ast {
   }
 
   case class Splat[T]() extends Query[T] {
+    /** @inheritdoc */
     def extend(): String = "*"
+    /** @inheritdoc */
     //Is there a better way to do this?
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.queryString(this.extend())
@@ -470,7 +496,9 @@ object Ast {
   }
 
   case class Boost[T](q: Query[T], weight: Float) extends Query[T] {
+    /** @inheritdoc */
     def extend(): String = q.extend() + "^" + weight.toString
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val boostedQuery = EQueryBuilders.boostingQuery
       if (weight > 0) {
