@@ -448,8 +448,8 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
         case Some(Pair(Field(fieldName),"asc")) => baseRequest.addSort(fieldName,SortOrder.ASC)
         case Some(Pair(Field(fieldName),"desc")) => baseRequest.addSort(fieldName,SortOrder.DESC)
         //Handle sorting by scripts in general
-        case Some(Pair(sort,"asc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticExtend(),"number").order(SortOrder.ASC))
-        case Some(Pair(sort,"desc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticExtend(),"number").order(SortOrder.DESC))
+        case Some(Pair(sort,"asc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticBoost(),"number").order(SortOrder.ASC))
+        case Some(Pair(sort,"desc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticBoost(),"number").order(SortOrder.DESC))
 
         case _ => baseRequest
       }
@@ -545,7 +545,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     boostedQuery
   }
   def termFacetQuery(facetFields: List[Ast.Field], facetLimit: Option[Int]): List[AbstractFacetBuilder] = {
-    val fieldNames = facetFields.map(_.extend())
+    val fieldNames = facetFields.map(_.boost())
     val facetQueries = fieldNames.map(name => {
       val q = new TermsFacetBuilder(name).field(name)
       facetLimit match {
@@ -561,7 +561,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
   def boostFields(query: ElasticQueryBuilder, boostFields: List[ScoreBoost]): ElasticQueryBuilder =  {
     val boostedQuery = new CustomScoreQueryBuilder(query)
-    val scoreScript = "_score * (1 +"+(boostFields.map(_.elasticExtend).mkString(" + ") + " )")
+    val scoreScript = "_score * (1 +"+(boostFields.map(_.elasticBoost).mkString(" + ") + " )")
     boostedQuery.script(scoreScript)
   }
   def combineFilters(filters: List[ElasticFilterBuilder]): ElasticFilterBuilder = {
@@ -591,7 +591,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
 
     val s = qb.sort match {
       case None => Nil
-      case Some(sort) => List("sort" -> (sort._1.extend + " " + sort._2))
+      case Some(sort) => List("sort" -> (sort._1.boost + " " + sort._2))
     }
 
     //The query type. Most likely edismax or dismax
@@ -610,7 +610,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
     //Facet field
     val ff = qb.facetSettings.facetFieldList match {
       case Nil => Nil
-      case _ => ("facet" -> "true")::(qb.facetSettings.facetFieldList.map(field => "facet.field" -> field.extend))
+      case _ => ("facet" -> "true")::(qb.facetSettings.facetFieldList.map(field => "facet.field" -> field.boost))
     }
 
     //Facet settings
@@ -625,7 +625,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
     //Boost queries only impact scoring
     val bq = qb.boostQueries.map({ x => ("bq" -> x.extend)})
 
-    val qf = qb.queryFields.filter({x => x.weight != 0}).map({x => ("qf" -> x.extend)})
+    val qf = qb.queryFields.filter({x => x.weight != 0}).map({x => ("qf" -> x.boost)})
 
     val pf = qb.phraseBoostFields.filter(x => x.pf).map({x => ("pf" -> x.extend)})++
     qb.phraseBoostFields.filter(x => x.pf2).map({x => ("pf2" -> x.extend)})++
@@ -647,7 +647,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
       case (None,_) => Nil
     }
 
-    val bf = qb.boostFields.map({x => ("bf" -> x.extend)})
+    val bf = qb.boostFields.map({x => ("bf" -> x.boost)})
 
     val f = qb.filters.map({x => ("fq" -> x.extend)})
 

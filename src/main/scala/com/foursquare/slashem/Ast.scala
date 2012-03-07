@@ -104,16 +104,12 @@ object Ast {
    * You can use a OrClause() to join two or more clauses with an OR
    */
   case class OrClause(clauses: List[AbstractClause]) extends AbstractClause {
-    /**
-     * @inheritdoc
-     */
+    /** @inheritdoc */
     def extend(): String = {
       clauses.map(c => "(" + c.extend + ")").mkString(" OR ")
     }
 
-    /**
-     * @inheritdoc
-     */
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField],
                       mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.boolQuery
@@ -133,15 +129,11 @@ object Ast {
    * Case class representing a list of clauses ANDed together
    */
   case class AndClause(clauses: List[AbstractClause]) extends AbstractClause {
-    /**
-     * @inheritdoc
-     */
+    /** @inheritdoc */
     def extend(): String = {
       clauses.map(c => "(" + c.extend() + ")").mkString(" AND ")
     }
-    /**
-     * @inheritdoc
-     */
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField],
                       mm: Option[String]): ElasticQueryBuilder = {
       val query = EQueryBuilders.boolQuery
@@ -165,9 +157,7 @@ object Ast {
    * @param plus Defaults to true, used to negate queries (by setting to false).
    */
   case class Clause[T](fieldName: String, query: Query[T], plus: Boolean = true) extends AbstractClause {
-    /**
-     * @inheritdoc
-     */
+    /** @inheritdoc */
     def extend(): String = {
       val q = query match {
         case Group(x) => query
@@ -188,9 +178,7 @@ object Ast {
       }
     }
 
-    /**
-     * @inheritdoc
-     */
+    /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField],
                       mm: Option[String]): ElasticQueryBuilder = {
       // Support extending specific fields.
@@ -205,9 +193,7 @@ object Ast {
       }
     }
 
-    /**
-     * @inheritdoc
-     */
+    /** @inheritdoc */
     override def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
       // Support extending specific fields.
       val fields = fieldName match {
@@ -223,26 +209,30 @@ object Ast {
   }
 
   /**
-   * Class representing a field
+   * Class representing a field that can be boosted.
+   * @see ScoreBoost
    */
   case class Field(fieldName: String) extends ScoreBoost {
-    def extend(): String = {
+    def boost(): String = {
       fieldName
     }
-    def elasticExtend(): String = {
+    def elasticBoost(): String = {
       "(doc['" + fieldName + "'].value)"
     }
   }
 
-  //A field with a query weight
+  /**
+   * A boostable field with a query weight
+   * @see ScoreBoost
+   */
   case class WeightedField(fieldName: String, weight: Double = 1) extends ScoreBoost {
-    def extend(): String = {
+    def boost(): String = {
       weight match {
         case 1.0 => fieldName
         case x: Double => fieldName + "^" + x.toString
       }
     }
-    def elasticExtend(): String = {
+    def elasticBoost(): String = {
       weight match {
         case 1.0 => "(doc['" + fieldName + "'].value)"
         case _ => "(doc['" + fieldName + "'].value *" + weight.toString + ")"
@@ -250,11 +240,13 @@ object Ast {
     }
   }
 
-  //A phrase weighted field. Results in a document scoring bost
-  //pf => traditional phrase query
-  //pf2 => in edismax type queries two word shingle matches
-  //pf3 => in edismax type queries three word shingle matches
-  case class PhraseWeightedField(fieldName: String, weight: Double = 1, pf: Boolean, pf2: Boolean, pf3: Boolean) {
+  /**A phrase weighted field. Results in a document scoring bost
+   * @param pf Traditional phrase query
+   * @param pf2 In edismax type queries two word shingle matches
+   * @param pf3 In edismax type queries three word shingle matches
+   */
+  case class PhraseWeightedField(fieldName: String, weight: Double = 1,
+                                 pf: Boolean, pf2: Boolean, pf3: Boolean) {
     def extend(): String = {
       weight match {
         case 1.0 => fieldName
@@ -263,6 +255,14 @@ object Ast {
     }
   }
 
+  /**
+   * Abstarct Query class that provides an API for common query operations.
+   * @define extend
+   * @define and
+   * @define boost
+   * @define elasticExtend
+   * @define elasticFilter
+   */
   abstract class Query[T]() {
     def extend(): String
     def and(c: Query[T]): Query[T] = And(this, c)
@@ -282,18 +282,24 @@ object Ast {
    * a field
    */
   abstract class ScoreBoost {
-    def extend(): String
-    def elasticExtend(): String
+    /**
+     * Solr field boost function
+     */
+    def boost(): String
+    /**
+     * Elastic Search field boost function
+     */
+    def elasticBoost(): String
   }
 
   case class GeoDist(name: String, lat: Double, lng: Double, distType: String = "") extends ScoreBoost {
-    def extend(): String = {
+    def boost(): String = {
       distType match {
         case "square" => "sqedist(%s,%s,%s)".format(lat,lng,name)
         case _ => "dist(2,%s,%s,%s)".format(lat,lng,name)
       }
     }
-    def elasticExtend(): String = {
+    def elasticBoost(): String = {
       val distanceInKm = "doc['%s'].distanceInKm(%s,%s)".format(name,lat,lng)
       distType match {
         case "square" => "pow(%s,2.0)".format(distanceInKm)
@@ -303,8 +309,8 @@ object Ast {
   }
 
   case class Recip(query: ScoreBoost, x: Int, y: Int, z: Int) extends ScoreBoost {
-    def extend: String = "recip(%s,%d,%d,%d)".format(query.extend, x, y, z)
-    def elasticExtend(): String = "%d.0*pow(((%d.0*(%s))+%d.0),-1.0)".format(y, x, query.elasticExtend(), z)
+    def boost: String = "recip(%s,%d,%d,%d)".format(query.boost, x, y, z)
+    def elasticBoost(): String = "%d.0*pow(((%d.0*(%s))+%d.0),-1.0)".format(y, x, query.elasticBoost(), z)
   }
 
   case class Empty[T]() extends Query[T] {
