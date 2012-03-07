@@ -336,6 +336,9 @@ object Ast {
     def elasticBoost(): String = "%d.0*pow(((%d.0*(%s))+%d.0),-1.0)".format(y, x, query.elasticBoost(), z)
   }
 
+  /**
+   * An empty Query.
+   */
   case class Empty[T]() extends Query[T] {
     /** @inheritdoc */
     def extend(): String = "\"\""
@@ -347,17 +350,26 @@ object Ast {
     }
   }
 
+  /**
+   * A phrase containing a query that is optionally escaped.
+   *
+   * Represents a contiguous series of words to be matched in that order.
+   */
   case class Phrase[T](query: T, escaped: Boolean = true) extends Query[T] {
     /** @inheritdoc */
     def extend(): String = {'"' + escape(query.toString) + '"'}
     /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.queryString(this.extend())
-      qf.map(f => q.field(f.fieldName,f.weight.toFloat))
+      qf.map(f => q.field(f.fieldName, f.weight.toFloat))
       q
     }
   }
 
+  /**
+   * A Phrase Prefix.
+   * @see Phrase
+   */
   case class PhrasePrefix[T](query: T, escaped: Boolean = true) extends Query[T] {
     /** @inheritdoc */
     def extend(): String = {'"' + escape(query.toString) + '*' + '"'}
@@ -396,25 +408,31 @@ object Ast {
     }
   }
 
-
-  //We take a look at the list of fields being queried
-  //and the list of phrase boost fields and generate
-  //corresponding phrase boost queries.
+  /**
+   * A class representing a Bag of words style query
+   */
   case class BagOfWords[T](query: T) extends Query[T] {
     /** @inheritdoc */
     def extend(): String = escape(query.toString)
-    /** @inheritdoc */
+
+    /**
+     * @inheritdoc
+     *
+     * We take a look at the list of fields being queried
+     * and the list of phrase boost fields and generate
+     * corresponding phrase boost queries.
+     */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val normalq = EQueryBuilders.queryString(this.extend())
-      //If we are matching 100% then set operation to "and"
+      // If we are matching 100% then set operation to "and"
       mm match {
         case Some("100%") => normalq.defaultOperator(QueryStringQueryBuilder.Operator.AND)
         case _ => {}
       }
       // Update the normal query with the query fields' names and their weights
-      qf.map(f => normalq.field(f.fieldName,f.weight.toFloat))
+      qf.map(f => normalq.field(f.fieldName, f.weight.toFloat))
       val qfnames: Set[String] = qf.map(_.fieldName).toSet
-      val queriesToGen = pf.filter(qfnames contains _.fieldName)
+      val queriesToGen = pf.filter(pwf => {qfnames contains pwf.fieldName})
       queriesToGen match {
         case Nil => normalq
         case _ => {
@@ -422,7 +440,7 @@ object Ast {
           q.tieBreaker(1)
           q.add(normalq)
           queriesToGen.map(pwf => {
-            val basePhrase = EQueryBuilders.textPhraseQuery(pwf.fieldName,this.extend())
+            val basePhrase = EQueryBuilders.textPhraseQuery(pwf.fieldName, this.extend())
             val phraseQuery = pwf.weight match {
               case 1 => basePhrase
               case _ => basePhrase.boost(pwf.weight.toFloat)
@@ -435,6 +453,9 @@ object Ast {
     }
   }
 
+  /**
+   * Class representing a semantic grouping of Queries
+   */
   case class Group[T](items: Query[T]) extends Query[T] {
     /** @inheritdoc */
     def extend(): String = {"(%s)".format(items.extend)}
@@ -448,6 +469,9 @@ object Ast {
     }
   }
 
+  /**
+   * Class representing clauses ANDed together
+   */
   case class And[T](queries: Query[T]*) extends Query[T] {
     /** @inheritdoc */
     def extend(): String = {
@@ -465,7 +489,9 @@ object Ast {
       EFilterBuilders.andFilter(queries.map(_.elasticFilter(qf)):_*)
     }
   }
-
+  /**
+   * Case class representing a list of clauses ORed together
+   */
   case class Or[T](queries: Query[T]*) extends Query[T] {
     /** @inheritdoc */
     def extend(): String = {
@@ -490,11 +516,14 @@ object Ast {
     //Is there a better way to do this?
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.queryString(this.extend())
-      qf.map(f => q.field(f.fieldName,f.weight.toFloat))
+      qf.map(f => q.field(f.fieldName, f.weight.toFloat))
       q
     }
   }
 
+  /**
+   * Class representing a Query boosted by a weight.
+   */
   case class Boost[T](q: Query[T], weight: Float) extends Query[T] {
     /** @inheritdoc */
     def extend(): String = q.extend() + "^" + weight.toString
