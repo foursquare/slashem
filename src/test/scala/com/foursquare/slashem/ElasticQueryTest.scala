@@ -20,8 +20,9 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.xcontent.XContentFactory._;
 
 import java.util.concurrent.TimeUnit
-import java.util.UUID;
+import java.util.UUID
 
+import scalaj.collection.Imports._
 
 object ElasticNode {
   val myUUID = UUID.randomUUID();
@@ -227,6 +228,22 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
   }
 
+  @Test
+  def testListFieldContains {
+    val response1 = ESimplePanda where (_.favnums contains 2) fetch()
+    val response2 = ESimplePanda where (_.favnums contains 6) fetch()
+    val response3 = ESimplePanda where (_.nicknames contains "xzibit") fetch()
+    val response4 = ESimplePanda where (_.nicknames contains "alvin") fetch()
+    val response5 = ESimplePanda where (_.nicknames contains "dawg") fetch()
+    val response6 = ESimplePanda where (_.favnums contains 9001) fetch()
+    Assert.assertEquals(response1.response.results.length, 2)
+    Assert.assertEquals(response2.response.results.length, 1)
+    Assert.assertEquals(response3.response.results.length, 2)
+    Assert.assertEquals(response4.response.results.length, 2)
+    Assert.assertEquals(response5.response.results.length, 1)
+    Assert.assertEquals(response6.response.results.length, 0)
+  }
+
   @Before
   def hoboPrepIndex() {
     ESimplePanda.meta.node = ElasticNode.node
@@ -272,10 +289,18 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
 
 
     //Set up the regular pandas
+    val favnums1 = List(1, 2, 3, 4, 5).asJava
+    val favnums2 = List(1, 2, 3, 4, 5).asJava
+    val favnums3 = List(6, 7, 8, 9, 10).asJava
+    val nicknames1 = List("jerry", "dawg", "xzibit").asJava
+    val nicknames2 = List("xzibit", "alvin").asJava
+    val nicknames3 = List("alvin", "nathaniel", "joiner").asJava
     val r = client.prepareIndex(ESimplePanda.meta.indexName,ESimplePanda.meta.docType,"4c809f4251ada1cdc3790b10").setSource(jsonBuilder()
                                                                           .startObject()
                                                                           .field("name","lolerskates")
                                                                           .field("id","4c809f4251ada1cdc3790b10")
+                                                                          .field("favnums", favnums1)
+                                                                          .field("nicknames", nicknames1)
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -286,6 +311,8 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("hobos","hobos")
                                                                           .field("id","4c809f4251ada1cdc3790b11")
                                                                           .field("foreign","pants")
+                                                                          .field("favnums", favnums2)
+                                                                          .field("nicknames", nicknames2)
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -297,6 +324,8 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("magic","yes yes")
                                                                           .field("id","4c809f4251ada1cdc3790b12")
                                                                           .field("foreign","pants")
+                                                                          .field("favnums", favnums3)
+                                                                          .field("nicknames", nicknames3)
                                                                           .endObject()
       ).execute()
     .actionGet();
