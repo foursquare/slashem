@@ -1,4 +1,4 @@
-// Copyright 2011 Foursquare Labs Inc. All Rights Reserved.
+// Copyright 2012 Foursquare Labs Inc. All Rights Reserved.
 
 package com.foursquare.slashem
 
@@ -793,21 +793,21 @@ class SlashemObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](ow
 }
 class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owner) with SlashemField[List[Int], T] {
   override def valueBoxFromAny(a: Any) = {
-  try {
-    a match {
-      case "" => Empty
-      case ar: Array[Int] => Full(ar.toList)
-      case ar: Array[Integer] => Full(ar.toList.map(x=>x.intValue))
-      case s: String => Full(s.split(" ").map(x => x.toInt).toList)
-      case _ => Empty
-    }
+    try {
+      a match {
+        case "" => Empty
+        case ar: Array[Int] => Full(ar.toList)
+        case ar: Array[Integer] => Full(ar.toList.map(x=>x.intValue))
+        case s: String => Full(s.split(" ").map(x => x.toInt).toList)
+        case _ => Empty
+      }
     } catch {
       case _ => Empty
     }
   }
-/*  override def contains(v: Iterable[Int]) = {
-    Clause[Iterable[Int]](queryName, Helpers.groupWithOr(v.map({x: Int => BagOfWords(x)})))
-  }*/
+  def contains(item: Int) = {
+    Clause[Int](queryName, Phrase(item))
+  }
 }
 
 class SlashemStringListField[T <: Record[T]](owner: T) extends StringListField[T](owner) with SlashemField[List[String], T] {
@@ -823,6 +823,9 @@ class SlashemStringListField[T <: Record[T]](owner: T) extends StringListField[T
     } catch {
       case _ => Empty
     }
+  }
+  def contains(item: String) = {
+    Clause[String](queryName, Phrase(item))
   }
 }
 
@@ -1014,9 +1017,6 @@ class StringListField[T <: Record[T]](override val owner: T) extends Field[List[
       case _ => Empty
     }
   }
-/*  def contains(lst: Seq[String]) = {
-    Clause[Seq[String]]
-  }*/
   override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
   override def liftSetFilterToBox(a: Box[ValueType]) = Empty
   override def toBoxMyType(a: ValueType) = Empty
