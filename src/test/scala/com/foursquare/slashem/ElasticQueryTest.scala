@@ -236,12 +236,18 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val response4 = ESimplePanda where (_.nicknames contains "alvin") fetch()
     val response5 = ESimplePanda where (_.nicknames contains "dawg") fetch()
     val response6 = ESimplePanda where (_.favnums contains 9001) fetch()
+    val response7 = ESimplePanda where (_.hugenums contains 1L) fetch()
+    val response8 = ESimplePanda where (_.hugenums contains 9L) fetch()
+    val response9 = ESimplePanda where (_.hugenums contains 9001L) fetch()
     Assert.assertEquals(response1.response.results.length, 2)
     Assert.assertEquals(response2.response.results.length, 1)
     Assert.assertEquals(response3.response.results.length, 2)
     Assert.assertEquals(response4.response.results.length, 2)
     Assert.assertEquals(response5.response.results.length, 1)
     Assert.assertEquals(response6.response.results.length, 0)
+    Assert.assertEquals(response7.response.results.length, 2)
+    Assert.assertEquals(response8.response.results.length, 1)
+    Assert.assertEquals(response9.response.results.length, 0)
   }
 
   @Before
@@ -295,12 +301,16 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val nicknames1 = List("jerry", "dawg", "xzibit").asJava
     val nicknames2 = List("xzibit", "alvin").asJava
     val nicknames3 = List("alvin", "nathaniel", "joiner").asJava
+    val hugenums1 = List(1L, 2L, 3L).asJava
+    val hugenums2 = List(1L, 9L, 8L).asJava
+    val hugenums3 = List(7L, 10L, 13L).asJava
     val r = client.prepareIndex(ESimplePanda.meta.indexName,ESimplePanda.meta.docType,"4c809f4251ada1cdc3790b10").setSource(jsonBuilder()
                                                                           .startObject()
                                                                           .field("name","lolerskates")
                                                                           .field("id","4c809f4251ada1cdc3790b10")
                                                                           .field("favnums", favnums1)
                                                                           .field("nicknames", nicknames1)
+                                                                          .field("hugenums", hugenums1)
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -313,6 +323,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("foreign","pants")
                                                                           .field("favnums", favnums2)
                                                                           .field("nicknames", nicknames2)
+                                                                          .field("hugenums", hugenums2)
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -326,6 +337,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("foreign","pants")
                                                                           .field("favnums", favnums3)
                                                                           .field("nicknames", nicknames3)
+                                                                          .field("hugenums", hugenums3)
                                                                           .endObject()
       ).execute()
     .actionGet();
