@@ -18,7 +18,7 @@ import org.elasticsearch.search.sort.{ScriptSortBuilder, SortOrder}
 import org.elasticsearch.search.facet.AbstractFacetBuilder
 import org.elasticsearch.search.facet.terms.TermsFacetBuilder
 import org.elasticsearch.search.facet.terms.strings.InternalStringTermsFacet
-import org.elasticsearch.client.action.search.SearchRequestBuilder
+import org.elasticsearch.action.search.SearchRequestBuilder
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.unit.TimeValue
 import org.elasticsearch.common.transport.InetSocketTransportAddress
@@ -438,7 +438,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       val limit =  qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit)
       meta.logger.debug("Query details "+query.toString())
       val baseRequest: SearchRequestBuilder = client.prepareSearch(meta.indexName)
-      .setQuery(query.buildAsBytes())
+      .setQuery(query)
       .setFrom(from)
       .setSize(limit)
       .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
