@@ -1,4 +1,4 @@
-// Copyright 2012 Foursquare Labs Inc. All Rights Reserved.
+// Copyright 2011-2012 Foursquare Labs Inc. All Rights Reserved.
 
 package com.foursquare.slashem
 

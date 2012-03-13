@@ -1,4 +1,4 @@
-// Copyright 2012 Foursquare Labs Inc. All Rights Reserved.
+// Copyright 2011-2012 Foursquare Labs Inc. All Rights Reserved.
 
 package com.foursquare.slashem
 
@@ -74,7 +74,7 @@ case class Response[T <: Record[T], Y](schema: T, creator: Option[Response.RawDo
   val filteredDocs: Array[Response.RawDoc] = filterHighQuality(docs)
 
   /**
-   * Gets a List[T] of high scoring docs returned from Lucene.
+   * Gets a List[T] of docs returned from Lucene.
    */
   def results[T <: Record[T]](B: Record[T]): List[T] = {
     filteredDocs.map(fd => {

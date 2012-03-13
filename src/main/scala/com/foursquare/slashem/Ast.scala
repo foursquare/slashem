@@ -1,4 +1,4 @@
-// Copyright 2012 Foursquare Labs Inc. All Rights Reserved.
+// Copyright 2011-2012 Foursquare Labs Inc. All Rights Reserved.
 
 package com.foursquare.slashem
 
@@ -51,7 +51,7 @@ object Ast {
    */
   abstract class AbstractClause {
     /**
-     * Returns the clause's string representation
+     * Returns the clause's Solr query format string representation
      */
     def extend(): String
     /**
@@ -222,7 +222,8 @@ object Ast {
   }
 
   /**
-   * Class representing a field that can have its score boosted by a weight.
+   * Class representing a boost (multiplier) for matches occuring in the
+   * given field
    * @see ScoreBoost
    */
   case class WeightedField(fieldName: String, weight: Double = 1) extends ScoreBoost {
@@ -266,7 +267,7 @@ object Ast {
    */
   abstract class Query[T]() {
     /**
-     * @return String Query's string representation
+     * @return String Query's Solr query format  string representation
      */
     def extend(): String
     /**
@@ -285,7 +286,7 @@ object Ast {
      */
     def boost(weight: Float): Query[T] = Boost(this, weight)
     /**
-     * @return String Query's string representation
+     * @return String Query's elastic query string representation
      */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder
     def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
@@ -295,10 +296,6 @@ object Ast {
 
   /**
    * A class that provides and API for boosting the score of a field.
-   *
-   * Name doesn't have to be a field name for Solr
-   * it could be "lat,lng". However for ES it must be
-   * a field
    */
   abstract class ScoreBoost {
     /**
@@ -311,6 +308,11 @@ object Ast {
     def elasticBoost(): String
   }
 
+  /**
+   * Name doesn't have to be a field name for Solr
+   * it could be "lat,lng". However for ES it must be
+   * a field
+   */
   case class GeoDist(name: String, lat: Double, lng: Double, distType: String = "") extends ScoreBoost {
     /** @inheritdoc */
     def boost(): String = {
