@@ -321,8 +321,8 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
       val facetCounts = rsr.facetCounts
 
       val facets: Map[String,Map[String,Int]] = if (facetCounts != null) {
-        facetCounts.facetFields.asScala.map(magic => {
-          (magic._1, parseFacetCounts(magic._2.asScala.toList).toMap)
+        facetCounts.facetFields.asScala.map(ffCountPair => {
+          (ffCountPair._1, parseFacetCounts(ffCountPair._2.asScala.toList).toMap)
         }).toMap
       } else {
         Map.empty
@@ -368,7 +368,7 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
 
 }
 
-/** Provides simple logging/timing */
+/** Logging and Timing solr trait */
 trait SolrQueryLogger {
   def log(name: String, msg: String, time: Long)
 
@@ -577,7 +577,6 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       val q = new TermsFacetBuilder(name).field(name)
       facetLimit match {
         case Some(c) => {
-          println("using size of "+c)
           q.size(c)
         }
         case _ => q
@@ -833,9 +832,10 @@ class SlashemLongListField[T <: Record[T]](owner: T) extends LongListField[T](ow
   override def valueBoxFromAny(a: Any) = {
     try {
       a match {
-        case long:       Long => Full(List(long))
-        case strArr:     Array[Long]  => Full(strArr.toList)
-        case intArr:     Array[Int]     => Full(intArr.toList.map(int => int.toLong))
+        case long:   Long => Full(List(long))
+        case strArr: Array[Long] => Full(strArr.toList)
+        case intArr: Array[Int]  => Full(intArr.toList.map(int => int.toLong))
+        case str:    String => Full(str.split(" ").map(s => s.toLong).toList)
         case _ => Empty
       }
     } catch {
