@@ -107,7 +107,10 @@ object Ast {
       }
       plus match {
         case true => qstr
-        case false => "-"+qstr
+        //This is added as a work around for the lack of support of
+        //pure negative queries (even though its partially supported
+        //now it turns out they don't work so well when nested)
+        case false => "(*:* -"+qstr+")"
       }
     }
 

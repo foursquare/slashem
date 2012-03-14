@@ -119,7 +119,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(qp.sortWith(_._1 > _._1),List("defType" -> "edismax",
                                                       "mm" -> "75%",
                                                       "q" -> "(\"club\")",
-                                                      "fq" -> "-tags:(\"douchebag\")",
+                                                      "fq" -> "(*:* -tags:(\"douchebag\"))",
                                                       "start" -> "0",
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
