@@ -4,13 +4,14 @@ package com.foursquare.slashem
 
 
 import com.foursquare.slashem.Ast._
-import com.twitter.util.{Duration, Future, FutureTask}
+import com.twitter.util.{Duration, ExecutorServiceFuturePool, Future, FuturePool, FutureTask, Promise}
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.http.Http
 import com.twitter.finagle.Service
 import java.lang.Integer
 import java.net.InetSocketAddress
 import java.util.{ArrayList, HashMap}
+import java.util.concurrent.{Executors, ExecutorService}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
 import net.liftweb.record.field.{BooleanField, LongField, StringField, IntField, DoubleField}
@@ -20,6 +21,7 @@ import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper}
 import org.elasticsearch.action.search.SearchRequestBuilder
 import org.elasticsearch.action.search.SearchResponse
 import org.elasticsearch.action.search.SearchType
+import org.elasticsearch.action.{ActionListener, ListenableActionFuture}
 import org.elasticsearch.client.Client
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.settings.ImmutableSettings
@@ -217,6 +219,9 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
 
   var node: Node = null
   var myClient: Option[Client]
+
+  val executorService: ExecutorService = Executors.newCachedThreadPool()
+  val executorServiceFuturePool: FuturePool = FuturePool(executorService)
 
   /** Create or get the MetaRecord's client */
   def client: Client = {
@@ -460,7 +465,10 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
 
   def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount, FLim](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC, FLim], query: ElasticQueryBuilder, timeoutOpt: Option[Duration]): Future[SearchResults[M, Y]] = {
-    val future : FutureTask[SearchResults[M,Y]]= new FutureTask({
+    //    val esfp = meta.executorServiceFuturePool
+    val executor = Executors.newCachedThreadPool()
+    val esfp = FuturePool(executor)
+
       val client = meta.client
       val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
       val limit =  qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit)
@@ -496,20 +504,44 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
           timeLimmitedRequest
         }
       }
+    //Warning: this code is ugly.
+    //This future does fuck all, but serves as a place for us to stick the value
+    val esResponseFuture: Promise[SearchResponse] = new FakeTwitterFuture[SearchResponse]()
+    //This is a Java future that is schedualed and run on the ES thread pool
+    val esRequestFuture: ListenableActionFuture[SearchResponse]  = facetedRequest.execute()
 
+    //The listener translates the esRequestFuture into an esResponseFuture
+    object esResponseListener extends ActionListener[org.elasticsearch.action.search.SearchResponse] {
+      def onFailure(e: Throwable) {
+        esResponseFuture.setException(e)
+      }
+      def onResponse(r: SearchResponse) {
+        esResponseFuture.setValue(r)
+      }
+    }
+    esRequestFuture.addListener(esResponseListener)
 
-      val response: SearchResponse  = facetedRequest
-      .execute().actionGet()
-      meta.logger.debug("Search response "+response.toString())
-      constructSearchResults(qb.creator,
-                             qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
-                             qb.fallOf,
-                             qb.min,
-                             response)
+    val searchResultsFuture : Future[SearchResults[M,Y]]= esResponseFuture.map(
+      {
+        response: SearchResponse  =>
+          println("lols")
+        meta.logger.debug("Search response "+response.toString())
+        val results = constructSearchResults(qb.creator,
+                                             qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
+                                             qb.fallOf,
+                                             qb.min,
+                                             response)
+        results
     }
     )
-    future.run()
-    timeFuture(future).map( {
+
+    println("calling get...")
+    println(esResponseFuture.get())
+    println("calling next get")
+    println(searchResultsFuture.apply())
+    println("done")
+
+    timeFuture(searchResultsFuture).map( {
       case (queryTime, result) => {
         meta.logger.log("e" + meta.indexName + ".query",query.toString(), queryTime)
         result
