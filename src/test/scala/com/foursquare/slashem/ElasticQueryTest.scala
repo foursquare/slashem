@@ -42,7 +42,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val executor = Executors.newCachedThreadPool()
     val esfp = FuturePool(executor)
     val future : Future[Int]= esfp({
-      println("fuck you")
+      println("fuck")
       1
     })
     Assert.assertEquals(1,future.get())
