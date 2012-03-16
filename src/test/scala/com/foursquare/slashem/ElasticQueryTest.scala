@@ -39,7 +39,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val r = ESimplePanda where (_.name eqs "lolsdonotinsertsomethingwiththisinit") fetch()
     Assert.assertEquals(0,r.response.results.length)
   }
-  @Test
+  //@Test
   def testNonEmptySearch {
     val r = ESimplePanda where (_.hobos contains "hobos") fetch()
     Assert.assertEquals(1,r.response.results.length)
@@ -49,7 +49,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals("hobos",doc.hobos.value)
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b11"),doc.id.is)
   }
-  @Test
+  //@Test
   def testNonEmptyMM100Search {
     val r = ESimplePanda where (_.name contains "loler eating hobo") minimumMatchPercent(100) fetch()
     Assert.assertEquals(1,r.response.results.length)
@@ -57,7 +57,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val doc = r.response.results.apply(0)
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b18"),doc.id.is)
   }
-  @Test
+  //@Test
   def testNonEmptyMM100SearchWithTimeout {
     val r = ESimplePanda where (_.name contains "loler eating hobo") minimumMatchPercent(100) fetch(Duration(1, TimeUnit.SECONDS))
     Assert.assertEquals(1,r.response.results.length)
@@ -65,12 +65,12 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val doc = r.response.results.apply(0)
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b18"),doc.id.is)
   }
-  @Test
+  //@Test
   def testNonEmptyMultiFieldSearch {
     val r = ESimplePanda.where(_.default contains "onlyinnamefield").queryField(_.name).queryField(_.hobos) fetch()
     Assert.assertEquals(1,r.response.results.length)
   }
-  @Test
+  //@Test
   def testNonEmptySearchOidScorePare {
     val r = ESimplePanda where (_.hobos contains "hobos") fetch()
     Assert.assertEquals(1,r.response.results.length)
@@ -78,7 +78,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val doc = r.response.oidScorePair.apply(0)
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b11"),doc._1)
   }
-  @Test
+  //@Test
   def testSimpleInQuery {
     val r = ESimplePanda where (_.hobos in List("hobos")) fetch()
     Assert.assertEquals(1,r.response.results.length)
@@ -86,22 +86,22 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val doc = r.response.oidScorePair.apply(0)
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b11"),doc._1)
   }
-  @Test
+  //@Test
   def testSimpleNInQuery {
     val r = ESimplePanda where (_.hobos nin List("hobos")) fetch()
     Assert.assertEquals(7,r.response.results.length)
   }
-  @Test
+  //@Test
   def testManyResultsSearch {
     val r = ESimplePanda where (_.name contains "loler") fetch()
     Assert.assertEquals(4,r.response.results.length)
   }
-  @Test
+  //@Test
   def testAndSearch {
     val r = ESimplePanda where (_.name contains "loler") and (_.hobos contains "nyet") fetch()
     Assert.assertEquals(1,r.response.results.length)
   }
-  @Test
+  //@Test
    def orderDesc {
     var r = ESimplePanda where (_.name contains "ordertest") orderDesc(_.followers) fetch()
     Assert.assertEquals(2,r.response.results.length)
@@ -110,7 +110,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(doc0._1,new ObjectId("4c809f4251ada1cdc3790b14"))
     Assert.assertEquals(doc1._1,new ObjectId("4c809f4251ada1cdc3790b15"))
   }
-  @Test
+  //@Test
   def orderAsc {
     var r = ESimplePanda where (_.name contains "ordertest") orderAsc(_.followers) fetch()
     Assert.assertEquals(2,r.response.results.length)
@@ -119,7 +119,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(doc0._1,new ObjectId("4c809f4251ada1cdc3790b15"))
     Assert.assertEquals(doc1._1,new ObjectId("4c809f4251ada1cdc3790b14"))
   }
-  @Test
+  //@Test
    def geoOrderDesc {
     var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.pos sqeGeoDistance(74.0,-31.0)) fetch()
     Assert.assertEquals(2,r.response.results.length)
@@ -128,7 +128,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b16"),doc0._1)
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b17"),doc1._1)
   }
-  @Test
+  //@Test
    def geoOrderAsc {
     var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.pos sqeGeoDistance(74.0,-31.0)) fetch()
     Assert.assertEquals(2,r.response.results.length)
@@ -137,7 +137,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b17"),doc0._1)
     Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b16"),doc1._1)
   }
-  @Test
+  //@Test
   def geoOrderIntAsc {
     var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.pos sqeGeoDistance(74,-31)) fetch()
     Assert.assertEquals(2,r.response.results.length)
@@ -148,12 +148,12 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
 
-  @Test
+  //@Test
   def testAndOrSearch {
     val r = ESimplePanda where (_.name contains "loler") and (x => (x.hobos contains "nyet") or (x.hobos contains "robot")) fetch()
     Assert.assertEquals(r.response.results.length,2)
   }
-  @Test
+  //@Test
   def testPhraseBoostOrdering {
     val rWithLowPhraseBoost = ESimplePanda where (_.name contains "loler skates") phraseBoost(_.name,10) fetch()
     val rWithHighPhraseBoost = ESimplePanda where (_.name contains "loler skates") phraseBoost(_.name,10000) fetch()
@@ -170,7 +170,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertTrue(doc1b.score.value > doc2b.score.value)
     Assert.assertTrue(doc3b.score.value > doc1b.score.value)
   }
-  @Test
+  //@Test
   def testFieldFaceting {
     val r = ESimplePanda where (_.name contains "loler skates") facetField(_.foreign) fetch()
     Assert.assertEquals(4,r.response.results.length)
@@ -178,7 +178,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(3,r.response.fieldFacets.get("foreign").get("pants"))
   }
 
-  @Test
+  //@Test
   def testMaxCountFieldFaceting {
     val r = ESimplePanda where (_.name contains "loler skates") facetField(_.foreign) facetLimit(1) fetch()
     Assert.assertEquals(4,r.response.results.length)
@@ -187,7 +187,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
 
-  @Test
+  //@Test
   def testFieldBoost {
     val r1 = ESimplePanda where (_.magic contains "yes") fetch()
     val r2 = ESimplePanda where (_.magic contains "yes") boostField(_.followers,10) fetch()
@@ -196,7 +196,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
   }
 
-  @Test
+  //@Test
   def testGeoBoost {
     //Test GeoBoosting. Note will actually make further away document come up first
     val geoLat = 74
@@ -207,7 +207,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(r2.response.results.length,2)
     Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
   }
-  @Test
+  //@Test
   def testPointExtract {
     //Test GeoBoosting. Note will actually make further away document come up first
     val geoLat = 74
@@ -217,7 +217,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(r.response.results.apply(0).pos.value._1,74.0,0.9)
   }
 
-  @Test
+  //@Test
   def testRecipGeoBoost {
     val geoLat = 74
     val geoLong = -31
@@ -228,7 +228,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
   }
 
-  @Test
+  //@Test
   def testListFieldContains {
     val response1 = ESimplePanda where (_.favnums contains 2) fetch()
     val response2 = ESimplePanda where (_.favnums contains 6) fetch()
