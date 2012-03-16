@@ -504,39 +504,25 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
           timeLimmitedRequest
         }
       }
-    //Warning: this code is ugly.
-    //This future does fuck all, but serves as a place for us to stick the value
-    val esResponseFuture: Promise[SearchResponse] = new FakeTwitterFuture[SearchResponse]()
-    //This is a Java future that is schedualed and run on the ES thread pool
-    val esRequestFuture: ListenableActionFuture[SearchResponse]  = facetedRequest.execute()
 
-    //The listener translates the esRequestFuture into an esResponseFuture
-    object esResponseListener extends ActionListener[org.elasticsearch.action.search.SearchResponse] {
-      def onFailure(e: Throwable) {
-        esResponseFuture.setException(e)
-      }
-      def onResponse(r: SearchResponse) {
-        esResponseFuture.setValue(r)
-      }
+    val searchResultsFuture = esfp {
+      println("yay!!!")
+      //Intentionally error out quickly
+      val response : SearchResponse = facetedRequest.setOperationThreading("THREAD_PER_SHARD").execute().get()
+      println("lols")
+      meta.logger.debug("Search response "+response.toString())
+      val results = constructSearchResults(qb.creator,
+                                           qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
+                                           qb.fallOf,
+                                           qb.min,
+                                           response)
+      println("yay!!!x2")
+      results
     }
-    esRequestFuture.addListener(esResponseListener)
 
-    val searchResultsFuture : Future[SearchResults[M,Y]]= esResponseFuture.map(
-      {
-        response: SearchResponse  =>
-          println("lols")
-        meta.logger.debug("Search response "+response.toString())
-        val results = constructSearchResults(qb.creator,
-                                             qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
-                                             qb.fallOf,
-                                             qb.min,
-                                             response)
-        results
-    }
-    )
+    //Sleep long enough for above to execute or it fails... why?
+    Thread.sleep(1000)
 
-    println("calling get...")
-    println(esResponseFuture.get())
     println("calling next get")
     println(searchResultsFuture.apply())
     println("done")
