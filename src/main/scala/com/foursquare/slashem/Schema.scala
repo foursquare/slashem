@@ -514,8 +514,6 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       results
     }
 
-    println(searchResultsFuture.apply())
-
     timeFuture(searchResultsFuture).map( {
       case (queryTime, result) => {
         meta.logger.log("e" + meta.indexName + ".query",query.toString(), queryTime)
