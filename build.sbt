@@ -1,10 +1,10 @@
 name := "slashem"
 
-version := "0.9.1"
+version := "0.9.2"
 
 organization := "com.foursquare"
 
-crossScalaVersions := Seq("2.8.1", "2.9.0", "2.9.0-1", "2.9.1", "2.8.0")
+crossScalaVersions := Seq("2.9.1")
 
 libraryDependencies <++= (scalaVersion) { scalaVersion =>
   val specsVersion = scalaVersion match {
@@ -31,9 +31,10 @@ libraryDependencies <++= (scalaVersion) { scalaVersion =>
     "org.codehaus.jackson"     % "jackson-mapper-asl" % "1.8.8",
     "org.codehaus.jackson"     % "jackson-core-asl" % "1.8.8",
     "org.scala-tools.testing" %% "scalacheck"         % scalaCheckVersion   % "test",
-    "com.twitter"             % "finagle"             % "1.9.12"  % "compile" exclude("thrift","libthrift") intransitive(),
-    "com.twitter"             % "finagle-core"        % "1.9.12" % "compile" exclude("thrift","libthrift"),
-    "com.twitter"             % "finagle-http"        % "1.9.12" % "compile" exclude("thrift","libthrift"),
+    "com.twitter"             %% "finagle"             % "1.9.12"  % "compile" exclude("thrift","libthrift") intransitive(),
+    "com.twitter"             %% "finagle-core"        % "1.9.12" % "compile" exclude("thrift","libthrift"),
+    "com.twitter"             %% "finagle-http"        % "1.9.12" % "compile" exclude("thrift","libthrift"),
+    "com.twitter"             %% "util-core"             % "1.12.9"  % "compile",
     "org.scalaj"              %% "scalaj-collection" % "1.2"
   )
 }

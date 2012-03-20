@@ -506,26 +506,17 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       }
 
     val searchResultsFuture = esfp {
-      println("yay!!!")
-      //Intentionally error out quickly
-      val response : SearchResponse = facetedRequest.setOperationThreading("THREAD_PER_SHARD").execute().get()
-      println("lols")
+      val response : SearchResponse = facetedRequest.execute().get()
       meta.logger.debug("Search response "+response.toString())
       val results = constructSearchResults(qb.creator,
                                            qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
                                            qb.fallOf,
                                            qb.min,
                                            response)
-      println("yay!!!x2")
       results
     }
 
-    //Sleep long enough for above to execute or it fails... why?
-    Thread.sleep(1000)
-
-    println("calling next get")
     println(searchResultsFuture.apply())
-    println("done")
 
     timeFuture(searchResultsFuture).map( {
       case (queryTime, result) => {
