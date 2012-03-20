@@ -4,8 +4,7 @@ package com.foursquare.slashem
 
 
 import com.foursquare.slashem.Ast._
-import com.twitter.util.{Duration, Future, FutureTask, Promise, Return, Throw, Try, TryLike}
-import com.twitter.concurrent.IVar
+import com.twitter.util.{Duration, Future, FutureTask}
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.http.Http
 import com.twitter.finagle.Service
@@ -21,7 +20,6 @@ import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper}
 import org.elasticsearch.action.search.SearchRequestBuilder
 import org.elasticsearch.action.search.SearchResponse
 import org.elasticsearch.action.search.SearchType
-import org.elasticsearch.action.{ActionListener, ListenableActionFuture}
 import org.elasticsearch.client.Client
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.settings.ImmutableSettings
@@ -44,49 +42,6 @@ import org.jboss.netty.handler.codec.http.{DefaultHttpRequest, HttpResponseStatu
 import org.joda.time.DateTime
 import scala.annotation.tailrec
 import scalaj.collection.Imports._
-
-import java.util.concurrent.TimeUnit
-
-class WrappedActionListenerFuture[A](af: ListenableActionFuture[A]) extends Promise[A]  with ActionListener[A]  {
-  //ActionListener
-  def onResponse(r: A) {
-    println("got a response")
-    this.update(Return(r))
-  }
-  def onFailure(e: Throwable) {
-    println("got a failure"+e)
-    this.update(Throw(e))
-  }
-  //Promise
-  override def get(timeout: Duration): Try[A] = {
-    println("got called with get")
-    //TODO: respect timeout
-    try {
-      Return(af.get())
-    } catch {
-      case e: Throwable => Throw(e)
-    }
-  }
-  override def isCancelled: Boolean = {
-    af.isCancelled
-  }
-
-  override def cancel() {
-    af.cancel(true)
-  }
-
-  override def isDefined = af.isDone
-
-
-}
-
-object WrappedActionListenerFuture {
-  def fromActionFuture[A](af: ListenableActionFuture[A]): Future[A] = {
-    val tf = new WrappedActionListenerFuture(af)
-    af.addListener(tf)
-    tf
-  }
-}
 
 /**
  * SolrResponseException class that extends RuntimeException
@@ -505,52 +460,56 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
 
   def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount, FLim](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC, FLim], query: ElasticQueryBuilder, timeoutOpt: Option[Duration]): Future[SearchResults[M, Y]] = {
-    val client = meta.client
-    val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
-    val limit =  qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit)
-    meta.logger.debug("Query details "+query.toString())
-    val baseRequest: SearchRequestBuilder = client.prepareSearch(meta.indexName)
-    .setQuery(query)
-    .setFrom(from)
-    .setSize(limit)
-    .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
-    val request = qb.sort match {
-      case None => baseRequest
-      //Handle sorting by fields quickly
-      case Some(Pair(Field(fieldName),"asc")) => baseRequest.addSort(fieldName,SortOrder.ASC)
-      case Some(Pair(Field(fieldName),"desc")) => baseRequest.addSort(fieldName,SortOrder.DESC)
-      //Handle sorting by scripts in general
-      case Some(Pair(sort,"asc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticBoost(),"number").order(SortOrder.ASC))
-      case Some(Pair(sort,"desc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticBoost(),"number").order(SortOrder.DESC))
+    val future : FutureTask[SearchResults[M,Y]]= new FutureTask({
+      val client = meta.client
+      val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
+      val limit =  qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit)
+      meta.logger.debug("Query details "+query.toString())
+      val baseRequest: SearchRequestBuilder = client.prepareSearch(meta.indexName)
+      .setQuery(query)
+      .setFrom(from)
+      .setSize(limit)
+      .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+      val request = qb.sort match {
+        case None => baseRequest
+        //Handle sorting by fields quickly
+        case Some(Pair(Field(fieldName),"asc")) => baseRequest.addSort(fieldName,SortOrder.ASC)
+        case Some(Pair(Field(fieldName),"desc")) => baseRequest.addSort(fieldName,SortOrder.DESC)
+        //Handle sorting by scripts in general
+        case Some(Pair(sort,"asc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticBoost(),"number").order(SortOrder.ASC))
+        case Some(Pair(sort,"desc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticBoost(),"number").order(SortOrder.DESC))
 
-      case _ => baseRequest
+        case _ => baseRequest
       }
 
-    /* Set the server side timeout */
-    val timeLimmitedRequest = timeoutOpt match {
-      case Some(timeout) => request.setTimeout(TimeValue.timeValueMillis(timeout.inMillis))
-      case _ => request
-    }
-
-    /* Add a facet to the request */
-    val facetedRequest = qb.facetSettings.facetFieldList match {
-      case Nil => timeLimmitedRequest
-      case _ => {
-        termFacetQuery(qb.facetSettings.facetFieldList, qb.facetSettings.facetLimit).foreach(timeLimmitedRequest.addFacet(_))
-        timeLimmitedRequest
+      /* Set the server side timeout */
+      val timeLimmitedRequest = timeoutOpt match {
+        case Some(timeout) => request.setTimeout(TimeValue.timeValueMillis(timeout.inMillis))
+        case _ => request
       }
+
+      /* Add a facet to the request */
+      val facetedRequest = qb.facetSettings.facetFieldList match {
+        case Nil => timeLimmitedRequest
+        case _ => {
+          termFacetQuery(qb.facetSettings.facetFieldList, qb.facetSettings.facetLimit).foreach(timeLimmitedRequest.addFacet(_))
+          timeLimmitedRequest
+        }
+      }
+
+
+      val response: SearchResponse  = facetedRequest
+      .execute().actionGet()
+      meta.logger.debug("Search response "+response.toString())
+      constructSearchResults(qb.creator,
+                             qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
+                             qb.fallOf,
+                             qb.min,
+                             response)
     }
-
-
-    val responseActionFuture: ListenableActionFuture[SearchResponse]  = facetedRequest.execute()
-    val future = WrappedActionListenerFuture.fromActionFuture(responseActionFuture)
-    val responseFuture = future.map({
-      response => constructSearchResults(qb.creator,
-                                         qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
-                                         qb.fallOf,
-                                         qb.min,
-                                         response)})
-    timeFuture(responseFuture).map( {
+    )
+    future.run()
+    timeFuture(future).map( {
       case (queryTime, result) => {
         meta.logger.log("e" + meta.indexName + ".query",query.toString(), queryTime)
         result
