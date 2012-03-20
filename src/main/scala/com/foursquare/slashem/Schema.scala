@@ -897,7 +897,7 @@ class SlashemGeoField[T <: SlashemSchema[T]](owner: T) extends StringField[T](ow
     }
   }
 }
-//Backwards compat
+// Legacy field name, in the future simply use Slashem*FieldName*
 //Slashem field types
 class SolrStringField[T <: Record[T]](owner: T) extends SlashemStringField[T](owner)
 //Allows for querying against the default filed in solr. This field doesn't have a name
