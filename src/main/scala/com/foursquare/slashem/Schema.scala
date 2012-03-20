@@ -465,9 +465,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
 
   def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount, FLim](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC, FLim], query: ElasticQueryBuilder, timeoutOpt: Option[Duration]): Future[SearchResults[M, Y]] = {
-    //    val esfp = meta.executorServiceFuturePool
-    val executor = Executors.newCachedThreadPool()
-    val esfp = FuturePool(executor)
+    val esfp = meta.executorServiceFuturePool
 
       val client = meta.client
       val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
