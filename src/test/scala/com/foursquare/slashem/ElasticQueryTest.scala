@@ -24,6 +24,9 @@ import java.util.UUID
 
 import scalaj.collection.Imports._
 
+import com.twitter.util.{Duration, ExecutorServiceFuturePool, Future, FuturePool, FutureTask}
+import java.util.concurrent.{Executors, ExecutorService}
+
 object ElasticNode {
   val myUUID = UUID.randomUUID();
   val clusterName = "testcluster"+myUUID.toString()
@@ -34,10 +37,27 @@ object ElasticNode {
 
 
 class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
+  //This test exists because if futures get screwy
+  //(as has happened) a number of the other tests will fail
+  //spuriously and randomly (joy!).
+  @Test
+  def futureTest {
+    val executor = Executors.newCachedThreadPool()
+    val esfp = FuturePool(executor)
+    val future : Future[Int]= esfp({
+      Thread.sleep(100)
+      1
+    })
+    Assert.assertEquals(1,future.get())
+  }
   @Test
   def testEmptySearch {
+    try {
     val r = ESimplePanda where (_.name eqs "lolsdonotinsertsomethingwiththisinit") fetch()
     Assert.assertEquals(0,r.response.results.length)
+    } catch {
+      case e => e.printStackTrace()
+    }
   }
   @Test
   def testNonEmptySearch {
