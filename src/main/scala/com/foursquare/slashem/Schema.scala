@@ -907,6 +907,7 @@ class SolrDoubleField[T <: Record[T]](owner: T) extends SlashemDoubleField[T](ow
 class SolrLongField[T <: Record[T]](owner: T) extends SlashemLongField[T](owner)
 class SolrObjectIdField[T <: Record[T]](owner: T) extends SlashemObjectIdField[T](owner)
 class SolrIntListField[T <: Record[T]](owner: T) extends SlashemIntListField[T](owner)
+class SolrLongListField[T <: Record[T]](owner: T) extends SlashemLongListField[T](owner)
 class SolrStringListField[T <: Record[T]](owner: T) extends SlashemStringListField[T](owner)
 class SolrBooleanField[T <: Record[T]](owner: T) extends SlashemBooleanField[T](owner)
 class SolrDateTimeField[T <: Record[T]](owner: T) extends SlashemDateTimeField[T](owner)
