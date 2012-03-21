@@ -270,6 +270,33 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(response9.response.results.length, 0)
   }
 
+  @Test
+  def testListFieldIn {
+    val response1 = ESimplePanda where (_.favnums in List(2, 3, 4, 5)) fetch()
+    val response2 = ESimplePanda where (_.favnums in List(99)) fetch()
+    //val response3 = ESimplePanda where (_.favnums in List()) fetch()
+    Assert.assertEquals(response1.response.results.length, 2)
+    Assert.assertEquals(response2.response.results.length, 0)
+    //Assert.assertEquals(response3.response.results.length, 0)
+  }
+
+  @Test
+  def testListFieldNin {
+    val idsWithFavNums = List(new ObjectId("4c809f4251ada1cdc3790b10"),
+                               new ObjectId("4c809f4251ada1cdc3790b11"),
+                               new ObjectId("4c809f4251ada1cdc3790b12"))
+
+    val response1 = ESimplePanda where (_.favnums nin List(2, 3, 4, 5, 6)) fetch()
+    val ids = response1.response.oids
+    // No docs with ids should appear in the fetched docs.
+    Assert.assertEquals(ids.intersect(idsWithFavNums).length, 0)
+
+    val response2 = ESimplePanda where (_.favnums nin List(99)) fetch()
+    val ids2 = response2.response.oids
+    // All three docs with favnums should be returned, none contain 99
+    Assert.assertEquals(ids2.intersect(idsWithFavNums).length, 3)
+  }
+
   @Before
   def hoboPrepIndex() {
     ESimplePanda.meta.node = ElasticNode.node

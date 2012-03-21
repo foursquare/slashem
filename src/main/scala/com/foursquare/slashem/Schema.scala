@@ -744,9 +744,6 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   def in(v: Iterable[V], b: Float) = Clause[V](self.queryName, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b))
   def nin(v: Iterable[V], b: Float) = Clause[V](self.queryName, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b),false)
 
-  def in(v: List[String]) = Clause[String](self.queryName, groupWithOr(v.map({x: String => Phrase(x)})))
-  def nin(v: List[String]) = Clause[String](self.queryName, groupWithOr(v.map({x: String => Phrase(x)})),false)
-
   def inRange(v1: V, v2: V) = Clause[V](self.queryName, Group(Range(BagOfWords(v1),BagOfWords(v2))))
   def ninRange(v1: V, v2: V) = Clause[V](self.queryName, Group(Range(BagOfWords(v1),BagOfWords(v2))),false)
 
@@ -796,6 +793,7 @@ class SlashemObjectIdField[T <: Record[T]](owner: T) extends ObjectIdField[T](ow
   override def valueBoxFromAny(a: Any): Box[ObjectId] = objectIdBoxFromAny(a)
 }
 class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owner) with SlashemField[List[Int], T] {
+  import Helpers._
   override def valueBoxFromAny(a: Any) = {
     try {
       a match {
@@ -812,9 +810,16 @@ class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owne
   def contains(item: Int) = {
     Clause[Int](queryName, Phrase(item))
   }
+  /**
+   * See if this list has any elements in that list.
+   * @param List[Int] the list to check for any intersections.
+   */
+  def in(lst: List[Int]) = Clause[Int](queryName, groupWithOr(lst.map({i: Int => Phrase(i)})))
+  def nin(lst: List[Int]) = Clause[Int](queryName, groupWithOr(lst.map({i: Int => Phrase(i)})),false)
 }
 
 class SlashemStringListField[T <: Record[T]](owner: T) extends StringListField[T](owner) with SlashemField[List[String], T] {
+  import Helpers._
   override def valueBoxFromAny(a: Any) = {
     try {
       a match {
@@ -831,9 +836,16 @@ class SlashemStringListField[T <: Record[T]](owner: T) extends StringListField[T
   def contains(item: String) = {
     Clause[String](queryName, Phrase(item))
   }
+  /**
+   * See if this list has any elements in that list.
+   * @param List[String] the list to check for any intersections.
+   */
+  def in(v: List[String]) = Clause[String](queryName, groupWithOr(v.map({s: String => Phrase(s)})))
+  def nin(v: List[String]) = Clause[String](queryName, groupWithOr(v.map({s: String => Phrase(s)})),false)
 }
 
 class SlashemLongListField[T <: Record[T]](owner: T) extends LongListField[T](owner) with SlashemField[List[Long], T] {
+  import Helpers._
   override def valueBoxFromAny(a: Any) = {
     try {
       a match {
@@ -850,6 +862,12 @@ class SlashemLongListField[T <: Record[T]](owner: T) extends LongListField[T](ow
   def contains(item: Long) = {
     Clause[Long](queryName, Phrase(item))
   }
+  /**
+   * See if this list has any elements in that list.
+   * @param List[Long] the list to check for any intersections.
+   */
+  def in(lst: List[Long]) = Clause[Long](queryName, groupWithOr(lst.map({l: Long => Phrase(l)})))
+  def nin(lst: List[Long]) = Clause[Long](queryName, groupWithOr(lst.map({l: Long => Phrase(l)})),false)
 }
 
 class SlashemPointField[T <: Record[T]](owner: T) extends PointField[T](owner) with SlashemField[Pair[Double,Double], T] {

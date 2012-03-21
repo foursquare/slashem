@@ -53,6 +53,21 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                       "rows" -> "10").sortWith(_._1 > _._1))
   }
 
+  @Test
+  def testProduceCorrectListfieldQueryStrings {
+    val q = SVenueTest where (_.commentList in List("hi", "there"))
+    val q2 = SVenueTest where (_.commentList nin List("hi", "there"))
+    val qp = q.meta.queryParams(q).toList
+    val qp2 = q2.meta.queryParams(q2).toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),
+                        List("q" -> "commentList:(\"hi\" OR \"there\")",
+                             "start" -> "0",
+                             "rows" -> "10").sortWith(_._1 > _._1))
+    Assert.assertEquals(qp2.sortWith(_._1 > _._1),
+                        List("q" -> "(*:* -commentList:(\"hi\" OR \"there\"))",
+                             "start" -> "0",
+                             "rows" -> "10").sortWith(_._1 > _._1))
+  }
 
   @Test
   def testProduceCorrectSimpleQueryStringContains {
@@ -755,4 +770,3 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
 }
-
