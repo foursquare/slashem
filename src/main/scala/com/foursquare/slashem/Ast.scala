@@ -159,22 +159,29 @@ object Ast {
   case class Clause[T](fieldName: String, query: Query[T], plus: Boolean = true) extends AbstractClause {
     /** @inheritdoc */
     def extend(): String = {
-      val q = query match {
-        case Group(x) => query
-        case Splat() => query
-        case _ => Group(query)
+      val (q,boost) = query match {
+        case Group(x) => (query,1)
+        case Splat() => (query,1)
+        case Boost(Group(x),b) => (Group(x),b)
+        case Boost(x,b) => (Group(x),b)
+        case _ => (Group(query),1)
       }
       // If a field does not have a name then do not attempt to specify it
       val qstr = fieldName match {
         case "" => q.extend()
         case x => x + ":" + q.extend()
       }
-      plus match {
+      val booleanQuery = plus match {
         case true => qstr
         //This is added as a work around for the lack of support of
         //pure negative queries (even though its partially supported
         //now it turns out they don't work so well when nested)
         case false => "(*:* -"+qstr+")"
+      }
+      //Boost as approraite
+      boost match {
+        case 1.0 => booleanQuery
+        case x => booleanQuery+"^"+x
       }
     }
 

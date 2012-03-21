@@ -98,6 +98,18 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
+  def testProduceCorrectSimpleQueryStringWithBoostNeq {
+    val q = SUserTest where (_.fullname eqs "jon") useQueryType("edismax") boostQuery(_.fullname neqs("fnur",123))
+    val qp = q.meta.queryParams(q).toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> """fullname:("jon")""",
+                                                      "start" -> "0",
+                                                      "defType" -> "edismax",
+                                                      "bq" -> """(*:* -fullname:("fnur"))^123.0""",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
+
+
+  @Test
   def testProduceCorrectEdisMaxQueryString {
     val q = SUserTest where (_.fullname eqs "holden") useQueryType("edismax")
     val qp = q.meta.queryParams(q).toList
@@ -437,7 +449,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "ngram_name^0.2",
                         "qf" -> "tags^0.01",
                         "tieBreaker" -> "0.2",
-                        "bq" -> "name:((holden's hobohut)^10.0)",
+                        "bq" -> "name:(holden's hobohut)^10.0",
                         "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
                         "bf" -> "decayedPopularity1",
                         "rows" -> "10")
@@ -469,7 +481,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "tags^0.01",
                         "tieBreaker" -> "0.2",
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount",
-                        "bq" -> "name:((holden's hobohut)^10.0)",
+                        "bq" -> "name:(holden's hobohut)^10.0",
                         "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
                         "bf" -> "decayedPopularity1",
                         "rows" -> "10")
@@ -500,7 +512,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "tags^0.01",
                         "tieBreaker" -> "0.2",
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount,partitionedPopularity",
-                        "bq" -> "name:((holden's hobohut)^10.0)",
+                        "bq" -> "name:(holden's hobohut)^10.0",
                         "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
                         "bf" -> "decayedPopularity1",
                         "rows" -> "10")
@@ -532,7 +544,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "fq" -> "geo_s2_cell_ids:(\"pleaseUseaRealGeoHash\")",
                         "tieBreaker" -> "0.2",
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount,partitionedPopularity",
-                        "bq" -> "name:((holden's hobohut)^10.0)",
+                        "bq" -> "name:(holden's hobohut)^10.0",
                         "bf" -> "recip(sqedist(%s,%s,lat,lng), 1, 5000, 1)".format(geoLat,geoLong),
                         "bf" -> "decayedPopularity1",
                         "rows" -> "10")
@@ -579,7 +591,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "fq" -> "geo_s2_cell_ids:(\"pleaseUseaRealGeoHash\")",
                         "tieBreaker" -> "0.2",
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount,partitionedPopularity",
-                        "bq" -> "name:((holden's hobohut)^10.0)",
+                        "bq" -> "name:(holden's hobohut)^10.0",
                         "bf" -> "recip(sqedist(%s,%s,lat,lng),1,5000,1)".format(geoLat,geoLong),
                         "bf" -> "decayedPopularity1",
                         "rows" -> "10")
