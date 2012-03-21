@@ -730,9 +730,13 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   self: Field[V, M] =>
   import Helpers._
 
-  //Not eqs and neqs results in phrase queries!
+  //Note eqs and neqs results in phrase queries!
   def eqs(v: V) = Clause[V](self.queryName, Group(Phrase(v)))
   def neqs(v: V) = Clause[V](self.queryName, Phrase(v),false)
+  //With a boost
+  def eqs(v: V, b: Float) = Clause[V](self.queryName, Boost(Group(Phrase(v)),b))
+  def neqs(v: V, b:Float) = Clause[V](self.queryName, Boost(Phrase(v),b),false)
+
 
   //This allows for bag of words style matching.
   def contains(v: V) = Clause[V](self.queryName, Group(BagOfWords(v)))
