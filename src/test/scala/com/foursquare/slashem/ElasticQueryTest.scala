@@ -24,7 +24,7 @@ import java.util.UUID
 
 import scalaj.collection.Imports._
 
-import com.twitter.util.{Duration, ExecutorServiceFuturePool, Future, FuturePool, FutureTask}
+import com.twitter.util.{Duration, ExecutorServiceFuturePool, Future, FuturePool, FutureTask, Throw, TimeoutException}
 import java.util.concurrent.{Executors, ExecutorService}
 
 object ElasticNode {
@@ -48,8 +48,29 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
       Thread.sleep(100)
       1
     })
-    Assert.assertEquals(1,future.get())
+    Assert.assertEquals(1,future.apply(Duration(200,TimeUnit.MILLISECONDS)))
   }
+
+  @Test(expected=classOf[TimeoutException])
+  def futureTestBlock {
+    val executor = Executors.newCachedThreadPool()
+    val esfp = FuturePool(executor)
+    var x = 1
+    val future : Future[Int]= esfp({
+      Thread.sleep(200)
+      1
+    })
+    future.apply(Duration(10,TimeUnit.MILLISECONDS))
+  }
+
+  @Test(expected=classOf[TimeoutException])
+  def testRecipGeoBoostTimeout {
+    val geoLat = 74
+    val geoLong = -31
+    val r = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.pos recipSqeGeoDistance(geoLat, geoLong, 1, 5000, 1)) fetch(Duration(0,TimeUnit.MILLISECONDS))
+  }
+
+
   @Test
   def testEmptySearch {
     try {

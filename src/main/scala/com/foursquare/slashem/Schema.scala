@@ -467,6 +467,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount, FLim](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC, FLim], query: ElasticQueryBuilder, timeoutOpt: Option[Duration]): Future[SearchResults[M, Y]] = {
     val esfp = meta.executorServiceFuturePool
 
+    val searchResultsFuture = esfp {
       val client = meta.client
       val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
       val limit =  qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit)
@@ -502,23 +503,25 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
           timeLimmitedRequest
         }
       }
-
-    val searchResultsFuture = esfp {
       val response : SearchResponse = facetedRequest.execute().get()
-      meta.logger.debug("Search response "+response.toString())
-      val results = constructSearchResults(qb.creator,
-                                           qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
-                                           qb.fallOf,
-                                           qb.min,
-                                           response)
-      results
+      response
     }
 
     timeFuture(searchResultsFuture).map( {
       case (queryTime, result) => {
         meta.logger.log("e" + meta.indexName + ".query",query.toString(), queryTime)
         result
-      }})
+      }}).map({
+      response =>
+      meta.logger.debug("Search response "+response.toString())
+      val results = constructSearchResults(qb.creator,
+                                           qb.start.map(_.toInt).getOrElse(qb.DefaultStart),
+                                           qb.fallOf,
+                                           qb.min,
+                                           response)
+
+      results
+    })
   }
   def constructSearchResults[Y](creator: Option[Response.RawDoc => Y],
                                 start: Int,
