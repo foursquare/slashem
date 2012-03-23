@@ -230,7 +230,7 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
       case _ => {
         myClient = Some({
           if (useTransport) {
-            val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName)
+            val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName).put("client.transport.sniff",true)
             val tc = new TransportClient(settings)
             serverInetSockets.map(tc.addTransportAddress(_))
             tc
