@@ -33,7 +33,7 @@ A basic query against the SUserTest might look something like
 
     val q = SUserTest where (_.fullname eqs "jon")
 
-This would do a pharse search fro "jon" against the fullname field in SUserTest.
+This would do a phrase search for "jon" against the fullname field in SUserTest.
 A more complex query might specify a different query parser like so:
 
     val q = SUserTest where (_.fullname eqs "holden") useQueryType("edismax")
