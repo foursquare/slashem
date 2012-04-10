@@ -476,7 +476,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       .setQuery(query)
       .setFrom(from)
       .setSize(limit)
-      .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+      .setSearchType(SearchType.QUERY_THEN_FETCH)
       val request = qb.sort match {
         case None => baseRequest
         //Handle sorting by fields quickly
