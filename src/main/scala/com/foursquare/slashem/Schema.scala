@@ -476,7 +476,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       .setQuery(query)
       .setFrom(from)
       .setSize(limit)
-      .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+      .setSearchType(SearchType.QUERY_THEN_FETCH)
       val request = qb.sort match {
         case None => baseRequest
         //Handle sorting by fields quickly
@@ -530,7 +530,8 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
                                 response: SearchResponse): SearchResults[M, Y] = {
     val time = response.tookInMillis()
     val hitCount = response.getHits().totalHits().toInt
-    val docs: Array[(Map[String,Any], Option[Map[String,java.util.ArrayList[String]]])] = response.getHits().getHits().map(doc => {
+    val esHits = response.getHits().getHits()
+    val docs: Array[(Map[String,Any], Option[Map[String,java.util.ArrayList[String]]])] = esHits.map(doc => {
       val m = doc.sourceAsMap()
       val annotedMap = (m.asScala ++ List("score" -> doc.score().toDouble)).toMap
       val hlf = doc.getHighlightFields()
