@@ -205,11 +205,14 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val doc1b = rWithLowPhraseBoost.response.results.apply(2)
     val doc2b = rWithHighPhraseBoost.response.results.apply(2)
     val doc3b = rNoPhraseBoost.response.results.apply(2)
-    val lastResult = List(doc1b,doc2b,doc3b)
-    lastResult.map(doc => Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b13"), doc.id.is))
     //Make sure the scores are actually impacted by the phraseBoost
     Assert.assertTrue(doc1b.score.value > doc2b.score.value)
     Assert.assertTrue(doc3b.score.value > doc1b.score.value)
+    val lastResult = List(rWithLowPhraseBoost.response.results.apply(3),
+                          rWithHighPhraseBoost.response.results.apply(3),
+                          rNoPhraseBoost.response.results.apply(3)
+                        )
+    lastResult.map(doc => Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b18"), doc.id.is))
   }
   @Test
   def testFieldFaceting {
