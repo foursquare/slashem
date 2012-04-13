@@ -390,12 +390,16 @@ trait SolrQueryLogger {
   //Log success
   def success(name: String): Unit = {
   }
+  //Log the number of results
+  def resultCount(name: String, count: Int): Unit = {
+  }
 }
 
 /** The default logger, does nothing. */
 object NoopQueryLogger extends SolrQueryLogger {
   override def log(name: String, msg: String, time: Long) = Unit
   override def debug(msg: String) = println(msg)
+  override def resultCount(name: String, count:Int) = println("Got back "+count+" results while querying "+name)
 }
 
 //If you want any of the geo queries you will have to implement this
@@ -507,9 +511,11 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       response
     }
 
+    val queryText = query.toString()
+
     timeFuture(searchResultsFuture).map( {
       case (queryTime, result) => {
-        meta.logger.log("e" + meta.indexName + ".query",query.toString(), queryTime)
+        meta.logger.log("e" + meta.indexName + ".query",queryText, queryTime)
         result
       }}).map({
       response =>
@@ -522,6 +528,11 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
 
       results
     })
+    .onSuccess((v: SearchResults[M,Y]) => {
+      meta.logger.success("e"+meta.indexName)
+      meta.logger.resultCount("e"+meta.indexName,v.response.numFound)})
+    .onFailure(e => meta.logger.failure("e"+meta.indexName, queryText, e))
+
   }
   def constructSearchResults[Y](creator: Option[Response.RawDoc => Y],
                                 start: Int,
@@ -723,7 +734,9 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
                                min,
                                queryText)
                 })
-    .onSuccess(_ => meta.logger.success(meta.solrName))
+    .onSuccess((v: SearchResults[M,Y]) => {
+      meta.logger.success(meta.solrName)
+      meta.logger.resultCount(meta.solrName,v.response.numFound)})
     .onFailure(e => meta.logger.failure(meta.solrName, queryText, e))
   }
 
