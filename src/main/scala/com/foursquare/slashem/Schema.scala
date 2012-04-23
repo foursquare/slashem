@@ -487,9 +487,19 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
         case Some(Pair(Field(fieldName),"asc")) => baseRequest.addSort(fieldName,SortOrder.ASC)
         case Some(Pair(Field(fieldName),"desc")) => baseRequest.addSort(fieldName,SortOrder.DESC)
         //Handle sorting by scripts in general
-        case Some(Pair(sort,"asc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticBoost(),"number").order(SortOrder.ASC))
-        case Some(Pair(sort,"desc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticBoost(),"number").order(SortOrder.DESC))
-
+        case Some(Pair(sort,dir)) => {
+          val (params,scriptSrc) = sort.elasticBoost()
+          val paramNames = (1 to params.length).map("p"+_)
+          val script = scriptSrc.format(paramNames)
+          val keyedParams = params zip paramNames
+          val sortOrder =  dir match {
+            case "asc" => SortOrder.ASC
+            case "desc" => SortOrder.DESC
+          }
+          val sortBuilder = new ScriptSortBuilder(script,"number").order(sortOrder)
+          keyedParams.foreach(p => sortBuilder.param(p._1,p._2))
+          baseRequest.addSort(sortBuilder)
+        }
         case _ => baseRequest
       }
 
