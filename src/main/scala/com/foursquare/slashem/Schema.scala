@@ -490,14 +490,14 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
         case Some(Pair(sort,dir)) => {
           val (params,scriptSrc) = sort.elasticBoost()
           val paramNames = (1 to params.length).map("p"+_)
-          val script = scriptSrc.format(paramNames)
-          val keyedParams = params zip paramNames
+          val script = scriptSrc.format(paramNames:_*)
+          val keyedParams =  paramNames zip params
           val sortOrder =  dir match {
             case "asc" => SortOrder.ASC
             case "desc" => SortOrder.DESC
           }
           val sortBuilder = new ScriptSortBuilder(script,"number").order(sortOrder)
-          keyedParams.foreach(p => sortBuilder.param(p._1,p._2))
+          keyedParams.foreach(p => {sortBuilder.param(p._1,p._2)})
           baseRequest.addSort(sortBuilder)
         }
         case _ => baseRequest
@@ -617,7 +617,15 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
   def boostFields(query: ElasticQueryBuilder, boostFields: List[ScoreBoost]): ElasticQueryBuilder =  {
     val boostedQuery = new CustomScoreQueryBuilder(query)
-    val scoreScript = "_score * (1 +"+(boostFields.map(_.elasticBoost).mkString(" + ") + " )")
+    val boostedQuerys = boostFields.map(_.elasticBoost)
+    val params = boostedQuerys.flatMap(_._1)
+    val scriptSrc = boostedQuerys.map(_._2).mkString(" + ")
+    val paramNames = (1 to params.length).map("p"+_)
+    println("using param names"+paramNames+" from params "+params+"on a query string of "+scriptSrc)
+    val script = scriptSrc.format(paramNames:_*)
+    val keyedParams =  paramNames zip params
+    keyedParams.foreach(p => {boostedQuery.param(p._1,p._2)})
+    val scoreScript = "_score * (1 +"+ script + " )"
     boostedQuery.script(scoreScript)
   }
   def combineFilters(filters: List[ElasticFilterBuilder]): ElasticFilterBuilder = {

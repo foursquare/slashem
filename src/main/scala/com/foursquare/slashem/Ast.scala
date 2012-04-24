@@ -332,7 +332,7 @@ object Ast {
     }
     /** @inheritdoc */
     def elasticBoost(): Pair[List[String],String] = {
-      val distanceInKm = Pair(List(name,lat,lng).map(_.toString),"doc['%s'].distanceInKm(%s,%s)")
+      val distanceInKm = Pair(List(lat,lng).map(_.toString),"doc['"+name+"'].distanceInKm(%s,%s)")
       distType match {
         case "square" => Pair(distanceInKm._1,"pow(%s,2.0)".format(distanceInKm._2))
         case _ => distanceInKm
@@ -345,8 +345,9 @@ object Ast {
     def boost: String = "recip(%s,%d,%d,%d)".format(query.boost, x, y, z)
     /** @inheritdoc */
     def elasticBoost(): Pair[List[String],String] = {
-      Pair(Nil,
-           "%d.0*pow(((%d.0*(%s))+%d.0),-1.0)".format(y, x, query.elasticBoost(), z))
+      val subquery= query.elasticBoost()
+      Pair(subquery._1,
+           "%d.0*pow(((%d.0*(%s))+%d.0),-1.0)".format(y, x, subquery._2, z))
     }
   }
 
