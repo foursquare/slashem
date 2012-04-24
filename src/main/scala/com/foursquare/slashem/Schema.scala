@@ -621,7 +621,6 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     val params = boostedQuerys.flatMap(_._1)
     val scriptSrc = boostedQuerys.map(_._2).mkString(" + ")
     val paramNames = (1 to params.length).map("p"+_)
-    println("using param names"+paramNames+" from params "+params+"on a query string of "+scriptSrc)
     val script = scriptSrc.format(paramNames:_*)
     val keyedParams =  paramNames zip params
     keyedParams.foreach(p => {boostedQuery.param(p._1,p._2)})
