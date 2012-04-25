@@ -390,12 +390,16 @@ trait SolrQueryLogger {
   //Log success
   def success(name: String): Unit = {
   }
+  //Log the number of results
+  def resultCount(name: String, count: Int): Unit = {
+  }
 }
 
 /** The default logger, does nothing. */
 object NoopQueryLogger extends SolrQueryLogger {
   override def log(name: String, msg: String, time: Long) = Unit
   override def debug(msg: String) = println(msg)
+  override def resultCount(name: String, count:Int) = println("Got back "+count+" results while querying "+name)
 }
 
 //If you want any of the geo queries you will have to implement this
@@ -483,9 +487,19 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
         case Some(Pair(Field(fieldName),"asc")) => baseRequest.addSort(fieldName,SortOrder.ASC)
         case Some(Pair(Field(fieldName),"desc")) => baseRequest.addSort(fieldName,SortOrder.DESC)
         //Handle sorting by scripts in general
-        case Some(Pair(sort,"asc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticBoost(),"number").order(SortOrder.ASC))
-        case Some(Pair(sort,"desc")) => baseRequest.addSort(new ScriptSortBuilder(sort.elasticBoost(),"number").order(SortOrder.DESC))
-
+        case Some(Pair(sort,dir)) => {
+          val (params,scriptSrc) = sort.elasticBoost()
+          val paramNames = (1 to params.length).map("p"+_)
+          val script = scriptSrc.format(paramNames:_*)
+          val keyedParams =  paramNames zip params
+          val sortOrder =  dir match {
+            case "asc" => SortOrder.ASC
+            case "desc" => SortOrder.DESC
+          }
+          val sortBuilder = new ScriptSortBuilder(script,"number").order(sortOrder)
+          keyedParams.foreach(p => {sortBuilder.param(p._1,p._2)})
+          baseRequest.addSort(sortBuilder)
+        }
         case _ => baseRequest
       }
 
@@ -507,9 +521,11 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       response
     }
 
+    val queryText = query.toString()
+
     timeFuture(searchResultsFuture).map( {
       case (queryTime, result) => {
-        meta.logger.log("e" + meta.indexName + ".query",query.toString(), queryTime)
+        meta.logger.log("e" + meta.indexName + ".query",queryText, queryTime)
         result
       }}).map({
       response =>
@@ -522,6 +538,11 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
 
       results
     })
+    .onSuccess((v: SearchResults[M,Y]) => {
+      meta.logger.success("e"+meta.indexName)
+      meta.logger.resultCount("e"+meta.indexName,v.response.numFound)})
+    .onFailure(e => meta.logger.failure("e"+meta.indexName, queryText, e))
+
   }
   def constructSearchResults[Y](creator: Option[Response.RawDoc => Y],
                                 start: Int,
@@ -596,7 +617,14 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
   def boostFields(query: ElasticQueryBuilder, boostFields: List[ScoreBoost]): ElasticQueryBuilder =  {
     val boostedQuery = new CustomScoreQueryBuilder(query)
-    val scoreScript = "_score * (1 +"+(boostFields.map(_.elasticBoost).mkString(" + ") + " )")
+    val boostedQuerys = boostFields.map(_.elasticBoost)
+    val params = boostedQuerys.flatMap(_._1)
+    val scriptSrc = boostedQuerys.map(_._2).mkString(" + ")
+    val paramNames = (1 to params.length).map("p"+_)
+    val script = scriptSrc.format(paramNames:_*)
+    val keyedParams =  paramNames zip params
+    keyedParams.foreach(p => {boostedQuery.param(p._1,p._2)})
+    val scoreScript = "_score * (1 +"+ script + " )"
     boostedQuery.script(scoreScript)
   }
   def combineFilters(filters: List[ElasticFilterBuilder]): ElasticFilterBuilder = {
@@ -723,7 +751,9 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
                                min,
                                queryText)
                 })
-    .onSuccess(_ => meta.logger.success(meta.solrName))
+    .onSuccess((v: SearchResults[M,Y]) => {
+      meta.logger.success(meta.solrName)
+      meta.logger.resultCount(meta.solrName,v.response.numFound)})
     .onFailure(e => meta.logger.failure(meta.solrName, queryText, e))
   }
 

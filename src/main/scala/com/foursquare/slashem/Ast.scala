@@ -223,8 +223,8 @@ object Ast {
     def boost(): String = {
       fieldName
     }
-    def elasticBoost(): String = {
-      "(doc['" + fieldName + "'].value)"
+    def elasticBoost(): Pair[List[String],String] = {
+      Pair(Nil,"(doc['" + fieldName + "'].value)")
     }
   }
 
@@ -240,10 +240,10 @@ object Ast {
         case x: Double => fieldName + "^" + x.toString
       }
     }
-    def elasticBoost(): String = {
+    def elasticBoost(): Pair[List[String],String] = {
       weight match {
-        case 1.0 => "(doc['" + fieldName + "'].value)"
-        case _ => "(doc['" + fieldName + "'].value *" + weight.toString + ")"
+        case 1.0 => Pair(Nil,"(doc['" + fieldName + "'].value)")
+        case _ => Pair(Nil,"(doc['" + fieldName + "'].value *" + weight.toString + ")")
       }
     }
   }
@@ -311,8 +311,10 @@ object Ast {
     def boost(): String
     /**
      * Elastic Search field boost function
+     * The first param is a list of of params and
+     * the second is a string to which scala format could be applied
      */
-    def elasticBoost(): String
+    def elasticBoost(): Pair[List[String],String]
   }
 
   /**
@@ -325,14 +327,14 @@ object Ast {
     def boost(): String = {
       distType match {
         case "square" => "sqedist(%s,%s,%s)".format(lat,lng,name)
-        case _ => "dist(2,%s,%s,%s)".format(lat,lng,name)
+        case _ => "dist(2,%s,%s,%s".format(lat,lng,name)
       }
     }
     /** @inheritdoc */
-    def elasticBoost(): String = {
-      val distanceInKm = "doc['%s'].distanceInKm(%s,%s)".format(name,lat,lng)
+    def elasticBoost(): Pair[List[String],String] = {
+      val distanceInKm = Pair(List(lat,lng).map(_.toString),"doc['"+name+"'].distanceInKm(%s,%s)")
       distType match {
-        case "square" => "pow(%s,2.0)".format(distanceInKm)
+        case "square" => Pair(distanceInKm._1,"pow(%s,2.0)".format(distanceInKm._2))
         case _ => distanceInKm
       }
     }
@@ -342,7 +344,11 @@ object Ast {
     /** @inheritdoc */
     def boost: String = "recip(%s,%d,%d,%d)".format(query.boost, x, y, z)
     /** @inheritdoc */
-    def elasticBoost(): String = "%d.0*pow(((%d.0*(%s))+%d.0),-1.0)".format(y, x, query.elasticBoost(), z)
+    def elasticBoost(): Pair[List[String],String] = {
+      val subquery= query.elasticBoost()
+      Pair(subquery._1,
+           "%d.0*pow(((%d.0*(%s))+%d.0),-1.0)".format(y, x, subquery._2, z))
+    }
   }
 
   /**
