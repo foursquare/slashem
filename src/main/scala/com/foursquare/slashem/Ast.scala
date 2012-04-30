@@ -224,7 +224,7 @@ object Ast {
       fieldName
     }
     def elasticBoost(): Pair[List[String],String] = {
-      Pair(Nil,"(doc['" + fieldName + "'].value)")
+      Pair(Nil,"doc['" + fieldName + "'].value")
     }
   }
 

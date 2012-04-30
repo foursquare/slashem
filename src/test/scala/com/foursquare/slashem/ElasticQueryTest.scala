@@ -72,6 +72,13 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
 
 
   @Test
+  def simpleOrderTest {
+    val fullQuery = ESimplePanda.where(_.name contains "lol")
+                    .limit(5).orderDesc(_.followers)
+    val r = fullQuery fetch()
+  }
+
+  @Test
   def testEmptySearch {
     try {
     val r = ESimplePanda where (_.name eqs "lolsdonotinsertsomethingwiththisinit") fetch()
