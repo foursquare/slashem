@@ -211,6 +211,7 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
   val indexName = "testindex"// Override me too
   val docType = "slashemdoc"
   val useTransport = true// Override if you want to use transport client
+  val sniffMode = false// Override if you want to use sniff mode
   def servers: List[String] = List() // Define if your going to use the transport client
   def serverInetSockets = servers.map(x => {val h = x.split(":")
                              val s = h.head
@@ -230,7 +231,7 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
       case _ => {
         myClient = Some({
           if (useTransport) {
-            val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName).put("client.transport.sniff",true)
+            val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName).put("client.transport.sniff",sniffMode)
             val tc = new TransportClient(settings)
             serverInetSockets.map(tc.addTransportAddress(_))
             tc
