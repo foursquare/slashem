@@ -219,29 +219,35 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
                              new InetSocketTransportAddress(s, p.toInt)})
 
   var node: Node = null
-  var myClient: Option[Client]
+  @volatile var myClient: Client = null
+  val clientCreateLock : AnyRef = new Object()
 
   val executorService: ExecutorService = Executors.newCachedThreadPool()
   val executorServiceFuturePool: FuturePool = FuturePool(executorService)
 
   /** Create or get the MetaRecord's client */
   def client: Client = {
-    myClient match {
-      case Some(cl) => cl
-      case _ => {
-        myClient = Some({
-          if (useTransport) {
-            val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName).put("client.transport.sniff",sniffMode)
-            val tc = new TransportClient(settings)
-            serverInetSockets.map(tc.addTransportAddress(_))
-            tc
-          } else {
-            node.client()
-          }
-        })
-        myClient.get
+    if (myClient == null) {
+      clientCreateLock.synchronized {
+        if (myClient == null) {
+          myClient =
+            if (useTransport) {
+              val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName).put("client.transport.sniff",sniffMode)
+              val tc = new TransportClient(settings)
+              serverInetSockets.map(tc.addTransportAddress(_))
+              tc
+            } else {
+              node.client()
+            }
+          Runtime.getRuntime().addShutdownHook(new Thread() {
+            override def run(): Unit =  {
+              myClient.close();
+            }
+          });
+        }
       }
     }
+    myClient
   }
 }
 
