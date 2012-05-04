@@ -219,29 +219,40 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
                              new InetSocketTransportAddress(s, p.toInt)})
 
   var node: Node = null
-  var myClient: Option[Client]
+  //This is volatile for double check locking to work see http://jeremymanson.blogspot.com/2008/05/double-checked-locking.html
+  //This requires JDK5 or later
+  @volatile var myClient: Client = null
+  val clientCreateLock : AnyRef = new Object()
 
   val executorService: ExecutorService = Executors.newCachedThreadPool()
   val executorServiceFuturePool: FuturePool = FuturePool(executorService)
 
   /** Create or get the MetaRecord's client */
   def client: Client = {
-    myClient match {
-      case Some(cl) => cl
-      case _ => {
-        myClient = Some({
-          if (useTransport) {
-            val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName).put("client.transport.sniff",sniffMode)
-            val tc = new TransportClient(settings)
-            serverInetSockets.map(tc.addTransportAddress(_))
-            tc
-          } else {
-            node.client()
-          }
-        })
-        myClient.get
+    //Double check locking (safe with new JDKs and the @volatile up above ^)
+    if (myClient == null) {
+      clientCreateLock.synchronized {
+        if (myClient == null) {
+          myClient =
+            if (useTransport) {
+              val settings = ImmutableSettings.settingsBuilder().put("cluster.name",clusterName).put("client.transport.sniff",sniffMode)
+              val tc = new TransportClient(settings)
+              serverInetSockets.map(tc.addTransportAddress(_))
+              tc
+            } else {
+              node.client()
+            }
+          //When shut down the JVM we want to explicitly shut down our connections
+          //so we are a well behaved client
+          Runtime.getRuntime().addShutdownHook(new Thread() {
+            override def run(): Unit =  {
+              myClient.close();
+            }
+          });
+        }
       }
     }
+    myClient
   }
 }
 
