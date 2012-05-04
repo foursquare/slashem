@@ -219,6 +219,8 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
                              new InetSocketTransportAddress(s, p.toInt)})
 
   var node: Node = null
+  //This is volatile for double check locking to work see http://jeremymanson.blogspot.com/2008/05/double-checked-locking.html
+  //This requires JDK5 or later
   @volatile var myClient: Client = null
   val clientCreateLock : AnyRef = new Object()
 
@@ -227,6 +229,7 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
 
   /** Create or get the MetaRecord's client */
   def client: Client = {
+    //Double check locking (safe with new JDKs and the @volatile up above ^)
     if (myClient == null) {
       clientCreateLock.synchronized {
         if (myClient == null) {
@@ -239,6 +242,8 @@ trait ElasticMeta[T <: Record[T]] extends SlashemMeta[T] {
             } else {
               node.client()
             }
+          //When shut down the JVM we want to explicitly shut down our connections
+          //so we are a well behaved client
           Runtime.getRuntime().addShutdownHook(new Thread() {
             override def run(): Unit =  {
               myClient.close();
