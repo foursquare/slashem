@@ -264,6 +264,17 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
    * It can just be one element if you wish */
   def servers: List[String]
 
+  /* Not using the primary core, set it here*/
+  def core: Option[String] = None
+
+  /* Need a more crazy query path? override */
+  def queryPath: String = {
+    core match {
+      case None => "/solr/select/"
+      case Some(x) => "/solr/%s/select".format(x)
+    }
+  }
+
   // The name is used to determine which props to use as well as for logging
   def solrName: String
 
@@ -355,7 +366,7 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
   }
 
   def queryString(params: Seq[(String, String)]): QueryStringEncoder = {
-    val qse = new QueryStringEncoder("/solr/select/")
+    val qse = new QueryStringEncoder(queryPath)
     qse.addParam("wt", "json")
     params.foreach( x => {
       qse.addParam(x._1, x._2)
