@@ -1,6 +1,6 @@
 name := "slashem"
 
-version := "0.9.13"
+version := "0.9.14"
 
 organization := "com.foursquare"
 
@@ -123,4 +123,11 @@ pomExtra := (
  <email>aalix@foursquare.com</email>
  </developer>
 </developers>
+)
+
+ivyXML := (
+<dependencies>
+ <exclude module="jmxtools"/>
+ <exclude module="jmxri"/>
+</dependencies>
 )
