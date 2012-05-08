@@ -242,7 +242,7 @@ object Ast {
     }
     def elasticBoost(): Pair[List[String],String] = {
       weight match {
-        case 1.0 => Pair(Nil,"(doc['" + fieldName + "'].value)")
+        case 1.0 => Pair(Nil,"doc['" + fieldName + "'].value")
         case _ => Pair(Nil,"(doc['" + fieldName + "'].value *" + weight.toString + ")")
       }
     }

@@ -79,6 +79,14 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
+  def simpleBoostTest {
+    val fullQuery = ESimplePanda.where(_.name contains "lol")
+                    .limit(5).boostField(_.followers)
+    val r = fullQuery fetch()
+  }
+
+
+  @Test
   def testEmptySearch {
     try {
     val r = ESimplePanda where (_.name eqs "lolsdonotinsertsomethingwiththisinit") fetch()
