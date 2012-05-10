@@ -79,6 +79,14 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
+  def simpleBoostTest {
+    val fullQuery = ESimplePanda.where(_.name contains "lol")
+                    .limit(5).boostField(_.followers)
+    val r = fullQuery fetch()
+  }
+
+
+  @Test
   def testEmptySearch {
     try {
     val r = ESimplePanda where (_.name eqs "lolsdonotinsertsomethingwiththisinit") fetch()
@@ -305,10 +313,20 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testListFieldIn {
     val response1 = ESimplePanda where (_.favnums in List(2, 3, 4, 5)) fetch()
     val response2 = ESimplePanda where (_.favnums in List(99)) fetch()
-    //val response3 = ESimplePanda where (_.favnums in List()) fetch()
     Assert.assertEquals(response1.response.results.length, 2)
     Assert.assertEquals(response2.response.results.length, 0)
-    //Assert.assertEquals(response3.response.results.length, 0)
+  }
+
+  @Test
+  def testIntListFieldEmptyIn {
+    val response = ESimplePanda where (_.favnums in List()) fetch()
+    Assert.assertEquals(response.response.results.length, 0)
+  }
+
+ @Test
+  def testIntListFieldEmptyNin {
+    val response = ESimplePanda where (_.favnums nin List()) fetch()
+    Assert.assertEquals(response.response.results.length, 8)
   }
 
   @Test

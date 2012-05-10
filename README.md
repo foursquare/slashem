@@ -24,6 +24,11 @@ The other hook is only useful if you are using Solr for geospatail information,
 we provide a trait called SolrGeoHash which has two required functions, namely
 coverString and rectCoverString. Most people will not need to implement this.
 
+### Multiple Solr cores & non-stanrd query paths
+
+Support for multiple cores is done by overriding "core" in the model (wich is an Option[String]).
+If you have a non-standard query path you can override queryPath in your model.
+
 ## Examples
 
 [QueryTest.scala](https://github.com/foursquare/slashem/blob/master/src/test/scala/com/foursquare/slashem/QueryTest.scala) contains sample queries and shows the corresponding query.
@@ -48,11 +53,17 @@ to do this:
 ## Dependencies
 
 lift, joda-time, junit, finagle, jackson. These dependencies are managed by 
-the build system.
+the build system. Note: some of the transitive dependencies may fail to resolve
+from the central maven. If you are using sbt you can fix this by adding
 
-## Warnings
+   ivyXML := (
+   <dependencies>
+    <exclude module="jmxtools"/>
+    <exclude module="jmxri"/>
+   </dependencies>
+  )
 
-This is still a very early version. There are likely bugs (sorry!). Let us know
+## Warnings still a very early version. There are likely bugs (sorry!). Let us know
 if you find any. While we can't promise timely fixes, it will help :)
 
 ## Maintainers
