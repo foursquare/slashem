@@ -347,18 +347,18 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
-  def testUnanalyzed {
-    try {
-      val res1 = ESimplePanda where (_.termsfield eqs "termhit") fetch()
-      val res2 = ESimplePanda where (_.termsfield in List("randomterm", "termhit")) fetch()
-      Assert.assertEquals(res1.response.results.length, 1)
-      Assert.assertEquals(res2.response.results.length, 1)
-    } catch {
-      case e: Exception => {
-        e.printStackTrace()
-        Assert.fail
-      }
-    }
+  def testTermQueries {
+    val res1 = ESimplePanda where (_.termsfield eqs "termhit") fetch()
+    val res2 = ESimplePanda where (_.termsfield in List("randomterm", "termhit")) fetch()
+    Assert.assertEquals(res1.response.results.length, 1)
+    Assert.assertEquals(res2.response.results.length, 1)
+  }
+
+  @Test
+  def testTermFilters {
+    // grab 2 results, filter to 1
+    val res1 = ESimplePanda where (_.hugenums contains 1L) filter(_.termsfield in List("termhit", "randomterm")) fetch()
+    Assert.assertEquals(res1.response.results.length, 1)
   }
 
   @Before
