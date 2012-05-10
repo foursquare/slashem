@@ -310,6 +310,17 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
+  def testUnanalyzed {
+    try {
+      val res1 = ESimplePanda where (_.termsfield eqs "termhit") fetch()
+      //val res2 = ESimplePanda where (_.termsfield in List("randomterm", "termhit")) fetch()
+      Assert.assertEquals(res1.response.results.length, 1)
+    } catch {
+      case e: Exception => e.printStackTrace()
+    }
+  }
+
+  @Test
   def testListFieldIn {
     val response1 = ESimplePanda where (_.favnums in List(2, 3, 4, 5)) fetch()
     val response2 = ESimplePanda where (_.favnums in List(99)) fetch()
@@ -394,6 +405,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val favnums1 = List(1, 2, 3, 4, 5).asJava
     val favnums2 = List(1, 2, 3, 4, 5).asJava
     val favnums3 = List(6, 7, 8, 9, 10).asJava
+    val terms1 = List("termhit", "nohit").asJava
     val nicknames1 = List("jerry", "dawg", "xzibit").asJava
     val nicknames2 = List("xzibit", "alvin").asJava
     val nicknames3 = List("alvin", "nathaniel", "joiner").asJava
@@ -407,6 +419,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("favnums", favnums1)
                                                                           .field("nicknames", nicknames1)
                                                                           .field("hugenums", hugenums1)
+                                                                          .field("termsfield", terms1)
                                                                           .endObject()
       ).execute()
     .actionGet();

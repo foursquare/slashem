@@ -7,6 +7,7 @@ import org.elasticsearch.index.query.{FilterBuilder => ElasticFilterBuilder,
                                       QueryBuilder => ElasticQueryBuilder,
                                       QueryBuilders => EQueryBuilders,
                                       QueryStringQueryBuilder}
+import scalaj.collection.Imports._
 
 /**
  * Abstract Syntax Tree used to represent queries.
@@ -407,6 +408,40 @@ object Ast {
     }
   }
 
+  /**
+   * A term query.  Used for queries that don't need to be analyzed
+   *
+   * By default, elasticFilter() will always be cached!
+   */
+  case class Term[T](query: Iterable[T], escaped: Boolean = true, cached: Boolean = true) extends Query[T] {
+    // hack for single term queries
+    def this(query: T) = this(List(query))
+    /** @inheritdoc */
+    //def extend() = throw new UnimplementedException("Slashem does not support Term queries Solr")
+    def extend(): String = {
+      escaped match {
+        case true => {'"' + escape(query.toString) + '"'}
+        case false => '"' + query.toString + '"'
+      }
+    }
+    /** @inheritdoc */
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
+      val fieldName = qf.head.fieldName
+      val weight = qf.head.weight.toFloat
+      query match {
+        case term::Nil => EQueryBuilders.termQuery(fieldName, term).boost(weight)
+        case terms => EQueryBuilders.termsQuery(fieldName, terms.asJava).boost(weight)
+      }
+    }
+    /** @inheritdoc */
+    override def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
+      val fieldName = qf.head.fieldName
+      query match {
+        case term::Nil => EFilterBuilders.termFilter(fieldName, term).cache(cached)
+        case terms => EFilterBuilders.termsFilter(fieldName, terms.asJava).cache(cached)
+      }
+    }
+  }
 
   case class Range[T](q1: Query[T],q2: Query[T]) extends Query[T] {
     /** @inheritdoc */
@@ -487,7 +522,7 @@ object Ast {
   }
 
   /**
-   * Class representing clauses ANDed together
+   * Class representing queries ANDed together
    */
   case class And[T](queries: Query[T]*) extends Query[T] {
     /** @inheritdoc */
@@ -507,7 +542,7 @@ object Ast {
     }
   }
   /**
-   * Case class representing a list of clauses ORed together
+   * Case class representing a list of queries ORed together
    */
   case class Or[T](queries: Query[T]*) extends Query[T] {
     /** @inheritdoc */
