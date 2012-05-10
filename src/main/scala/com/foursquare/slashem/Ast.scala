@@ -359,8 +359,10 @@ object Ast {
     def extend(): String = "\"\""
     /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
-      val q = EQueryBuilders.queryString(this.extend())
-      qf.map(f => q.field(f.fieldName,f.weight.toFloat))
+      //An empty query matches no documents, so it is the same as the negation of matchAll
+      //Note: this is kind of ugly since this is may likely an OR clause or negated up above
+      //so we should try and avoid generating this
+      val q = EQueryBuilders.boolQuery.mustNot(EQueryBuilders.matchAllQuery())
       q
     }
   }
