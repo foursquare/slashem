@@ -420,7 +420,8 @@ object Ast {
     //def extend() = throw new UnimplementedException("Slashem does not support Term queries Solr")
     def extend(): String = {
       escaped match {
-        case true => {'"' + escape(query.toString) + '"'}
+        // hack to fix wrapping the queries in a List()
+        case true => {'"' + escape(query.mkString("")) + '"'}
         case false => '"' + query.toString + '"'
       }
     }

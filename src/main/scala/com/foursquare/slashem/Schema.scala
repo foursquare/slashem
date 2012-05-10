@@ -793,7 +793,6 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
  */
 trait SlashemUnanalyzedField[V, M <: Record[M]] extends SlashemField[V, M] {
   self: Field[V, M] =>
-  import Helpers._
 
   override val unanalyzed = true
 }
@@ -802,6 +801,7 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   self: Field[V, M] =>
   import Helpers._
 
+  // Override this value to produce unanalyzed queries!
   val unanalyzed = false
 
   def produceQuery(v: V): Query[V] = {
@@ -991,7 +991,7 @@ class SlashemPointField[T <: Record[T]](owner: T) extends PointField[T](owner) w
 class SlashemBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SlashemField[Boolean, T]
 class SlashemDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SlashemField[DateTime, T]
 //More restrictive type so we can access the geohash
-class SlashemGeoField[T <: SlashemSchema[T]](owner: T) extends SlashemStringField[T](owner) {
+class SlashemGeoField[T <: SlashemSchema[T]](owner: T) extends SlashemUnanalyzedStringField[T](owner) {
   def inRadius(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = owner.geohash.maxCells) = {
     val cellIds = owner.geohash.coverString(geoLat, geoLong, radiusInMeters, maxCells = maxCells)
     //If we have an empty cover we default to everything.
