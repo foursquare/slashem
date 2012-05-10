@@ -430,7 +430,10 @@ object Ast {
       val weight = qf.head.weight.toFloat
       query match {
         case term::Nil => EQueryBuilders.termQuery(fieldName, term).boost(weight)
-        case terms => EQueryBuilders.termsQuery(fieldName, terms.asJava).boost(weight)
+        case terms => {
+          val moarTerms = terms.toSeq.map(_.toString)
+          EQueryBuilders.termsQuery(fieldName, moarTerms: _*).boost(weight)
+        }
       }
     }
     /** @inheritdoc */
@@ -438,7 +441,10 @@ object Ast {
       val fieldName = qf.head.fieldName
       query match {
         case term::Nil => EFilterBuilders.termFilter(fieldName, term).cache(cached)
-        case terms => EFilterBuilders.termsFilter(fieldName, terms.asJava).cache(cached)
+        case terms => {
+          val moarTerms = terms.toSeq.map(_.toString)
+          EFilterBuilders.termsFilter(fieldName, moarTerms: _*).cache(cached)
+        }
       }
     }
   }

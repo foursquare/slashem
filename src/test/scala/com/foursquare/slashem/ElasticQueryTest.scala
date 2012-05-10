@@ -310,17 +310,6 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
-  def testUnanalyzed {
-    try {
-      val res1 = ESimplePanda where (_.termsfield eqs "termhit") fetch()
-      //val res2 = ESimplePanda where (_.termsfield in List("randomterm", "termhit")) fetch()
-      Assert.assertEquals(res1.response.results.length, 1)
-    } catch {
-      case e: Exception => e.printStackTrace()
-    }
-  }
-
-  @Test
   def testListFieldIn {
     val response1 = ESimplePanda where (_.favnums in List(2, 3, 4, 5)) fetch()
     val response2 = ESimplePanda where (_.favnums in List(99)) fetch()
@@ -355,6 +344,21 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val ids2 = response2.response.oids
     // All three docs with favnums should be returned, none contain 99
     Assert.assertEquals(ids2.intersect(idsWithFavNums).length, 3)
+  }
+
+  @Test
+  def testUnanalyzed {
+    try {
+      val res1 = ESimplePanda where (_.termsfield eqs "termhit") fetch()
+      val res2 = ESimplePanda where (_.termsfield in List("randomterm", "termhit")) fetch()
+      Assert.assertEquals(res1.response.results.length, 1)
+      Assert.assertEquals(res2.response.results.length, 1)
+    } catch {
+      case e: Exception => {
+        e.printStackTrace()
+        Assert.fail
+      }
+    }
   }
 
   @Before
