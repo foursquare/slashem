@@ -319,20 +319,26 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testListFieldIn {
     val response1 = ESimplePanda where (_.favnums in List(2, 3, 4, 5)) fetch()
     val response2 = ESimplePanda where (_.favnums in List(99)) fetch()
+    val response3 = ESimplePanda where (_.termsfield in List("termhit", "lol")) fetch()
     Assert.assertEquals(response1.response.results.length, 2)
     Assert.assertEquals(response2.response.results.length, 0)
+    Assert.assertEquals(response3.response.results.length, 1)
   }
 
   @Test
   def testIntListFieldEmptyIn {
-    val response = ESimplePanda where (_.favnums in List()) fetch()
-    Assert.assertEquals(response.response.results.length, 0)
+    val response1 = ESimplePanda where (_.favnums in List()) fetch()
+    val response2 = ESimplePanda where (_.termsfield in List()) fetch()
+    Assert.assertEquals(response1.response.results.length, 0)
+    Assert.assertEquals(response2.response.results.length, 0)
   }
 
  @Test
   def testIntListFieldEmptyNin {
-    val response = ESimplePanda where (_.favnums nin List()) fetch()
-    Assert.assertEquals(response.response.results.length, 8)
+    val response1 = ESimplePanda where (_.favnums nin List()) fetch()
+    val response2 = ESimplePanda where (_.termsfield nin List()) fetch()
+    Assert.assertEquals(response1.response.results.length, 8)
+    Assert.assertEquals(response2.response.results.length, 8)
   }
 
   @Test
@@ -350,6 +356,26 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val ids2 = response2.response.oids
     // All three docs with favnums should be returned, none contain 99
     Assert.assertEquals(ids2.intersect(idsWithFavNums).length, 3)
+
+    val response3 = ESimplePanda where (_.termsfield nin List("termhit")) fetch()
+    val ids3 = response3.response.oids
+    // All three docs with favnums should be returned, none contain 99
+    Assert.assertEquals(ids3.intersect(idsWithFavNums).length, 2)
+  }
+
+  @Test
+  def testTermQueries {
+    val res1 = ESimplePanda where (_.termsfield eqs "termhit") fetch()
+    val res2 = ESimplePanda where (_.termsfield in List("randomterm", "termhit")) fetch()
+    Assert.assertEquals(res1.response.results.length, 1)
+    Assert.assertEquals(res2.response.results.length, 1)
+  }
+
+  @Test
+  def testTermFilters {
+    // grab 2 results, filter to 1
+    val res1 = ESimplePanda where (_.hugenums contains 1L) filter(_.termsfield in List("termhit", "randomterm")) fetch()
+    Assert.assertEquals(res1.response.results.length, 1)
   }
 
   @Before
@@ -400,6 +426,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val favnums1 = List(1, 2, 3, 4, 5).asJava
     val favnums2 = List(1, 2, 3, 4, 5).asJava
     val favnums3 = List(6, 7, 8, 9, 10).asJava
+    val terms1 = List("termhit", "nohit").asJava
     val nicknames1 = List("jerry", "dawg", "xzibit").asJava
     val nicknames2 = List("xzibit", "alvin").asJava
     val nicknames3 = List("alvin", "nathaniel", "joiner").asJava
@@ -413,6 +440,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("favnums", favnums1)
                                                                           .field("nicknames", nicknames1)
                                                                           .field("hugenums", hugenums1)
+                                                                          .field("termsfield", terms1)
                                                                           .endObject()
       ).execute()
     .actionGet();

@@ -419,6 +419,48 @@ object Ast {
     }
   }
 
+  /**
+   * A term query.  Used for queries that don't need to be analyzed
+   *
+   * By default, elasticFilter() will always be cached!
+   */
+  case class Term[T](query: Iterable[T], escapeQuery: Boolean = true, cached: Boolean = true) extends Query[T] {
+    /** @inheritdoc */
+    //def extend() = throw new UnimplementedException("Slashem does not support Term queries Solr")
+    def extend(): String = {
+      escapeQuery match {
+        // hack to fix wrapping the queries in a List()
+        case true => {
+          val queries = query.map(q => {'"' + escape(q.toString) + '"'})
+          queries.mkString(" OR ")
+        }
+        case false => '"' + query.mkString(" OR ") + '"'
+      }
+    }
+    /** @inheritdoc */
+    def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
+      val fieldName = qf.head.fieldName
+      val weight = qf.head.weight.toFloat
+      query match {
+        case term::Nil => EQueryBuilders.termQuery(fieldName, term).boost(weight)
+        case terms => {
+          val moarTerms = terms.toSeq.map(_.toString)
+          EQueryBuilders.termsQuery(fieldName, moarTerms: _*).boost(weight)
+        }
+      }
+    }
+    /** @inheritdoc */
+    override def elasticFilter(qf: List[WeightedField]): ElasticFilterBuilder = {
+      val fieldName = qf.head.fieldName
+      query match {
+        case term::Nil => EFilterBuilders.termFilter(fieldName, term).cache(cached)
+        case terms => {
+          val moarTerms = terms.toSeq.map(_.toString)
+          EFilterBuilders.termsFilter(fieldName, moarTerms: _*).cache(cached)
+        }
+      }
+    }
+  }
 
   case class Range[T](q1: Query[T],q2: Query[T]) extends Query[T] {
     /** @inheritdoc */
@@ -505,7 +547,7 @@ object Ast {
   }
 
   /**
-   * Class representing clauses ANDed together
+   * Class representing queries ANDed together
    */
   case class And[T](queries: Query[T]*) extends Query[T] {
     /** @inheritdoc */
@@ -525,7 +567,7 @@ object Ast {
     }
   }
   /**
-   * Case class representing a list of clauses ORed together
+   * Case class representing a list of queries ORed together
    */
   case class Or[T](queries: Query[T]*) extends Query[T] {
     /** @inheritdoc */

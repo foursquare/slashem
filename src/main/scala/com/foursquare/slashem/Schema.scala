@@ -55,6 +55,12 @@ case class SolrResponseException(code: Int, reason: String, solrName: String, qu
   }
 }
 
+case class UnimplementedException(reason: String) extends RuntimeException {
+  override def getMessage(): String = {
+    "Not implemented: %s".format(reason)
+  }
+}
+
 /** The response header. There are normally more fields in the response header we could extract, but
  * we don't at present. */
 case class ResponseHeader @JsonCreator()(@JsonProperty("status")status: Int, @JsonProperty("QTime")QTime: Int)
@@ -433,8 +439,8 @@ trait SolrGeoHash {
 }
 //Default geohash, does nothing.
 object NoopSolrGeoHash extends SolrGeoHash {
-  def coverString (geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int ): Seq[String] = List("pleaseUseaRealGeoHash")
-  def rectCoverString(topRight: (Double, Double), bottomLeft: (Double, Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = List("pleaseUseaRealGeoHash")
+  def coverString (geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int ): Seq[String] = List("pleaseUseaRealGeoHash", "thisIsForFunctionalityTests")
+  def rectCoverString(topRight: (Double, Double), bottomLeft: (Double, Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = List("pleaseUseaRealGeoHash", "thisIsForFunctionalityTests")
 }
 
 trait SlashemSchema[M <: Record[M]] extends Record[M] {
@@ -782,40 +788,64 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
 
 }
 
+/**
+ * A field type for unanalyzed queries. Results in using Term[V] queries.
+ */
+trait SlashemUnanalyzedField[V, M <: Record[M]] extends SlashemField[V, M] {
+  self: Field[V, M] =>
+
+  override val unanalyzed = true
+}
 
 trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   self: Field[V, M] =>
   import Helpers._
 
-  //Note eqs and neqs results in phrase queries!
-  def eqs(v: V) = Clause[V](self.queryName, Group(Phrase(v)))
-  def neqs(v: V) = Clause[V](self.queryName, Phrase(v),false)
+  // Override this value to produce unanalyzed queries!
+  val unanalyzed = false
+
+  def produceQuery(v: V, escapeQuery: Boolean = true): Query[V] = {
+    unanalyzed match {
+      case true => Term(List(v),escapeQuery)
+      case false => Phrase(v,escapeQuery)
+    }
+  }
+
+  def produceGroupedQuery(v: Iterable[V], escapeQuery: Boolean = true): Query[V] = {
+    unanalyzed match {
+      // we don't want to groupWithOr and instead take advantage of "terms" queries
+      case true => Term(v, escapeQuery)
+      case false => groupWithOr(v.map({x: V => produceQuery(x,escapeQuery)}))
+    }
+  }
+
+  def eqs(v: V) = Clause[V](self.queryName, Group(produceQuery(v)))
+  def neqs(v: V) = Clause[V](self.queryName, produceQuery(v),false)
   //With a boost
-  def eqs(v: V, b: Float) = Clause[V](self.queryName, Boost(Group(Phrase(v)),b))
-  def neqs(v: V, b:Float) = Clause[V](self.queryName, Boost(Phrase(v),b),false)
+  def eqs(v: V, b: Float) = Clause[V](self.queryName, Boost(Group(produceQuery(v)),b))
+  def neqs(v: V, b:Float) = Clause[V](self.queryName, Boost(produceQuery(v),b),false)
 
   //This allows for bag of words style matching.
   def contains(v: V) = Clause[V](self.queryName, Group(BagOfWords(v)))
   def contains(v: V, b: Float) = Clause[V](self.queryName, Boost(Group(BagOfWords(v)),b))
 
-
   //Search with explicit escaping. By normal we escape, set e to false to disable
   //Note eqs and neqs results in phrase queries!
-  def eqs(v: V, e: Boolean) = Clause[V](self.queryName, Group(Phrase(v,e)))
-  def neqs(v: V, e: Boolean) = Clause[V](self.queryName, Phrase(v,e),false)
+  def eqs(v: V, e: Boolean) = Clause[V](self.queryName, Group(produceQuery(v,e)))
+  def neqs(v: V, e: Boolean) = Clause[V](self.queryName, produceQuery(v,e),false)
   //With a boost
-  def eqs(v: V, b: Float, e: Boolean) = Clause[V](self.queryName, Boost(Group(Phrase(v,e)),b))
-  def neqs(v: V, b:Float, e: Boolean) = Clause[V](self.queryName, Boost(Phrase(v,e),b),false)
+  def eqs(v: V, b: Float, e: Boolean) = Clause[V](self.queryName, Boost(Group(produceQuery(v,e)),b))
+  def neqs(v: V, b:Float, e: Boolean) = Clause[V](self.queryName, Boost(produceQuery(v,e),b),false)
   //This allows for bag of words style matching.
   def contains(v: V, e: Boolean) = Clause[V](self.queryName, Group(BagOfWords(v,e)))
   def contains(v: V, b: Float, e: Boolean) = Clause[V](self.queryName, Boost(Group(BagOfWords(v,e)),b))
 
 
-  def in(v: Iterable[V]) = Clause[V](self.queryName, groupWithOr(v.map({x: V => Phrase(x)})))
-  def nin(v: Iterable[V]) = Clause[V](self.queryName, groupWithOr(v.map({x: V => Phrase(x)})),false)
+  def in(v: Iterable[V]) = Clause[V](self.queryName, produceGroupedQuery(v))
+  def nin(v: Iterable[V]) = Clause[V](self.queryName, produceGroupedQuery(v),false)
 
-  def in(v: Iterable[V], b: Float) = Clause[V](self.queryName, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b))
-  def nin(v: Iterable[V], b: Float) = Clause[V](self.queryName, Boost(groupWithOr(v.map({x: V => Phrase(x)})),b),false)
+  def in(v: Iterable[V], b: Float) = Clause[V](self.queryName, Boost(produceGroupedQuery(v),b))
+  def nin(v: Iterable[V], b: Float) = Clause[V](self.queryName, Boost(produceGroupedQuery(v),b),false)
 
   def inRange(v1: V, v2: V) = Clause[V](self.queryName, Group(Range(BagOfWords(v1),BagOfWords(v2))))
   def ninRange(v1: V, v2: V) = Clause[V](self.queryName, Group(Range(BagOfWords(v1),BagOfWords(v2))),false)
@@ -855,6 +885,17 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
 
 //Slashem field types
 class SlashemStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SlashemField[String, T]
+/**
+ * Field type that can be queried without analyzing.
+ *
+ * Ex: multi-value field or a whitespace tokenized field where
+ * search terms are always for a specific token.
+ *
+ * @see SlashemStringField
+ */
+class SlashemUnanalyzedStringField[T <: Record[T]](owner: T)
+  extends StringField[T](owner, 0) with SlashemUnanalyzedField[String, T]
+
 //Allows for querying against the default filed in solr. This field doesn't have a name
 class SlashemDefaultStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SlashemField[String, T] {
   override def name = ""
@@ -963,7 +1004,7 @@ class SlashemPointField[T <: Record[T]](owner: T) extends PointField[T](owner) w
 class SlashemBooleanField[T <: Record[T]](owner: T) extends BooleanField[T](owner) with SlashemField[Boolean, T]
 class SlashemDateTimeField[T <: Record[T]](owner: T) extends JodaDateTimeField[T](owner) with SlashemField[DateTime, T]
 //More restrictive type so we can access the geohash
-class SlashemGeoField[T <: SlashemSchema[T]](owner: T) extends StringField[T](owner,0) with SlashemField[String, T] {
+class SlashemGeoField[T <: SlashemSchema[T]](owner: T) extends SlashemUnanalyzedStringField[T](owner) {
   def inRadius(geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int = owner.geohash.maxCells) = {
     val cellIds = owner.geohash.coverString(geoLat, geoLong, radiusInMeters, maxCells = maxCells)
     //If we have an empty cover we default to everything.

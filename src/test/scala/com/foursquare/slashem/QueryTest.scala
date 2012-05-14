@@ -572,7 +572,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "text",
                         "qf" -> "ngram_name^0.2",
                         "qf" -> "tags^0.01",
-                        "fq" -> "geo_s2_cell_ids:(\"pleaseUseaRealGeoHash\")",
+                        "fq" -> "geo_s2_cell_ids:(\"pleaseUseaRealGeoHash\" OR \"thisIsForFunctionalityTests\")",
                         "tieBreaker" -> "0.2",
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount,partitionedPopularity",
                         "bq" -> "name:(holden's hobohut)^10.0",
@@ -619,7 +619,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "qf" -> "text",
                         "qf" -> "ngram_name^0.2",
                         "qf" -> "tags^0.01",
-                        "fq" -> "geo_s2_cell_ids:(\"pleaseUseaRealGeoHash\")",
+                        "fq" -> "geo_s2_cell_ids:(\"pleaseUseaRealGeoHash\" OR \"thisIsForFunctionalityTests\")",
                         "tieBreaker" -> "0.2",
                         "fl" -> "id,name,userid,mayorid,category_id_0,popularity,decayedPopularity1,lat,lng,checkin_info,score,hasSpecial,address,crossstreet,city,state,zip,country,checkinCount,partitionedPopularity",
                         "bq" -> "name:(holden's hobohut)^10.0",
@@ -640,7 +640,7 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
                         "q" -> "(DJ Hixxy)",
                         "start" -> "0",
                         "rows" -> "10",
-                        "fq" -> "geo_s2_cell_ids:(\"pleaseUseaRealGeoHash\")")
+                        "fq" -> "geo_s2_cell_ids:(\"pleaseUseaRealGeoHash\" OR \"thisIsForFunctionalityTests\")")
     Assert.assertEquals(Nil, ((qp.toSet &~ expected.toSet)).toList)
     Assert.assertEquals(Nil, (expected.toSet &~ qp.toSet).toList)
   }
