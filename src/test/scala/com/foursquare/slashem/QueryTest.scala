@@ -54,6 +54,16 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
+  def testProduceCorrectSimpleUnEscapedQueryString {
+    val q = SUserTest where (_.fullname contains("jon*",false))
+    val qp = q.meta.queryParams(q).toList
+    Assert.assertEquals(qp.sortWith(_._1 > _._1),List("q" -> "fullname:(jon*)",
+                                                      "start" -> "0",
+                                                      "rows" -> "10").sortWith(_._1 > _._1))
+  }
+
+
+  @Test
   def testProduceCorrectListfieldQueryStrings {
     val q = SVenueTest where (_.commentList in List("hi", "there"))
     val q2 = SVenueTest where (_.commentList nin List("hi", "there"))

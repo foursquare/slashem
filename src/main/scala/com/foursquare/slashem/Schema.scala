@@ -794,10 +794,22 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   def eqs(v: V, b: Float) = Clause[V](self.queryName, Boost(Group(Phrase(v)),b))
   def neqs(v: V, b:Float) = Clause[V](self.queryName, Boost(Phrase(v),b),false)
 
-
   //This allows for bag of words style matching.
   def contains(v: V) = Clause[V](self.queryName, Group(BagOfWords(v)))
   def contains(v: V, b: Float) = Clause[V](self.queryName, Boost(Group(BagOfWords(v)),b))
+
+
+  //Search with explicit escaping. By normal we escape, set e to false to disable
+  //Note eqs and neqs results in phrase queries!
+  def eqs(v: V, e: Boolean) = Clause[V](self.queryName, Group(Phrase(v,e)))
+  def neqs(v: V, e: Boolean) = Clause[V](self.queryName, Phrase(v,e),false)
+  //With a boost
+  def eqs(v: V, b: Float, e: Boolean) = Clause[V](self.queryName, Boost(Group(Phrase(v,e)),b))
+  def neqs(v: V, b:Float, e: Boolean) = Clause[V](self.queryName, Boost(Phrase(v,e),b),false)
+  //This allows for bag of words style matching.
+  def contains(v: V, e: Boolean) = Clause[V](self.queryName, Group(BagOfWords(v,e)))
+  def contains(v: V, b: Float, e: Boolean) = Clause[V](self.queryName, Boost(Group(BagOfWords(v,e)),b))
+
 
   def in(v: Iterable[V]) = Clause[V](self.queryName, groupWithOr(v.map({x: V => Phrase(x)})))
   def nin(v: Iterable[V]) = Clause[V](self.queryName, groupWithOr(v.map({x: V => Phrase(x)})),false)

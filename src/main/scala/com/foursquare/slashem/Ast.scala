@@ -372,9 +372,15 @@ object Ast {
    *
    * Represents a contiguous series of words to be matched in that order.
    */
-  case class Phrase[T](query: T, escaped: Boolean = true) extends Query[T] {
+  case class Phrase[T](query: T, escapeQuery: Boolean = true) extends Query[T] {
     /** @inheritdoc */
-    def extend(): String = {'"' + escape(query.toString) + '"'}
+    def extend(): String = {
+      if (escapeQuery) {
+        '"' + escape(query.toString) + '"'
+      } else {
+        '"' + query.toString + '"'
+      }
+    }
     /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.queryString(this.extend())
@@ -387,9 +393,15 @@ object Ast {
    * A Phrase Prefix.
    * @see Phrase
    */
-  case class PhrasePrefix[T](query: T, escaped: Boolean = true) extends Query[T] {
+  case class PhrasePrefix[T](query: T, escapeQuery: Boolean = true) extends Query[T] {
     /** @inheritdoc */
-    def extend(): String = {'"' + escape(query.toString) + '*' + '"'}
+    def extend(): String = {
+      if (escapeQuery) {
+        '"' + escape(query.toString) + '*' + '"'
+      } else {
+        '"' + query.toString + '*' + '"'
+      }
+    }
     /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.disMaxQuery()
@@ -428,9 +440,15 @@ object Ast {
   /**
    * A class representing a Bag of words style query
    */
-  case class BagOfWords[T](query: T) extends Query[T] {
+  case class BagOfWords[T](query: T, escapeQuery: Boolean = true) extends Query[T] {
     /** @inheritdoc */
-    def extend(): String = escape(query.toString)
+    def extend(): String = {
+      if (escapeQuery) {
+        escape(query.toString)
+      } else {
+        query.toString
+      }
+    }
 
     /**
      * @inheritdoc
