@@ -7,7 +7,6 @@ import org.elasticsearch.index.query.{FilterBuilder => ElasticFilterBuilder,
                                       QueryBuilder => ElasticQueryBuilder,
                                       QueryBuilders => EQueryBuilders,
                                       QueryStringQueryBuilder}
-import scalaj.collection.Imports._
 
 /**
  * Abstract Syntax Tree used to represent queries.
@@ -425,7 +424,6 @@ object Ast {
           val queries = query.map(q => {'"' + escape(q.toString) + '"'})
           queries.mkString(" OR ")
         }
-//        case true =>  {'"' + query.mkString("\" OR \"")
         case false => '"' + query.mkString(" OR ") + '"'
       }
     }
