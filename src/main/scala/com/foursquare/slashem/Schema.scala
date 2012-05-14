@@ -804,19 +804,18 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   // Override this value to produce unanalyzed queries!
   val unanalyzed = false
 
-  def produceQuery(v: V): Query[V] = {
+  def produceQuery(v: V, escapeQuery: Boolean = true): Query[V] = {
     unanalyzed match {
-      // use new to use Term's additional non-default constructor
-      case true => new Term(v)
-      case false => Phrase(v)
+      case true => Term(List(v),escapeQuery)
+      case false => Phrase(v,escapeQuery)
     }
   }
 
-  def produceGroupedQuery(v: Iterable[V]): Query[V] = {
+  def produceGroupedQuery(v: Iterable[V], escapeQuery: Boolean = true): Query[V] = {
     unanalyzed match {
       // we don't want to groupWithOr and instead take advantage of "terms" queries
-      case true => Term(v)
-      case false => groupWithOr(v.map({x: V => produceQuery(x)}))
+      case true => Term(v, escapeQuery)
+      case false => groupWithOr(v.map({x: V => produceQuery(x,escapeQuery)}))
     }
   }
 
@@ -826,10 +825,21 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
   def eqs(v: V, b: Float) = Clause[V](self.queryName, Boost(Group(produceQuery(v)),b))
   def neqs(v: V, b:Float) = Clause[V](self.queryName, Boost(produceQuery(v),b),false)
 
-
   //This allows for bag of words style matching.
   def contains(v: V) = Clause[V](self.queryName, Group(BagOfWords(v)))
   def contains(v: V, b: Float) = Clause[V](self.queryName, Boost(Group(BagOfWords(v)),b))
+
+  //Search with explicit escaping. By normal we escape, set e to false to disable
+  //Note eqs and neqs results in phrase queries!
+  def eqs(v: V, e: Boolean) = Clause[V](self.queryName, Group(produceQuery(v,e)))
+  def neqs(v: V, e: Boolean) = Clause[V](self.queryName, produceQuery(v,e),false)
+  //With a boost
+  def eqs(v: V, b: Float, e: Boolean) = Clause[V](self.queryName, Boost(Group(produceQuery(v,e)),b))
+  def neqs(v: V, b:Float, e: Boolean) = Clause[V](self.queryName, Boost(produceQuery(v,e),b),false)
+  //This allows for bag of words style matching.
+  def contains(v: V, e: Boolean) = Clause[V](self.queryName, Group(BagOfWords(v,e)))
+  def contains(v: V, b: Float, e: Boolean) = Clause[V](self.queryName, Boost(Group(BagOfWords(v,e)),b))
+
 
   def in(v: Iterable[V]) = Clause[V](self.queryName, produceGroupedQuery(v))
   def nin(v: Iterable[V]) = Clause[V](self.queryName, produceGroupedQuery(v),false)

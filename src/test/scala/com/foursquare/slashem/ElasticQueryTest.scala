@@ -70,6 +70,12 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val r = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.pos recipSqeGeoDistance(geoLat, geoLong, 1, 5000, 1)) fetch(Duration(0,TimeUnit.MILLISECONDS))
   }
 
+  @Test
+  def testMatchAll {
+    val r = ESimpleGeoPanda where (_.metall any) fetch()
+    Assert.assertEquals(4,r.response.results.length)
+  }
+
 
   @Test
   def simpleOrderTest {

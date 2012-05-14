@@ -29,6 +29,10 @@ object ESimpleGeoPanda extends ESimpleGeoPanda with ElasticMeta[ESimpleGeoPanda]
 }
 class ESimpleGeoPanda extends ElasticSchema[ESimpleGeoPanda] {
   def meta = ESimpleGeoPanda
+  //We use "_all" in ES rather than "*" as in Solr to query all fields
+  object metall extends SlashemStringField(this) {
+    override def name="_all"
+  }
   object default extends SlashemDefaultStringField(this)
   object id extends SlashemObjectIdField(this)
   object name extends SlashemStringField(this)

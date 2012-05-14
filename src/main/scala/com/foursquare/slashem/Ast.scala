@@ -372,9 +372,15 @@ object Ast {
    *
    * Represents a contiguous series of words to be matched in that order.
    */
-  case class Phrase[T](query: T, escaped: Boolean = true) extends Query[T] {
+  case class Phrase[T](query: T, escapeQuery: Boolean = true) extends Query[T] {
     /** @inheritdoc */
-    def extend(): String = {'"' + escape(query.toString) + '"'}
+    def extend(): String = {
+      if (escapeQuery) {
+        '"' + escape(query.toString) + '"'
+      } else {
+        '"' + query.toString + '"'
+      }
+    }
     /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.queryString(this.extend())
@@ -387,9 +393,15 @@ object Ast {
    * A Phrase Prefix.
    * @see Phrase
    */
-  case class PhrasePrefix[T](query: T, escaped: Boolean = true) extends Query[T] {
+  case class PhrasePrefix[T](query: T, escapeQuery: Boolean = true) extends Query[T] {
     /** @inheritdoc */
-    def extend(): String = {'"' + escape(query.toString) + '*' + '"'}
+    def extend(): String = {
+      if (escapeQuery) {
+        '"' + escape(query.toString) + '*' + '"'
+      } else {
+        '"' + query.toString + '*' + '"'
+      }
+    }
     /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
       val q = EQueryBuilders.disMaxQuery()
@@ -412,13 +424,11 @@ object Ast {
    *
    * By default, elasticFilter() will always be cached!
    */
-  case class Term[T](query: Iterable[T], escaped: Boolean = true, cached: Boolean = true) extends Query[T] {
-    // hack for single term queries
-    def this(query: T) = this(List(query))
+  case class Term[T](query: Iterable[T], escapeQuery: Boolean = true, cached: Boolean = true) extends Query[T] {
     /** @inheritdoc */
     //def extend() = throw new UnimplementedException("Slashem does not support Term queries Solr")
     def extend(): String = {
-      escaped match {
+      escapeQuery match {
         // hack to fix wrapping the queries in a List()
         case true => {
           val queries = query.map(q => {'"' + escape(q.toString) + '"'})
@@ -472,9 +482,15 @@ object Ast {
   /**
    * A class representing a Bag of words style query
    */
-  case class BagOfWords[T](query: T) extends Query[T] {
+  case class BagOfWords[T](query: T, escapeQuery: Boolean = true) extends Query[T] {
     /** @inheritdoc */
-    def extend(): String = escape(query.toString)
+    def extend(): String = {
+      if (escapeQuery) {
+        escape(query.toString)
+      } else {
+        query.toString
+      }
+    }
 
     /**
      * @inheritdoc
@@ -576,9 +592,15 @@ object Ast {
     /** @inheritdoc */
     //Is there a better way to do this?
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
-      val q = EQueryBuilders.queryString(this.extend())
-      qf.map(f => q.field(f.fieldName, f.weight.toFloat))
-      q
+      //So we have a special case, if we are searching against the
+      //"_all" field we can just construct a ninja query
+      if (qf.map(_.fieldName).contains("_all")) {
+        EQueryBuilders.matchAllQuery()
+      } else {
+        val q = EQueryBuilders.queryString(this.extend())
+        qf.map(f => q.field(f.fieldName, f.weight.toFloat))
+        q
+      }
     }
   }
 
