@@ -592,11 +592,9 @@ object Ast {
     /** @inheritdoc */
     //Is there a better way to do this?
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
-      println("extending splat query with "+qf)
       //So we have a special case, if we are searching against the
       //"_all" field we can just construct a ninja query
       if (qf.map(_.fieldName).contains("_all")) {
-        println("pandas")
         EQueryBuilders.matchAllQuery()
       } else {
         val q = EQueryBuilders.queryString(this.extend())
