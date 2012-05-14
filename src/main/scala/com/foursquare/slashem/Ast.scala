@@ -421,8 +421,12 @@ object Ast {
     def extend(): String = {
       escaped match {
         // hack to fix wrapping the queries in a List()
-        case true => {'"' + escape(query.mkString("")) + '"'}
-        case false => '"' + query.toString + '"'
+        case true => {
+          val queries = query.map(q => {'"' + escape(q.toString) + '"'})
+          queries.mkString(" OR ")
+        }
+//        case true =>  {'"' + query.mkString("\" OR \"")
+        case false => '"' + query.mkString(" OR ") + '"'
       }
     }
     /** @inheritdoc */

@@ -439,8 +439,8 @@ trait SolrGeoHash {
 }
 //Default geohash, does nothing.
 object NoopSolrGeoHash extends SolrGeoHash {
-  def coverString (geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int ): Seq[String] = List("pleaseUseaRealGeoHash")
-  def rectCoverString(topRight: (Double, Double), bottomLeft: (Double, Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = List("pleaseUseaRealGeoHash")
+  def coverString (geoLat: Double, geoLong: Double, radiusInMeters: Int, maxCells: Int ): Seq[String] = List("pleaseUseaRealGeoHash", "thisIsForFunctionalityTests")
+  def rectCoverString(topRight: (Double, Double), bottomLeft: (Double, Double), maxCells: Int = 0, minLevel: Int = 0, maxLevel: Int = 0): Seq[String] = List("pleaseUseaRealGeoHash", "thisIsForFunctionalityTests")
 }
 
 trait SlashemSchema[M <: Record[M]] extends Record[M] {
@@ -876,7 +876,10 @@ trait SlashemField[V, M <: Record[M]] extends OwnedField[M] {
 //Slashem field types
 class SlashemStringField[T <: Record[T]](owner: T) extends StringField[T](owner, 0) with SlashemField[String, T]
 /**
- * Field type that can be queried without analyzing whitespace.
+ * Field type that can be queried without analyzing.
+ *
+ * Ex: multi-value field or a whitespace tokenized field where
+ * search terms are always for a specific token.
  *
  * @see SlashemStringField
  */
