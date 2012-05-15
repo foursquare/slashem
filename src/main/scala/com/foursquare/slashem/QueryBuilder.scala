@@ -351,6 +351,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
     ()
   }
 
+  /* Optimize the QueryBuilder */
+  def optimize() = {
+    this.copy(filters=Optimizer.optimizeFilters(filters))
+  }
 
   /** Fetch the results with the limit of l. Can only be used on an unlimited
   * query */
@@ -366,7 +370,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   /** Fetch the results for a given query (blocking) with a specified timeout*/
   def fetch(timeout: Duration):  SearchResults[M, Y] = {
     // Gross++
-    meta.query(timeout, this)
+    meta.query(timeout, this.optimize())
   }
   /** Fetch the results for a given query (non-blocking)*/
   def fetchFuture(): Future[SearchResults[M,Y]] = {

@@ -11,7 +11,9 @@ object Optimizer {
     filters.filter(f => {
       f match {
         //Remove all empty search clauses
-        case x: Query[Empty[_]] => false
+        case x: Clause[Splat[_]] => {
+          false
+        }
         case _ => true
       }
     })
