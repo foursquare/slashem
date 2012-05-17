@@ -236,6 +236,16 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     lastResult.map(doc => Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b18"), doc.id.is))
   }
   @Test
+  def testPhraseOnlyMatch {
+    val phrase = "loler skates"
+    val rPhraseOnly = ESimplePanda where (_.name eqs "loler skates") fetch()
+    val rContains = ESimplePanda where (_.name contains "loler skates") fetch()
+    rPhraseOnly.response.results.map(d => Assert.assertTrue(d.name.value.contains("loler skates")))
+    val phraseCount = rPhraseOnly.response.results.length
+    val containsCount =  rContains.response.results.length
+    Assert.assertTrue(containsCount > phraseCount)
+  }
+  //@Test
   def testFieldFaceting {
     val r = ESimplePanda where (_.name contains "loler skates") facetField(_.foreign) fetch()
     Assert.assertEquals(4,r.response.results.length)
