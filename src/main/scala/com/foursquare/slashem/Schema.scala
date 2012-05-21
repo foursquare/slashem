@@ -33,7 +33,6 @@ import org.elasticsearch.index.query.{AndFilterBuilder, CustomScoreQueryBuilder,
                                       QueryBuilder => ElasticQueryBuilder}
 import org.elasticsearch.node.Node
 import org.elasticsearch.node.NodeBuilder._
-
 import org.elasticsearch.search.facet.AbstractFacetBuilder
 import org.elasticsearch.search.facet.terms.TermsFacetBuilder
 import org.elasticsearch.search.facet.terms.strings.InternalStringTermsFacet
@@ -660,6 +659,16 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     new AndFilterBuilder(filters:_*)
   }
 
+  def scoreWithScript(query: ElasticQueryBuilder,
+                      scriptName: String,
+                      namesAndParams: List[Pair[String, Any]]): ElasticQueryBuilder = {
+    val customScoreQuery = new CustomScoreQueryBuilder(query)
+    customScoreQuery.script(scriptName).lang("native")
+    for ((name, param) <- namesAndParams) {
+      customScoreQuery.param(name, param)
+    }
+    customScoreQuery
+  }
 }
 trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
   self: M with SlashemSchema[M] =>
