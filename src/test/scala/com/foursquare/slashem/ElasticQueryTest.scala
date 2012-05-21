@@ -236,6 +236,16 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     lastResult.map(doc => Assert.assertEquals(new ObjectId("4c809f4251ada1cdc3790b18"), doc.id.is))
   }
   @Test
+  def testPhraseOnlyMatch {
+    val phrase = "loler skates"
+    val rPhraseOnly = ESimplePanda where (_.name eqs "loler skates") fetch()
+    val rContains = ESimplePanda where (_.name contains "loler skates") fetch()
+    rPhraseOnly.response.results.map(d => Assert.assertTrue(d.name.value.contains("loler skates")))
+    val phraseCount = rPhraseOnly.response.results.length
+    val containsCount =  rContains.response.results.length
+    Assert.assertTrue(containsCount > phraseCount)
+  }
+  //@Test
   def testFieldFaceting {
     val r = ESimplePanda where (_.name contains "loler skates") facetField(_.foreign) fetch()
     Assert.assertEquals(4,r.response.results.length)
@@ -304,6 +314,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val response7 = ESimplePanda where (_.hugenums contains 1L) fetch()
     val response8 = ESimplePanda where (_.hugenums contains 9L) fetch()
     val response9 = ESimplePanda where (_.hugenums contains 9001L) fetch()
+    val response10 = ESimplePanda where (_.favvenueids contains new ObjectId("4daf213893a0096fbaaef003")) fetch()
     Assert.assertEquals(response1.response.results.length, 2)
     Assert.assertEquals(response2.response.results.length, 1)
     Assert.assertEquals(response3.response.results.length, 2)
@@ -313,6 +324,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(response7.response.results.length, 2)
     Assert.assertEquals(response8.response.results.length, 1)
     Assert.assertEquals(response9.response.results.length, 0)
+    Assert.assertEquals(response10.response.results.length, 1)
   }
 
   @Test
@@ -320,9 +332,11 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val response1 = ESimplePanda where (_.favnums in List(2, 3, 4, 5)) fetch()
     val response2 = ESimplePanda where (_.favnums in List(99)) fetch()
     val response3 = ESimplePanda where (_.termsfield in List("termhit", "lol")) fetch()
+    val response4 = ESimplePanda where (_.favvenueids in List(new ObjectId("4daf213893a0096fbaaef003"))) fetch()
     Assert.assertEquals(response1.response.results.length, 2)
     Assert.assertEquals(response2.response.results.length, 0)
     Assert.assertEquals(response3.response.results.length, 1)
+    Assert.assertEquals(response4.response.results.length, 1)
   }
 
   @Test
@@ -340,6 +354,18 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(response1.response.results.length, 8)
     Assert.assertEquals(response2.response.results.length, 8)
   }
+
+  @Test
+  def testObjectIdListFieldEmptyIn {
+    val response1 = ESimplePanda where (_.favvenueids in List()) fetch()
+    Assert.assertEquals(response1.response.results.length, 0)
+  }
+
+ @Test
+  def testObjectIdListFieldEmptyNin {
+    val response1 = ESimplePanda where (_.favvenueids nin List()) fetch()
+    Assert.assertEquals(response1.response.results.length, 8)
+  }  
 
   @Test
   def testListFieldNin {
@@ -433,6 +459,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val hugenums1 = List(1L, 2L, 3L).asJava
     val hugenums2 = List(1L, 9L, 8L).asJava
     val hugenums3 = List(7L, 10L, 13L).asJava
+    val venueids1 = List("4daf213893a0096fbaaef003", "49ee02e9f964a52010681fe3", "42b21280f964a5206d251fe3").asJava
     val r = client.prepareIndex(ESimplePanda.meta.indexName,ESimplePanda.meta.docType,"4c809f4251ada1cdc3790b10").setSource(jsonBuilder()
                                                                           .startObject()
                                                                           .field("name","lolerskates")
@@ -441,6 +468,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("nicknames", nicknames1)
                                                                           .field("hugenums", hugenums1)
                                                                           .field("termsfield", terms1)
+                                                                          .field("favvenueids", venueids1)
                                                                           .endObject()
       ).execute()
     .actionGet();

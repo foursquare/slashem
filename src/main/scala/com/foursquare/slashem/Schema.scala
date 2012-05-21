@@ -984,6 +984,22 @@ class SlashemLongListField[T <: Record[T]](owner: T) extends LongListField[T](ow
   def nin(lst: List[Long]) = Clause[Long](queryName, groupWithOr(lst.map({l: Long => Phrase(l)})),false)
 }
 
+class SlashemObjectIdListField[T <: Record[T]](owner: T) extends ObjectIdListField[T](owner) with SlashemField[List[ObjectId], T] {
+  import Helpers._
+  override def valueBoxFromAny(a: Any) = objectIdBoxFromAny(a)
+  def contains(item: ObjectId) = {
+    Clause[ObjectId](queryName, Phrase(item))
+  }
+  /**
+   * See if this list has any elements in that list.
+   * @param List[ObjectId] the list to check for any intersections.
+   */
+  def in(lst: List[ObjectId]) = Clause[ObjectId](queryName, groupWithOr(lst.map({oid: ObjectId => Phrase(oid)})))
+  def nin(lst: List[ObjectId]) = Clause[ObjectId](queryName, groupWithOr(lst.map({oid: ObjectId => Phrase(oid)})),false)
+}
+
+
+
 class SlashemPointField[T <: Record[T]](owner: T) extends PointField[T](owner) with SlashemField[Pair[Double,Double], T] {
   def geoDistance(geolat: Double, geolng: Double) = {
     GeoDist(this.name,geolat,geolng)
@@ -1075,7 +1091,7 @@ class ObjectIdField[T <: Record[T]](override val owner: T) extends Field[ObjectI
 
   def valueBoxFromAny(a: Any): Box[ObjectId] = objectIdBoxFromAny(a)
 
-  override def setFromAny(a: Any) ={
+  override def setFromAny(a: Any) = {
     val vb = valueBoxFromAny(a)
     vb.map(set(_))
   }
@@ -1190,6 +1206,49 @@ class LongListField[T <: Record[T]](override val owner: T) extends Field[List[Lo
   def value() = e getOrElse Nil
   override def valueBox() = e
 }
+
+class ObjectIdListField[T <: Record[T]](override val owner: T) extends Field[List[ObjectId], T] {
+  type ValueType = List[ObjectId]
+  var e: Box[ValueType] = Empty
+
+  def setFromString(s: String) = {
+    Full(set(s.split(" ").map(x => new ObjectId(x)).toList))
+  }
+  // NOTE(simon): See notes for ObjectIdField#objectIdBoxFromAny
+  def objectIdBoxFromAny(a: Any): Box[List[ObjectId]] = {
+    try {
+      a match {
+        case "" => Empty
+        case ar: Array[ObjectId] => Full(ar.toList)
+        case ar: Array[String] => Full(ar.toList.map(x => new ObjectId(x)))
+        case s: String => Full(s.split(" ").map(x => new ObjectId(x)).toList)
+        case _ => Empty
+      }
+    } catch {
+      case _ => Empty
+    }
+  }
+  def valueBoxFromAny(a: Any): Box[List[ObjectId]] = objectIdBoxFromAny(a)
+  override def setFromAny(a: Any) = {
+    val vb = valueBoxFromAny(a)
+    vb.map(set(_))
+  }
+  override def setFromJValue(jv: net.liftweb.json.JsonAST.JValue) = Empty
+  override def liftSetFilterToBox(a: Box[ValueType]) = Empty
+  override def toBoxMyType(a: ValueType) = Empty
+  override def defaultValueBox = Empty
+  override def toValueType(a: Box[MyType]) = null.asInstanceOf[ValueType]
+  override def asJValue() = net.liftweb.json.JsonAST.JNothing
+  override def asJs() = net.liftweb.http.js.JE.JsNull
+  override def toForm = Empty
+  override def set(a: ValueType) = {e = Full(a)
+                                    a.asInstanceOf[ValueType]}
+  override def get() = e.get
+  override def is() = e.get
+  def value() = e getOrElse Nil
+  override def valueBox() = e
+}
+
 
 class StringListField[T <: Record[T]](override val owner: T) extends Field[List[String], T] {
   type ValueType = List[String]
