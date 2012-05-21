@@ -19,6 +19,7 @@ class ESimplePanda extends ElasticSchema[ESimplePanda] {
   object nicknames extends SlashemStringListField(this)
   object hugenums extends SlashemLongListField(this)
   object termsfield extends SlashemUnanalyzedStringField(this)
+  object favvenueids extends SlashemObjectIdListField(this)
 }
 
 object ESimpleGeoPanda extends ESimpleGeoPanda with ElasticMeta[ESimpleGeoPanda] {
