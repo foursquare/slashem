@@ -56,7 +56,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
  queryType: Option[String],
  fieldsToFetch: List[String],
  facetSettings: FacetSettings,
- customScoreScript: Option[String],
+ customScoreScript: Option[(String, Map[String, Any])],
  hls: Option[String],
  hlFragSize: Option[Int],
  creator: Option[(Pair[Map[String,Any],
@@ -169,6 +169,9 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   def start(s: Long): QueryBuilder[M, Ord, Lim, MM, Y, H, Q, MinFacetCount, FacetLimit, ST] = {
     this.copy(start=Some(s))
   }
+
+  // Implicits on the following functions guard against the function being
+  // multiple times
 
   /** Limit the query to only fetch back l results.
   * Can only be applied to a query without an existing limit
@@ -347,6 +350,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
     this.copy(boostFields=f(meta)::boostFields)
   }
 
+  def customScore(scriptName: String, params: Map[String, Any]) (implicit ev: ST =:= NoScoreModifiers):
+      QueryBuilder[M, Ord, Lim, MM, Y, H, Q, MinFacetCount, FacetLimit, NativeScoreScript] = {
+    this.copy(customScoreScript = Some((scriptName, params)))
+  }
 
   //Print out some debugging information.
   def test(): Unit = {

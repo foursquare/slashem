@@ -459,7 +459,6 @@ trait SlashemSchema[M <: Record[M]] extends Record[M] {
     })
   }
 
-
   def where[F](c: M => Clause[F]): QueryBuilder[M, Unordered, Unlimited, defaultMM, NoSelect, NoHighlighting, NoQualityFilter, NoMinimumFacetCount, Unlimited, NoScoreModifiers] = {
     QueryBuilder(self, c(self), filters=Nil, boostQueries=Nil, queryFields=Nil,
                  phraseBoostFields=Nil, boostFields=Nil, start=None, limit=None,
@@ -614,6 +613,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
                  Response(this, creator, hitCount, start, docs,
                         fallOff=fallOff, min=min, fieldFacet))
   }
+
   def buildElasticQuery[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount, FLim, ST <: ScoreType](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC, FLim, ST]): ElasticQueryBuilder = {
     val baseQuery: ElasticQueryBuilder= qb.clauses.elasticExtend(qb.queryFields,
                                                                  qb.phraseBoostFields,
@@ -624,12 +624,21 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       case _ => filteredQuery(baseQuery,combineFilters(qb.filters.map(_.elasticFilter(qb.queryFields))))
     }
     //Apply any custom scoring rules (aka emulating Solr's bq/bf)
-    val boostedQuery = qb.boostFields match {
-      case Nil => fq
-      case _ => boostFields(fq, qb.boostFields)
+    val scoredQuery = qb.customScoreScript match {
+      case Some((script, params)) => {
+        scoreWithScript(fq, script, params)
+      }
+      case None => {
+        val boostedQuery = qb.boostFields match {
+          case Nil => fq
+          case _ => boostFields(fq, qb.boostFields)
+        }
+        boostedQuery
+      }
     }
-    boostedQuery
+    scoredQuery
   }
+
   def termFacetQuery(facetFields: List[Ast.Field], facetLimit: Option[Int]): List[AbstractFacetBuilder] = {
     val fieldNames = facetFields.map(_.boost())
     val facetQueries = fieldNames.map(name => {
@@ -660,9 +669,8 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     new AndFilterBuilder(filters:_*)
   }
 
-  def scoreWithScript(query: ElasticQueryBuilder,
-                      scriptName: String,
-                      namesAndParams: List[Pair[String, Any]]): ElasticQueryBuilder = {
+  def scoreWithScript(query: ElasticQueryBuilder, scriptName: String,
+                      namesAndParams: Map[String, Any]): ElasticQueryBuilder = {
     val customScoreQuery = new CustomScoreQueryBuilder(query)
     customScoreQuery.script(scriptName).lang("native")
     for ((name, param) <- namesAndParams) {
@@ -671,6 +679,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     customScoreQuery
   }
 }
+
 trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
   self: M with SlashemSchema[M] =>
 

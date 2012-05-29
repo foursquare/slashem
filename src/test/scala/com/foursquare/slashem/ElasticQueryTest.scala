@@ -1,4 +1,5 @@
 package com.foursquare.slashem
+import com.foursquare.elasticsearch.scorer.FourSquareScorePlugin
 import com.foursquare.slashem._
 
 import com.twitter.util.Duration
@@ -14,6 +15,7 @@ import org.scalacheck.Arbitrary.arbitrary
 import org.specs.SpecsMatchers
 import org.specs.matcher.ScalaCheckMatchers
 
+//import org.elasticsearch.common.settings.ImmutableSettings
 import org.elasticsearch.node.NodeBuilder._
 import org.elasticsearch.node.Node
 import org.elasticsearch.client.Requests;
@@ -67,7 +69,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testRecipGeoBoostTimeout {
     val geoLat = 74
     val geoLong = -31
-    val r = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.pos recipSqeGeoDistance(geoLat, geoLong, 1, 5000, 1)) fetch(Duration(0,TimeUnit.MILLISECONDS))
+    val r = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.point recipSqeGeoDistance(geoLat, geoLong, 1, 5000, 1)) fetch(Duration(0,TimeUnit.MILLISECONDS))
   }
 
   @Test
@@ -183,7 +185,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
   @Test
    def geoOrderDesc {
-    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.pos sqeGeoDistance(74.0,-31.0)) fetch()
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.point sqeGeoDistance(74.0,-31.0)) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
     val doc1= r.response.oidScorePair.apply(1)
@@ -192,7 +194,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
   @Test
    def geoOrderAsc {
-    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.pos sqeGeoDistance(74.0,-31.0)) fetch()
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.point sqeGeoDistance(74.0,-31.0)) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
     val doc1= r.response.oidScorePair.apply(1)
@@ -201,7 +203,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
   @Test
   def geoOrderIntAsc {
-    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.pos sqeGeoDistance(74,-31)) fetch()
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.point sqeGeoDistance(74,-31)) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
     val doc1= r.response.oidScorePair.apply(1)
@@ -277,7 +279,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val geoLat = 74
     val geoLong = -31
     val r1 = ESimpleGeoPanda where (_.name contains "lolerskates") fetch()
-    val r2 = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.pos sqeGeoDistance(geoLat, geoLong)) fetch()
+    val r2 = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.point sqeGeoDistance(geoLat, geoLong)) fetch()
     Assert.assertEquals(r1.response.results.length,2)
     Assert.assertEquals(r2.response.results.length,2)
     Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
@@ -287,9 +289,9 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     //Test GeoBoosting. Note will actually make further away document come up first
     val geoLat = 74
     val geoLong = -31
-    val r = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.pos sqeGeoDistance(geoLat, geoLong)) fetch()
+    val r = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.point sqeGeoDistance(geoLat, geoLong)) fetch()
     Assert.assertEquals(r.response.results.length,2)
-    Assert.assertEquals(r.response.results.apply(0).pos.value._1,74.0,0.9)
+    Assert.assertEquals(r.response.results.apply(0).point.value._1,74.0,0.9)
   }
 
   @Test
@@ -297,7 +299,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val geoLat = 74
     val geoLong = -31
     val r1 = ESimpleGeoPanda where (_.name contains "lolerskates") fetch()
-    val r2 = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.pos recipSqeGeoDistance(geoLat, geoLong, 1, 5000, 1)) fetch()
+    val r2 = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.point recipSqeGeoDistance(geoLat, geoLong, 1, 5000, 1)) fetch()
     Assert.assertEquals(r1.response.results.length,2)
     Assert.assertEquals(r2.response.results.length,2)
     Assert.assertTrue(r2.response.results.apply(0).score.value > r1.response.results.apply(0).score.value)
@@ -404,13 +406,17 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(res1.response.results.length, 1)
   }
 
-  @Test
   def testFilters {
     // grab 2 results, filter to 1
     val res1 = ESimplePanda where (_.hugenums contains 1L) filter(_.nicknamesString in List("jerry")) fetch()
     Assert.assertEquals(res1.response.results.length, 1)
   }
 
+  def testCustomScoreScripts {
+    val params: Map[String, Any] = Map("lat" -> -31.1, "lon" -> 74.0, "weight" -> 2000, "weight2" -> 0.03)
+    val response1 = ESimpleGeoPanda where(_.name contains "lolerskates") customScore("distance_score_magic", params) fetch()
+    Assert.assertEquals(response1.response.results.length, 2)
+  }
 
   @Before
   def hoboPrepIndex() {
@@ -437,6 +443,8 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
         println("Error creating the regular index, may allready exist ("+e+")")
       }
     }
+    val plugin = new FourSquareScorePlugin()
+
     //Set up the geo panda index
     val geoClient = ESimpleGeoPanda.meta.client
     try {
@@ -447,7 +455,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
       val mapping = """
       { "slashemdoc" :{
         "properties" : {
-          "pos" : { type: "geo_point" }
+          "point" : { type: "geo_point" }
         }
       }}"""
       val mappingReq = Requests.putMappingRequest(ESimpleGeoPanda.meta.indexName).source(mapping).`type`("slashemdoc")
@@ -459,8 +467,9 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val geodoc1 = geoClient.prepareIndex(ESimpleGeoPanda.meta.indexName,ESimpleGeoPanda.meta.docType,"4c809f4251ada1cdc3790b10").setSource(jsonBuilder()
                                                                           .startObject()
                                                                           .field("name","lolerskates")
-                                                                          .field("pos",74.0,-31.1)
+                                                                          .field("point",74.0,-31.1)
                                                                           .field("id","4c809f4251ada1cdc3790b10")
+                                                                          .field("decayedPopularity1", .5)
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -468,7 +477,8 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .startObject()
                                                                           .field("name","lolerskates")
                                                                           .field("id","4c809f4251ada1cdc3790b11")
-                                                                          .field("pos",74.0,-31.0)
+                                                                          .field("point",74.0,-31.0)
+                                                                          .field("decayedPopularity1", 21.2)
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -569,7 +579,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .startObject()
                                                                           .field("name","ordertest")
                                                                           .field("id","4c809f4251ada1cdc3790b16")
-                                                                          .field("pos",74.0,-32.0)
+                                                                          .field("point",74.0,-32.0)
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -577,7 +587,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .startObject()
                                                                           .field("name","ordertest")
                                                                           .field("id","4c809f4251ada1cdc3790b17")
-                                                                          .field("pos",74.0,-31.0)
+                                                                          .field("point",74.0,-31.0)
                                                                           .endObject()
       ).execute()
     .actionGet();

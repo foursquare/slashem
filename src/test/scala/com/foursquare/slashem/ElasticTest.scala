@@ -40,5 +40,6 @@ class ESimpleGeoPanda extends ElasticSchema[ESimpleGeoPanda] {
   object id extends SlashemObjectIdField(this)
   object name extends SlashemStringField(this)
   object score extends SlashemDoubleField(this)
-  object pos extends SlashemPointField(this)
+  object point extends SlashemPointField(this)
+  object decayedPopularity1 extends SlashemDoubleField(this)
 }
