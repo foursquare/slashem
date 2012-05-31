@@ -350,9 +350,9 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
     this.copy(boostFields=f(meta)::boostFields)
   }
 
-  def customScore(scriptName: String, params: Map[String, Any]) (implicit ev: ST =:= NoScoreModifiers):
+  def customScore(script: String, params: Map[String, Any]) (implicit ev: ST =:= NoScoreModifiers):
       QueryBuilder[M, Ord, Lim, MM, Y, H, Q, MinFacetCount, FacetLimit, NativeScoreScript] = {
-    this.copy(customScoreScript = Some((scriptName, params)))
+    this.copy(customScoreScript = Some((script, params)))
   }
 
   //Print out some debugging information.

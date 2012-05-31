@@ -624,17 +624,12 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       case _ => filteredQuery(baseQuery,combineFilters(qb.filters.map(_.elasticFilter(qb.queryFields))))
     }
     //Apply any custom scoring rules (aka emulating Solr's bq/bf)
-    val scoredQuery = qb.customScoreScript match {
-      case Some((script, params)) => {
-        scoreWithScript(fq, script, params)
+    val scoredQuery = qb.boostFields match {
+      case Nil => qb.customScoreScript match {
+        case Some((script, params)) => scoreWithScript(fq, script, params)
+        case None => fq
       }
-      case None => {
-        val boostedQuery = qb.boostFields match {
-          case Nil => fq
-          case _ => boostFields(fq, qb.boostFields)
-        }
-        boostedQuery
-      }
+      case _ => scoreFields(fq, qb.boostFields)
     }
     scoredQuery
   }
@@ -649,34 +644,43 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
         }
         case _ => q
       }
-    }
-    )
+    })
     facetQueries
   }
-  def boostFields(query: ElasticQueryBuilder, boostFields: List[ScoreBoost]): ElasticQueryBuilder =  {
-    val boostedQuery = new CustomScoreQueryBuilder(query)
-    val boostedQuerys = boostFields.map(_.elasticBoost)
-    val params = boostedQuerys.flatMap(_._1)
-    val scriptSrc = boostedQuerys.map(_._2).mkString(" + ")
+
+  /**
+   * Custom score the fields which have scoreboosts
+   */
+  def scoreFields(query: ElasticQueryBuilder, fieldsToScore: List[ScoreBoost]): ElasticQueryBuilder =  {
+    val scoredFields = fieldsToScore.map(_.elasticBoost)
+    val params = scoredFields.flatMap(_._1)
+    val scriptSrc = scoredFields.map(_._2).mkString(" + ")
     val paramNames = (1 to params.length).map("p"+_)
     val script = scriptSrc.format(paramNames:_*)
-    val keyedParams =  paramNames zip params
-    keyedParams.foreach(p => {boostedQuery.param(p._1,p._2)})
+    val namesAndParams =  paramNames.zip(params).toMap
     val scoreScript = "_score * (1 +"+ script + " )"
-    boostedQuery.script(scoreScript)
-  }
-  def combineFilters(filters: List[ElasticFilterBuilder]): ElasticFilterBuilder = {
-    new AndFilterBuilder(filters:_*)
+    scoreWithScript(query, scoreScript, namesAndParams, false)
   }
 
-  def scoreWithScript(query: ElasticQueryBuilder, scriptName: String,
-                      namesAndParams: Map[String, Any]): ElasticQueryBuilder = {
-    val customScoreQuery = new CustomScoreQueryBuilder(query)
-    customScoreQuery.script(scriptName).lang("native")
+  /**
+   * Add the provided script and its params to the query and build a
+   * CustomScoreQuery with it.
+   */
+  def scoreWithScript(query: ElasticQueryBuilder, script: String,
+                      namesAndParams: Map[String, Any], native: Boolean = true): ElasticQueryBuilder = {
+    val customScoreQuery = new CustomScoreQueryBuilder(query).script(script)
+    native match {
+      case true => customScoreQuery.lang("native")
+      case false => customScoreQuery.lang("mvel")
+    }
     for ((name, param) <- namesAndParams) {
       customScoreQuery.param(name, param)
     }
     customScoreQuery
+  }
+
+  def combineFilters(filters: List[ElasticFilterBuilder]): ElasticFilterBuilder = {
+    new AndFilterBuilder(filters:_*)
   }
 }
 
