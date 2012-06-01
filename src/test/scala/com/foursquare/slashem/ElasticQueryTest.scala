@@ -365,7 +365,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testObjectIdListFieldEmptyNin {
     val response1 = ESimplePanda where (_.favvenueids nin List()) fetch()
     Assert.assertEquals(response1.response.results.length, 8)
-  }  
+  }
 
   @Test
   def testListFieldNin {
@@ -404,13 +404,39 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(res1.response.results.length, 1)
   }
 
+  @Test
+  def testFilters {
+    // grab 2 results, filter to 1
+    val res1 = ESimplePanda where (_.hugenums contains 1L) filter(_.nicknamesString in List("jerry")) fetch()
+    Assert.assertEquals(res1.response.results.length, 1)
+  }
+
+
   @Before
   def hoboPrepIndex() {
     ESimplePanda.meta.node = ElasticNode.node
     ESimpleGeoPanda.meta.node = ElasticNode.node
+    //Setup the mapping for the regular index
     val client = ESimplePanda.meta.client
-
-
+    try {
+      val indexReq = Requests.createIndexRequest(ESimplePanda.meta.indexName)
+      client.admin.indices().create(indexReq).actionGet()
+      client.admin().indices().prepareRefresh().execute().actionGet()
+      val indexName = ESimplePanda.meta.indexName
+      val mapping = """
+      { "slashemdoc" :{
+        "properties" : {
+          "nicknamesString" : { type: "string", store: "no", analyzer:"whitespace"}
+        }
+      }}"""
+      val mappingReq = Requests.putMappingRequest(ESimplePanda.meta.indexName).source(mapping).`type`("slashemdoc")
+      val mappingResponse = client.admin().indices().putMapping(mappingReq).actionGet()
+    } catch {
+      case e => {
+        e.printStackTrace();
+        println("Error creating the regular index, may allready exist ("+e+")")
+      }
+    }
     //Set up the geo panda index
     val geoClient = ESimpleGeoPanda.meta.client
     try {
@@ -466,6 +492,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("id","4c809f4251ada1cdc3790b10")
                                                                           .field("favnums", favnums1)
                                                                           .field("nicknames", nicknames1)
+                                                                          .field("nicknamesString", nicknames1.asScala.mkString(" "))
                                                                           .field("hugenums", hugenums1)
                                                                           .field("termsfield", terms1)
                                                                           .field("favvenueids", venueids1)
@@ -481,6 +508,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("foreign","pants")
                                                                           .field("favnums", favnums2)
                                                                           .field("nicknames", nicknames2)
+                                                                          .field("nicknamesString", nicknames2.asScala.mkString(" "))
                                                                           .field("hugenums", hugenums2)
                                                                           .endObject()
       ).execute()
@@ -495,6 +523,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .field("foreign","pants")
                                                                           .field("favnums", favnums3)
                                                                           .field("nicknames", nicknames3)
+                                                                          .field("nicknamesString", nicknames3.asScala.mkString(" "))
                                                                           .field("hugenums", hugenums3)
                                                                           .endObject()
       ).execute()
