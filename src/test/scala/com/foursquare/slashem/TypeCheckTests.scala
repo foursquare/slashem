@@ -46,6 +46,20 @@ class TypeCheckTests extends SpecsMatchers with ScalaCheckMatchers {
     SVenueTest where (_.name eqs "test") selectCase(_.name,((x: Option[String]) => TestPirate(x))) selectCase(_.name,((x: Option[String]) => TestPirate(x)))
               """,shouldTypeCheck=false)
 
+    check("""
+          val params: Map[String, Any] = Map("lat" -> -31.1, "lon" -> 74.0, "weight" -> 2000, "weight2" -> 0.03)
+          ESimpleGeoPanda where (_.name eqs "test") scoreBoostField(_.point recipSqeGeoDistance(40, -74, 1, 5000, 1))
+          """,shouldTypeCheck=true)
+
+    check("""
+          val params: Map[String, Any] = Map("lat" -> -31.1, "lon" -> 74.0, "weight" -> 2000, "weight2" -> 0.03)
+          ESimpleGeoPanda where (_.name eqs "test")  customScore("distance_score_magic", params)
+          """,shouldTypeCheck=true)
+
+    check("""
+          val params: Map[String, Any] = Map("lat" -> -31.1, "lon" -> 74.0, "weight" -> 2000, "weight2" -> 0.03)
+          ESimpleGeoPanda where (_.name eqs "test") scoreBoostField(_.point recipSqeGeoDistance(40, -74, 1, 5000, 1)) customScore("distance_score_magic", params)
+          """,shouldTypeCheck=false)
  }
 
   //Stolen from Rogue
