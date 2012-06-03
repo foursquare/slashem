@@ -337,16 +337,16 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   }
 
   /** Boost a specific field/query. WARNING: NOT TYPE SAFE NO VALIDATION ETC. */
-  def boostField(s: String): QueryBuilder[M, Ord, Lim, MM, Y, H, Q, MinFacetCount, FacetLimit, ST] = {
+  def boostField(s: String): QueryBuilder[M, Ord, Lim, MM, Y, H, Q, MinFacetCount, FacetLimit, ScoreScript] = {
     this.copy(boostFields=WeightedField(s,1)::boostFields)
   }
 
   /** Boost a field (type safe version) */
-  def boostField[F](f: M => SlashemField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM, Y, H, Q, MinFacetCount, FacetLimit, ST] = {
+  def boostField[F](f: M => SlashemField[F,M], boost: Double = 1): QueryBuilder[M, Ord, Lim, MM, Y, H, Q, MinFacetCount, FacetLimit, ScoreScript] = {
     this.copy(boostFields=WeightedField(f(meta).name,boost)::boostFields)
   }
   /** Handle a more complex field boost */
-  def scoreBoostField(f: M => ScoreBoost): QueryBuilder[M, Ord, Lim, MM, Y, H, Q, MinFacetCount, FacetLimit, ST] = {
+  def scoreBoostField(f: M => ScoreBoost): QueryBuilder[M, Ord, Lim, MM, Y, H, Q, MinFacetCount, FacetLimit, ScoreScript] = {
     this.copy(boostFields=f(meta)::boostFields)
   }
 

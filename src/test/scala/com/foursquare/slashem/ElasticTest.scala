@@ -4,6 +4,7 @@ object ESimplePanda extends ESimplePanda with ElasticMeta[ESimplePanda] {
   //Force local for testing
   override val useTransport = false
   override val clusterName = "simpletest" //Override me knthx
+  override val indexName = "esimplepanda"
 }
 class ESimplePanda extends ElasticSchema[ESimplePanda] {
   def meta = ESimplePanda
@@ -17,6 +18,7 @@ class ESimplePanda extends ElasticSchema[ESimplePanda] {
   object foreign extends SlashemStringField(this)
   object favnums extends SlashemIntListField(this)
   object nicknames extends SlashemStringListField(this)
+  object nicknamesString extends SlashemStringField(this)
   object hugenums extends SlashemLongListField(this)
   object termsfield extends SlashemUnanalyzedStringField(this)
   object favvenueids extends SlashemObjectIdListField(this)
