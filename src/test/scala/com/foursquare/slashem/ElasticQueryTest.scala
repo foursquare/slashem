@@ -365,7 +365,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   def testObjectIdListFieldEmptyNin {
     val response1 = ESimplePanda where (_.favvenueids nin List()) fetch()
     Assert.assertEquals(response1.response.results.length, 8)
-  }  
+  }
 
   @Test
   def testListFieldNin {
@@ -582,4 +582,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     }
   }
 
+}
+
+object ElasticQueryTest extends ElasticQueryTest {
 }

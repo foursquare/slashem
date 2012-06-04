@@ -370,7 +370,7 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   /** Fetch the results for a given query (blocking) with a specified timeout*/
   def fetch(timeout: Duration):  SearchResults[M, Y] = {
     // Gross++
-    meta.query(timeout, this.optimize())
+    meta.query(timeout, this)
   }
   /** Fetch the results for a given query (non-blocking)*/
   def fetchFuture(): Future[SearchResults[M,Y]] = {
