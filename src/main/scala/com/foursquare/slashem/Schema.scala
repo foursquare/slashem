@@ -306,6 +306,7 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
             .hostConnectionLimit(hostConnectionLimit)
             .hostConnectionCoresize(hostConnectionCoresize)
             .retries(retries)
+            .name(solrName)
             .build()})
         myClient.get
       }
