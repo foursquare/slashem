@@ -365,6 +365,10 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
     ()
   }
 
+  /* Optimize the QueryBuilder */
+  def optimize() = {
+    this.copy(filters=Optimizer.optimizeFilters(filters))
+  }
 
   /** Fetch the results with the limit of l. Can only be used on an unlimited
   * query */

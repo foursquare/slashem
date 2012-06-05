@@ -99,7 +99,6 @@ class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
 
-
   @Test
   def testProduceCorrectSimpleQueryStringContains {
     val q = SUserTest where (_.fullname contains "jon")

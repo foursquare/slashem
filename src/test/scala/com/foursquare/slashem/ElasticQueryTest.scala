@@ -624,3 +624,6 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
 }
+
+object ElasticQueryTest extends ElasticQueryTest {
+}
