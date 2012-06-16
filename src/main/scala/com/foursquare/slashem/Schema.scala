@@ -7,6 +7,7 @@ import com.foursquare.slashem.Ast._
 import com.twitter.util.{Duration, ExecutorServiceFuturePool, Future, FuturePool, FutureTask, Promise}
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.http.Http
+import com.twitter.finagle.stats.StatsReceiver
 import com.twitter.finagle.Service
 import java.lang.Integer
 import java.net.InetSocketAddress
@@ -280,6 +281,9 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
     }
   }
 
+  /* Want to collect some finagle stats, provide a Stats receiver */
+  def receiver: Option[StatsReceiver] = None
+
   // The name is used to determine which props to use as well as for logging
   def solrName: String
 
@@ -295,19 +299,23 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
       case Some(cl) => cl
       case _ => {
         myClient = Some({
-          ClientBuilder()
-            .codec(Http())
-            .hosts(servers.map(x => {
-              val h = x.split(":")
-              val s = h.head
-              val p = h.last
-              new InetSocketAddress(s, p.toInt)
-            }))
-            .hostConnectionLimit(hostConnectionLimit)
-            .hostConnectionCoresize(hostConnectionCoresize)
-            .retries(retries)
-            .name(solrName)
-            .build()})
+          val cb = ClientBuilder()
+          .codec(Http())
+          .hosts(servers.map(x => {
+            val h = x.split(":")
+            val s = h.head
+            val p = h.last
+            new InetSocketAddress(s, p.toInt)
+          }))
+          .hostConnectionLimit(hostConnectionLimit)
+          .hostConnectionCoresize(hostConnectionCoresize)
+          .retries(retries)
+          .name(solrName)
+          (receiver match {
+            case Some(r) => cb.reportTo(r)
+            case _ => cb
+          }).build()
+        })
         myClient.get
       }
     }
