@@ -93,6 +93,30 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val r = fullQuery fetch()
   }
 
+  @Test
+  def testBoostQuery {
+    val rLolerNyet = ESimplePanda where (_.name contains "loler") and (_.hobos contains "nyet") fetch()
+    val rBoostedNyet = ESimplePanda where (_.name contains "loler")  boostQuery(_.hobos contains "nyet") fetch()
+    val rNoBoostedNyet = ESimplePanda where (_.name contains "loler") fetch()
+    Assert.assertEquals(1,rLolerNyet.response.results.length)
+    Assert.assertEquals(4,rBoostedNyet.response.results.length)
+    Assert.assertEquals(4,rNoBoostedNyet.response.results.length)
+    Assert.assertEquals(rBoostedNyet.response.results.apply(0).id.is,rLolerNyet.response.results.apply(0).id.is)
+    Assert.assertTrue(rBoostedNyet.response.results.apply(0).id.is != rNoBoostedNyet.response.results.apply(0).id.is)
+  }
+
+  @Test
+  def testNegativeBoostQuery {
+    val rLolerNyet = ESimplePanda where (_.name contains "loler") and (_.hobos.neqs("nyet")) fetch()
+    val rBoostedNyet = ESimplePanda where (_.name contains "loler")  boostQuery(_.hobos.neqs("nyet")) fetch()
+    val rNoBoostedNyet = ESimplePanda where (_.name contains "loler") fetch()
+    Assert.assertEquals(3,rLolerNyet.response.results.length)
+    Assert.assertEquals(4,rBoostedNyet.response.results.length)
+    Assert.assertEquals(4,rNoBoostedNyet.response.results.length)
+    Assert.assertTrue(rBoostedNyet.response.results.apply(0).id.is != rNoBoostedNyet.response.results.apply(0).id.is)
+  }
+
+
 
   @Test
   def testEmptySearch {
@@ -247,7 +271,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val containsCount =  rContains.response.results.length
     Assert.assertTrue(containsCount > phraseCount)
   }
-  //@Test
+  @Test
   def testFieldFaceting {
     val r = ESimplePanda where (_.name contains "loler skates") facetField(_.foreign) fetch()
     Assert.assertEquals(4,r.response.results.length)

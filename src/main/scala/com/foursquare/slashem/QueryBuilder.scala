@@ -111,7 +111,8 @@ case class QueryBuilder[M <: Record[M], Ord, Lim, MM <: MinimumMatchType, Y, H <
   @param f The boost query
   */
   def boostQuery[F](f: M => Clause[F]): QueryBuilder[M, Ord, Lim, MM, Y, H, Q, MinFacetCount, FacetLimit, ST] = {
-    this.copy(boostQueries=f(meta) :: boostQueries)
+    val newclause = f(meta)
+    this.copy(boostQueries=newclause :: boostQueries)
   }
 
    /** Helper method for case class extraction */
