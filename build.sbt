@@ -1,6 +1,6 @@
 name := "slashem"
 
-version := "0.12.3"
+version := "0.12.4"
 
 organization := "com.foursquare"
 
