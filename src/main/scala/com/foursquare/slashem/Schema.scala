@@ -992,7 +992,7 @@ class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owne
         case "" => Empty
         case ar: Array[Int] => Full(ar.toList)
         case ar: Array[Integer] => Full(ar.toList.map(x=>x.intValue))
-        case ar: ArrayList[_] => Full(set(ar.toArray.asInstanceOf[Array[Int]].toList))
+        case ar: ArrayList[_] => Full(set(ar.toArray.toList.map(x=>x.asInstanceOf[Integer].intValue)))
         case s: String => Full(s.split(" ").map(x => x.toInt).toList)
         case _ => Empty
       }
@@ -1227,7 +1227,7 @@ class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int
       case "" => Empty
       case ar: Array[Int] => Full(set(ar.toList))
       case ar: Array[Integer] => Full(set(ar.toList.map(x=>x.intValue)))
-      case ar: ArrayList[_] => Full(set(ar.toArray.asInstanceOf[Array[Int]].toList))
+      case ar: ArrayList[_] => Full(set(ar.toArray.toList.map(x=>x.asInstanceOf[Integer].intValue)))
       case s: String => Full(set(s.split(" ").map(x => x.toInt).toList))
       case _ => Empty
     }

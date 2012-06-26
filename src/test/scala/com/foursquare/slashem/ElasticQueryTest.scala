@@ -354,6 +354,13 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
+  def testIntListFieldReturn {
+    val response1 = ESimplePanda where (_.favnums contains 2) fetch()
+    Assert.assertEquals(response1.response.results.length, 2)
+    Assert.assertEquals(response1.response.results.head.favnums.get, List(1,2,3,4,5))
+  }
+
+  @Test
   def testListFieldIn {
     val response1 = ESimplePanda where (_.favnums in List(2, 3, 4, 5)) fetch()
     val response2 = ESimplePanda where (_.favnums in List(99)) fetch()
