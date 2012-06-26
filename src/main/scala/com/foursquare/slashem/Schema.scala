@@ -7,6 +7,7 @@ import com.foursquare.slashem.Ast._
 import com.twitter.util.{Duration, ExecutorServiceFuturePool, Future, FuturePool, FutureTask, Promise}
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.http.Http
+import com.twitter.finagle.stats.StatsReceiver
 import com.twitter.finagle.Service
 import java.lang.Integer
 import java.net.InetSocketAddress
@@ -28,9 +29,12 @@ import org.elasticsearch.common.settings.ImmutableSettings
 import org.elasticsearch.common.transport.InetSocketTransportAddress
 import org.elasticsearch.common.unit.TimeValue
 import org.elasticsearch.index.query.QueryBuilders.filteredQuery
-import org.elasticsearch.index.query.{AndFilterBuilder, CustomScoreQueryBuilder,
+import org.elasticsearch.index.query.{AndFilterBuilder,
+                                      BoostingQueryBuilder,
+                                      CustomScoreQueryBuilder,
                                       FilterBuilder => ElasticFilterBuilder,
-                                      QueryBuilder => ElasticQueryBuilder}
+                                      QueryBuilder => ElasticQueryBuilder,
+                                      QueryBuilders => EQueryBuilders}
 import org.elasticsearch.node.Node
 import org.elasticsearch.node.NodeBuilder._
 import org.elasticsearch.search.facet.AbstractFacetBuilder
@@ -280,6 +284,9 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
     }
   }
 
+  /* Want to collect some finagle stats, provide a Stats receiver */
+  def receiver: Option[StatsReceiver] = None
+
   // The name is used to determine which props to use as well as for logging
   def solrName: String
 
@@ -295,18 +302,23 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
       case Some(cl) => cl
       case _ => {
         myClient = Some({
-          ClientBuilder()
-            .codec(Http())
-            .hosts(servers.map(x => {
-              val h = x.split(":")
-              val s = h.head
-              val p = h.last
-              new InetSocketAddress(s, p.toInt)
-            }))
-            .hostConnectionLimit(hostConnectionLimit)
-            .hostConnectionCoresize(hostConnectionCoresize)
-            .retries(retries)
-            .build()})
+          val cb = ClientBuilder()
+          .codec(Http())
+          .hosts(servers.map(x => {
+            val h = x.split(":")
+            val s = h.head
+            val p = h.last
+            new InetSocketAddress(s, p.toInt)
+          }))
+          .hostConnectionLimit(hostConnectionLimit)
+          .hostConnectionCoresize(hostConnectionCoresize)
+          .retries(retries)
+          .name(solrName)
+          (receiver match {
+            case Some(r) => cb.reportTo(r)
+            case _ => cb
+          }).build()
+        })
         myClient.get
       }
     }
@@ -572,6 +584,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     .onFailure(e => meta.logger.failure("e"+meta.indexName, queryText, e))
 
   }
+
   def constructSearchResults[Y](creator: Option[Response.RawDoc => Y],
                                 start: Int,
                                 fallOff: Option[Double],
@@ -631,7 +644,12 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       }
       case _ => scoreFields(fq, qb.boostFields)
     }
-    scoredQuery
+    //Apply query boosting
+    val boostedQuery = qb.boostQueries match {
+      case (x::xs) => boostQueries(scoredQuery, qb)
+      case _ => scoredQuery
+    }
+    boostedQuery
   }
 
   def termFacetQuery(facetFields: List[Ast.Field], facetLimit: Option[Int]): List[AbstractFacetBuilder] = {
@@ -649,6 +667,42 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   }
 
   /**
+   * Applies positive and negative query boosts
+   */
+  def boostQueries(query: ElasticQueryBuilder, qb: QueryBuilder[_, _, _, _, _, _, _, _, _, _]): ElasticQueryBuilder = {
+    //Only bother making boost queries if we have negative boost queries otherwise we just append it
+    val boostQueries = qb.boostQueries
+    val negativeQueries = boostQueries.filter(q => q match {
+      case Clause(_,_,false) => true
+      case _ => false
+    })
+    if (negativeQueries.length > 0) {
+      val boostedQuery = new BoostingQueryBuilder()
+      boostedQuery.positive(query)
+      boostedQuery.negative(query)
+      boostQueries.map(q => q match {
+        case Clause(_,_,false) => boostedQuery.negative(q.elasticExtend(qb.queryFields,
+                                                                        qb.phraseBoostFields,
+                                                                        qb.minimumMatch))
+        case _ => boostedQuery.positive(q.elasticExtend(qb.queryFields,
+                                                        qb.phraseBoostFields,
+                                                        qb.minimumMatch))
+      })
+      boostedQuery.negativeBoost(0.1.toFloat)
+      boostedQuery
+    } else {
+      val orQuery = EQueryBuilders.boolQuery
+      orQuery.should(query)
+      boostQueries.map(q => orQuery.should(q.elasticExtend(qb.queryFields,
+                                                           qb.phraseBoostFields,
+                                                           qb.minimumMatch)
+                                         )
+                     )
+      orQuery
+    }
+  }
+
+  /**
    * Custom score the fields which have scoreboosts
    */
   def scoreFields(query: ElasticQueryBuilder, fieldsToScore: List[ScoreBoost]): ElasticQueryBuilder =  {
@@ -661,6 +715,7 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     val scoreScript = "_score * (1 +"+ script + " )"
     scoreWithScript(query, scoreScript, namesAndParams, false)
   }
+
 
   /**
    * Add the provided script and its params to the query and build a
@@ -937,6 +992,7 @@ class SlashemIntListField[T <: Record[T]](owner: T) extends IntListField[T](owne
         case "" => Empty
         case ar: Array[Int] => Full(ar.toList)
         case ar: Array[Integer] => Full(ar.toList.map(x=>x.intValue))
+        case ar: ArrayList[_] => Full(set(ar.toArray.toList.map(x=>x.asInstanceOf[Integer].intValue)))
         case s: String => Full(s.split(" ").map(x => x.toInt).toList)
         case _ => Empty
       }
@@ -1171,6 +1227,7 @@ class IntListField[T <: Record[T]](override val owner: T) extends Field[List[Int
       case "" => Empty
       case ar: Array[Int] => Full(set(ar.toList))
       case ar: Array[Integer] => Full(set(ar.toList.map(x=>x.intValue)))
+      case ar: ArrayList[_] => Full(set(ar.toArray.toList.map(x=>x.asInstanceOf[Integer].intValue)))
       case s: String => Full(set(s.split(" ").map(x => x.toInt).toList))
       case _ => Empty
     }

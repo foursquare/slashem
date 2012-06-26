@@ -93,6 +93,30 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val r = fullQuery fetch()
   }
 
+  @Test
+  def testBoostQuery {
+    val rLolerNyet = ESimplePanda where (_.name contains "loler") and (_.hobos contains "nyet") fetch()
+    val rBoostedNyet = ESimplePanda where (_.name contains "loler")  boostQuery(_.hobos contains "nyet") fetch()
+    val rNoBoostedNyet = ESimplePanda where (_.name contains "loler") fetch()
+    Assert.assertEquals(1,rLolerNyet.response.results.length)
+    Assert.assertEquals(4,rBoostedNyet.response.results.length)
+    Assert.assertEquals(4,rNoBoostedNyet.response.results.length)
+    Assert.assertEquals(rBoostedNyet.response.results.apply(0).id.is,rLolerNyet.response.results.apply(0).id.is)
+    Assert.assertTrue(rBoostedNyet.response.results.apply(0).id.is != rNoBoostedNyet.response.results.apply(0).id.is)
+  }
+
+  @Test
+  def testNegativeBoostQuery {
+    val rLolerNyet = ESimplePanda where (_.name contains "loler") and (_.hobos.neqs("nyet")) fetch()
+    val rBoostedNyet = ESimplePanda where (_.name contains "loler")  boostQuery(_.hobos.neqs("nyet")) fetch()
+    val rNoBoostedNyet = ESimplePanda where (_.name contains "loler") fetch()
+    Assert.assertEquals(3,rLolerNyet.response.results.length)
+    Assert.assertEquals(4,rBoostedNyet.response.results.length)
+    Assert.assertEquals(4,rNoBoostedNyet.response.results.length)
+    Assert.assertTrue(rBoostedNyet.response.results.apply(0).id.is != rNoBoostedNyet.response.results.apply(0).id.is)
+  }
+
+
 
   @Test
   def testEmptySearch {
@@ -247,7 +271,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val containsCount =  rContains.response.results.length
     Assert.assertTrue(containsCount > phraseCount)
   }
-  //@Test
+  @Test
   def testFieldFaceting {
     val r = ESimplePanda where (_.name contains "loler skates") facetField(_.foreign) fetch()
     Assert.assertEquals(4,r.response.results.length)
@@ -327,6 +351,13 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(response8.response.results.length, 1)
     Assert.assertEquals(response9.response.results.length, 0)
     Assert.assertEquals(response10.response.results.length, 1)
+  }
+
+  @Test
+  def testIntListFieldReturn {
+    val response1 = ESimplePanda where (_.favnums contains 2) fetch()
+    Assert.assertEquals(response1.response.results.length, 2)
+    Assert.assertEquals(response1.response.results.head.favnums.get, List(1,2,3,4,5))
   }
 
   @Test
@@ -421,6 +452,9 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
 
 
   @Before
+  def setup() {
+    hoboPrepIndex()
+  }
   def hoboPrepIndex() {
     ESimplePanda.meta.node = ElasticNode.node
     ESimpleGeoPanda.meta.node = ElasticNode.node
@@ -608,6 +642,9 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
 
   }
   @After
+  def done() {
+    hoboDone()
+  }
   def hoboDone() {
     ESimplePanda.meta.node = ElasticNode.node
     ESimpleGeoPanda.meta.node = ElasticNode.node
@@ -622,6 +659,30 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
       case _ => println("Error cleaning up after tests... oh well")
     }
   }
+
+//Optimize tests
+
+  //We test this because the optimizer screwed this up once
+  @Test
+  def testTermFiltersOptimize {
+    val q = ESimplePanda where (_.hugenums contains 1L) filter(_.termsfield in List("termhit", "randomterm"))
+    val res1 =  q fetch()
+    val res2 = q optimize() fetch()
+    Assert.assertEquals(res1.response.results.length, res2.response.results.length)
+  }
+
+  @Test
+  def testTermFiltersMetallFilter {
+    val q = ESimpleGeoPanda where (_.name contains "ordertest") filter(_.metall any)
+    val q2 = ESimpleGeoPanda where  (_.name contains "ordertest")
+    val res1 =  q fetch()
+    val res2 = q optimize() fetch()
+    val res3 = q2  fetch()
+    Assert.assertEquals(res1.response.results.length, res2.response.results.length)
+    Assert.assertEquals(res1.response.results.length, res3.response.results.length)
+    Assert.assertEquals(q.optimize(),q2)
+  }
+
 
 }
 
