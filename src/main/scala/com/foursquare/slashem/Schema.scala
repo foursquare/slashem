@@ -1264,6 +1264,10 @@ class LongListField[T <: Record[T]](override val owner: T) extends Field[List[Lo
         case "" => Empty
         case ar: Array[Long] => Full(set(ar.toList))
         case ar: Array[Integer] => Full(set(ar.toList.map(x => x.longValue)))
+        case ar: ArrayList[_] => Full(set(ar.toArray.asInstanceOf[Array[_]].toList.map(x =>{ x match {
+          case i: Integer => i.toLong
+          case l: Long => l
+          }})))
         case s: String => Full(set(s.split(" ").map(x => x.toLong).toList))
         case _ => Empty
       }
@@ -1301,6 +1305,7 @@ class ObjectIdListField[T <: Record[T]](override val owner: T) extends Field[Lis
         case "" => Empty
         case ar: Array[ObjectId] => Full(ar.toList)
         case ar: Array[String] => Full(ar.toList.map(x => new ObjectId(x)))
+        case ar: ArrayList[_] => Full(set(ar.toArray.toList.map(x => new ObjectId(x.asInstanceOf[String]))))
         case s: String => Full(s.split(" ").map(x => new ObjectId(x)).toList)
         case _ => Empty
       }
@@ -1342,6 +1347,7 @@ class StringListField[T <: Record[T]](override val owner: T) extends Field[List[
         case "" => Empty
         case arr: Array[String] => Full(arr.toList)
         case str: String        => setFromString(str)
+        case ar: ArrayList[_] => Full(set(ar.toArray.toList.map(x => x.asInstanceOf[String])))
         case _ => Empty
       }
     } catch {
