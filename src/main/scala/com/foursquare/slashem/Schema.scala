@@ -681,12 +681,16 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       boostedQuery.positive(query)
       boostedQuery.negative(query)
       boostQueries.map(q => q match {
-        case Clause(_,_,false) => boostedQuery.negative(q.elasticExtend(qb.queryFields,
-                                                                        qb.phraseBoostFields,
-                                                                        qb.minimumMatch))
-        case _ => boostedQuery.positive(q.elasticExtend(qb.queryFields,
-                                                        qb.phraseBoostFields,
-                                                        qb.minimumMatch))
+        case Clause(_,_,false) => {
+          boostedQuery.negative(q.elasticExtend(qb.queryFields,
+                                                qb.phraseBoostFields,
+                                                qb.minimumMatch))
+        }
+        case _ => {
+          boostedQuery.positive(q.elasticExtend(qb.queryFields,
+                                                qb.phraseBoostFields,
+                                                qb.minimumMatch))
+        }
       })
       boostedQuery.negativeBoost(0.1.toFloat)
       boostedQuery

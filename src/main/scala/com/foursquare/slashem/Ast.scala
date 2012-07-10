@@ -612,14 +612,8 @@ object Ast {
     def extend(): String = q.extend() + "^" + weight.toString
     /** @inheritdoc */
     def elasticExtend(qf: List[WeightedField], pf: List[PhraseWeightedField], mm: Option[String]): ElasticQueryBuilder = {
-      val boostedQuery = EQueryBuilders.boostingQuery
-      if (weight > 0) {
-        boostedQuery.positive(q.elasticExtend(qf, pf, mm))
-      } else {
-        boostedQuery.negative(q.elasticExtend(qf, pf, mm))
-      }
-      boostedQuery.boost(weight.abs)
-      boostedQuery
+      val boostedQuery = EQueryBuilders.customBoostFactorQuery(q.elasticExtend(qf, pf, mm))
+      boostedQuery.boostFactor(weight)
     }
   }
 }

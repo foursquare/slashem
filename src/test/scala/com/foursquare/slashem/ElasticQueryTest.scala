@@ -94,15 +94,30 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
 
   @Test
+  def testQueryWithContains10 {
+    val rLoler10 = ESimplePanda where (_.name contains("loler",10)) fetch()
+    Assert.assertEquals(4,rLoler10.response.results.length)
+  }
+
+  @Test
+  def testBoostQueryWithPositive {
+    val rBoostedNyet10 = ESimplePanda where (_.name contains "loler")  boostQuery(_.hobos contains("nyet",10)) fetch()
+    Assert.assertEquals(4,rBoostedNyet10.response.results.length)
+  }
+
+  @Test
   def testBoostQuery {
     val rLolerNyet = ESimplePanda where (_.name contains "loler") and (_.hobos contains "nyet") fetch()
     val rBoostedNyet = ESimplePanda where (_.name contains "loler")  boostQuery(_.hobos contains "nyet") fetch()
     val rNoBoostedNyet = ESimplePanda where (_.name contains "loler") fetch()
+    val rBoostedNyet10 = ESimplePanda where (_.name contains "loler")  boostQuery(_.hobos contains("nyet",10)) fetch()
     Assert.assertEquals(1,rLolerNyet.response.results.length)
     Assert.assertEquals(4,rBoostedNyet.response.results.length)
+    Assert.assertEquals(4,rBoostedNyet10.response.results.length)
     Assert.assertEquals(4,rNoBoostedNyet.response.results.length)
     Assert.assertEquals(rBoostedNyet.response.results.apply(0).id.is,rLolerNyet.response.results.apply(0).id.is)
     Assert.assertTrue(rBoostedNyet.response.results.apply(0).id.is != rNoBoostedNyet.response.results.apply(0).id.is)
+    Assert.assertTrue(rBoostedNyet10.response.results.apply(0).id.is != rNoBoostedNyet.response.results.apply(0).id.is)
   }
 
   @Test
