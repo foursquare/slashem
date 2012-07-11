@@ -174,6 +174,11 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(1,r.response.results.length)
   }
   @Test
+  def testNonEmptyMultiFieldSearchWithFieldValues {
+    val r = ESimplePanda.where(_.default contains "onlyinnamefield").queryField(_.name,0.1).queryField(_.hobos,0.2) fetch()
+    Assert.assertEquals(1,r.response.results.length)
+  }
+  @Test
   def testNonEmptySearchOidScorePare {
     val r = ESimplePanda where (_.hobos contains "hobos") fetch()
     Assert.assertEquals(1,r.response.results.length)
