@@ -286,6 +286,15 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val r = ESimplePanda where (_.name contains "loler") and (x => (x.hobos contains "nyet") or (x.hobos contains "robot")) fetch()
     Assert.assertEquals(r.response.results.length,2)
   }
+
+  @Test
+  def testBoosting {
+    val r = (ESimplePanda where (_.name contains "DOESNOTEXISTDONOTADTHISTOKENloler")
+             boostQuery(_.name contains("loler", 10)) fetch())
+    Assert.assertEquals(r.response.results.length,0)
+  }
+
+
   @Test
   def testPhraseBoostOrdering {
     val rWithLowPhraseBoost = ESimplePanda where (_.name contains "loler skates") phraseBoost(_.name,10) fetch()
