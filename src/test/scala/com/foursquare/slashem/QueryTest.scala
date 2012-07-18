@@ -1,7 +1,8 @@
 package com.foursquare.slashem
 
 import com.foursquare.slashem._
-
+import com.twitter.util.Duration
+import java.util.concurrent.TimeUnit
 import org.bson.types.ObjectId
 import org.junit.Test
 import org.junit._
@@ -15,6 +16,35 @@ import org.specs.matcher.ScalaCheckMatchers
 
 
 class QueryTest extends SpecsMatchers with ScalaCheckMatchers {
+  
+  @Test
+  def testStartEndExecuteQuery {
+    val oldLogger = SUserTest.logger
+    try {
+      var startCount = 0
+      var endCount = 0
+      SUserTest.logger = new SolrQueryLogger {
+        override def onStartExecuteQuery(name: String, msg: String): Function0[Unit] = {
+          startCount += 1
+          () => {
+            endCount += 1
+          }
+        }
+        override def log(name: String, msg: String, time: Long): Unit = Unit
+        override def debug(msg: String): Unit = Unit
+        override def resultCount(name: String, count:Int): Unit = Unit
+      }
+      // this query should fail since there's no solr server
+      // 10 second wait is upper limit to prevent race condition
+      SUserTest.where(_.fullname eqs "jon").fetchFuture().get(Duration(10, TimeUnit.SECONDS))
+      
+      Assert.assertEquals("start should have been called just once", 1, startCount)
+      Assert.assertEquals("end should have been called just once", 1, endCount)
+    } finally {
+      SUserTest.logger = oldLogger
+    }
+  }
+  
   @Test
   def testProduceCorrectSimpleQueryString {
     val q = SUserTest where (_.fullname eqs "jon")

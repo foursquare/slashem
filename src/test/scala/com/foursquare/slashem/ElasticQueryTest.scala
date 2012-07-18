@@ -52,6 +52,31 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     })
     Assert.assertEquals(1,future.apply(Duration(200,TimeUnit.MILLISECONDS)))
   }
+  
+  @Test
+  def testStartEndExecuteQuery {
+    val oldLogger = ESimpleGeoPanda.logger
+    try {
+      var startCount = 0
+      var endCount = 0
+      ESimpleGeoPanda.logger = new SolrQueryLogger {
+        override def onStartExecuteQuery(name: String, msg: String): Function0[Unit] = {
+          startCount += 1
+          () => {
+            endCount += 1
+          }
+        }
+        override def log(name: String, msg: String, time: Long): Unit = Unit
+        override def debug(msg: String): Unit = Unit
+        override def resultCount(name: String, count:Int): Unit = Unit
+      }
+      var r = ESimpleGeoPanda where (_.metall any) fetch()
+      Assert.assertEquals("start should have been called just once", 1, startCount)
+      Assert.assertEquals("end should have been called just once", 1, endCount)
+    } finally {
+      ESimpleGeoPanda.logger = oldLogger
+    }
+  }
 
   @Test(expected=classOf[TimeoutException])
   def futureTestBlock {
