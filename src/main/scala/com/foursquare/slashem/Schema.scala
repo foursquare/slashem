@@ -719,14 +719,14 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       boostedQuery.negativeBoost(0.1.toFloat)
       boostedQuery
     } else {
-      val orQuery = EQueryBuilders.boolQuery
-      orQuery.should(query)
-      boostQueries.map(q => orQuery.should(q.elasticExtend(qb.queryFields,
+      val boolQuery = EQueryBuilders.boolQuery
+      boolQuery.must(query)
+      boostQueries.map(q => boolQuery.should(q.elasticExtend(qb.queryFields,
                                                            qb.phraseBoostFields,
                                                            qb.minimumMatch)
                                          )
                      )
-      orQuery
+      boolQuery
     }
   }
 
