@@ -424,10 +424,14 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
 /** Logging and Timing solr trait */
 trait SolrQueryLogger {
   /**
+   * provide a null call back for people that don't want to implement
+   * onStartExecuteQuery */
+  val noopCallback: Function0[Unit] = () => ()
+  /**
    * to instrument start and stop of query return a function that will be called
    * when the query finishes
    */
-  def onStartExecuteQuery(name: String, msg: String): Function0[Unit]
+  def onStartExecuteQuery(name: String, msg: String): Function0[Unit] = noopCallback
   
   def log(name: String, msg: String, time: Long): Unit
 
@@ -451,7 +455,6 @@ trait SolrQueryLogger {
 
 /** The default logger, does nothing. */
 object NoopQueryLogger extends SolrQueryLogger {
-  val noopCallback: Function0[Unit] = () => ()
   override def onStartExecuteQuery(name: String, msg: String): Function0[Unit] = noopCallback
   override def log(name: String, msg: String, time: Long): Unit = Unit
   override def debug(msg: String): Unit = println(msg)
