@@ -390,7 +390,7 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
     })
     qse
   }
-  
+
   object NoopFilter extends SimpleFilter[HttpRequest, HttpResponse] {
     def apply(request: HttpRequest, service: Service[HttpRequest, HttpResponse]) = service(request)
   }
@@ -398,7 +398,7 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
   def rawQueryFuture(params: Seq[(String, String)]): Future[String] = {
     rawQueryFuture(params, NoopFilter)
   }
-  
+
   // This method performs the actually query / http request. It should probably
   // go in another file when it gets more sophisticated.
   def rawQueryFuture(params: Seq[(String, String)], logFilter: SimpleFilter[HttpRequest, HttpResponse]): Future[String] = {
@@ -432,7 +432,7 @@ trait SolrQueryLogger {
    * when the query finishes
    */
   def onStartExecuteQuery(name: String, msg: String): Function0[Unit] = noopCallback
-  
+
   def log(name: String, msg: String, time: Long): Unit
 
   def debug(msg: String): Unit
@@ -529,58 +529,66 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
 
   def elasticQueryFuture[Ord, Lim, MM <: MinimumMatchType, Y, H <: Highlighting, Q <: QualityFilter, FC <: FacetCount, FLim, ST <: ScoreType](qb: QueryBuilder[M, Ord, Lim, MM, Y, H, Q, FC, FLim, ST], query: ElasticQueryBuilder, timeoutOpt: Option[Duration]): Future[SearchResults[M, Y]] = {
     val esfp = meta.executorServiceFuturePool
-    
+
     val queryName = "e" + meta.indexName + ".query"
     val queryText = query.toString()
-    
+
+    val client = meta.client
+    val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
+    val limit =  qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit)
+    val baseRequest: SearchRequestBuilder = client.prepareSearch(meta.indexName)
+    .setQuery(query)
+    .setFrom(from)
+    .setSize(limit)
+    .setSearchType(SearchType.QUERY_THEN_FETCH)
+    val request = qb.sort match {
+      case None => baseRequest
+      //Handle sorting by fields quickly
+      case Some(Pair(Field(fieldName),"asc")) => baseRequest.addSort(fieldName,SortOrder.ASC)
+      case Some(Pair(Field(fieldName),"desc")) => baseRequest.addSort(fieldName,SortOrder.DESC)
+      //Handle sorting by scripts in general
+      case Some(Pair(sort,dir)) => {
+        val (params,scriptSrc) = sort.elasticBoost()
+        val paramNames = (1 to params.length).map("p"+_)
+        val script = scriptSrc.format(paramNames:_*)
+        val keyedParams =  paramNames zip params
+        val sortOrder =  dir match {
+          case "asc" => SortOrder.ASC
+          case "desc" => SortOrder.DESC
+          case _ => throw UnimplementedException("Unsupported order direction "+ dir);
+        }
+        val sortBuilder = new ScriptSortBuilder(script,"number").order(sortOrder)
+        keyedParams.foreach(p => {sortBuilder.param(p._1,p._2)})
+        baseRequest.addSort(sortBuilder)
+      }
+      case _ => {
+        throw UnimplementedException("Unsupported order type "+qb.sort);
+      }
+    }
+
+    /* Set the server side timeout */
+    val timeLimmitedRequest = timeoutOpt match {
+      case Some(timeout) => request.setTimeout(TimeValue.timeValueMillis(timeout.inMillis))
+      case _ => request
+    }
+
+    /* Add a facet to the request */
+    val facetedRequest = qb.facetSettings.facetFieldList match {
+      case Nil => timeLimmitedRequest
+      case _ => {
+        termFacetQuery(qb.facetSettings.facetFieldList, qb.facetSettings.facetLimit).foreach(timeLimmitedRequest.addFacet(_))
+        timeLimmitedRequest
+      }
+    }
+
+    val requestText = facetedRequest.toString()
+    meta.logger.debug("Request & Query details " + requestText)
+
+
+    val onEndExecuteFunction: Function0[Unit] = meta.logger.onStartExecuteQuery(queryName, requestText)
+
     val searchResultsFuture = esfp {
-      val onEndExecuteFunction: Function0[Unit] = meta.logger.onStartExecuteQuery(queryName, queryText)
       try {
-        val client = meta.client
-        val from = qb.start.map(_.toInt).getOrElse(qb.DefaultStart)
-        val limit =  qb.limit.map(_.toInt).getOrElse(qb.DefaultLimit)
-        meta.logger.debug("Query details " + queryText)
-        val baseRequest: SearchRequestBuilder = client.prepareSearch(meta.indexName)
-        .setQuery(query)
-        .setFrom(from)
-        .setSize(limit)
-        .setSearchType(SearchType.QUERY_THEN_FETCH)
-        val request = qb.sort match {
-          case None => baseRequest
-          //Handle sorting by fields quickly
-          case Some(Pair(Field(fieldName),"asc")) => baseRequest.addSort(fieldName,SortOrder.ASC)
-          case Some(Pair(Field(fieldName),"desc")) => baseRequest.addSort(fieldName,SortOrder.DESC)
-          //Handle sorting by scripts in general
-          case Some(Pair(sort,dir)) => {
-            val (params,scriptSrc) = sort.elasticBoost()
-            val paramNames = (1 to params.length).map("p"+_)
-            val script = scriptSrc.format(paramNames:_*)
-            val keyedParams =  paramNames zip params
-            val sortOrder =  dir match {
-              case "asc" => SortOrder.ASC
-              case "desc" => SortOrder.DESC
-            }
-            val sortBuilder = new ScriptSortBuilder(script,"number").order(sortOrder)
-            keyedParams.foreach(p => {sortBuilder.param(p._1,p._2)})
-            baseRequest.addSort(sortBuilder)
-          }
-          case _ => baseRequest
-        }
-
-        /* Set the server side timeout */
-        val timeLimmitedRequest = timeoutOpt match {
-          case Some(timeout) => request.setTimeout(TimeValue.timeValueMillis(timeout.inMillis))
-          case _ => request
-        }
-
-        /* Add a facet to the request */
-        val facetedRequest = qb.facetSettings.facetFieldList match {
-          case Nil => timeLimmitedRequest
-          case _ => {
-            termFacetQuery(qb.facetSettings.facetFieldList, qb.facetSettings.facetLimit).foreach(timeLimmitedRequest.addFacet(_))
-            timeLimmitedRequest
-          }
-        }
         val response : SearchResponse = facetedRequest.execute().get()
         response
       } finally {
@@ -588,11 +596,11 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
       }
     }
 
-    
+
 
     timeFuture(searchResultsFuture).map( {
       case (queryTime, result) => {
-        meta.logger.log(queryName, queryText, queryTime)
+        meta.logger.log(queryName,requestText, queryTime)
         result
       }}).map({
       response =>
@@ -878,7 +886,7 @@ trait SolrSchema[M <: Record[M]] extends SlashemSchema[M] {
                      min: Option[Int]): Future[SearchResults[M, Y]] = {
     val queryName = meta.solrName + ".query"
     val queryText = meta.queryString(params).toString
-    
+
     val logFilter = new SimpleFilter[HttpRequest, HttpResponse] {
       def apply(request: HttpRequest, service: Service[HttpRequest, HttpResponse]) = {
         val onEndExecuteFunction: Function0[Unit] = meta.logger.onStartExecuteQuery(queryName, queryText)
