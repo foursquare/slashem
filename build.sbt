@@ -55,6 +55,7 @@ resolvers += "codehaus maven repo" at "http://repository.codehaus.org/"
 
 resolvers += "sonatype maven repo" at "http://oss.sonatype.org/content/repositories/releases/"
 
+
 resolvers <++= (version) { v =>
   if (v.endsWith("-SNAPSHOT"))
     Seq(ScalaToolsSnapshots)
