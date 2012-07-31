@@ -253,6 +253,13 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(doc1._1,new ObjectId("4c809f4251ada1cdc3790b14"))
   }
   @Test
+  def serializationTest {
+    val r = ESimpleGeoPanda where(_.id eqs new ObjectId("4c809f4251ada1cdc3790b16")) fetch()
+    val lr = r.response.results
+    Assert.assertEquals(lr.length, 1)
+    Assert.assertEquals(lr.apply(0).point.value, (-32.0, 74.0))
+  }
+  @Test
    def geoOrderDesc {
     var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.point sqeGeoDistance(74.0,-31.0)) fetch()
     Assert.assertEquals(2,r.response.results.length)
@@ -387,7 +394,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val geoLong = -31
     val r = ESimpleGeoPanda where (_.name contains "lolerskates") scoreBoostField(_.point sqeGeoDistance(geoLat, geoLong)) fetch()
     Assert.assertEquals(r.response.results.length,2)
-    Assert.assertEquals(r.response.results.apply(0).point.value._1,74.0,0.9)
+    Assert.assertEquals(r.response.results.apply(0).point.value._2,74.0,0.9)
   }
 
   @Test
