@@ -257,7 +257,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val r = ESimpleGeoPanda where(_.id eqs new ObjectId("4c809f4251ada1cdc3790b16")) fetch()
     val lr = r.response.results
     Assert.assertEquals(lr.length, 1)
-    Assert.assertEquals(lr.apply(0).point.value, (-32.0, 74.0))
+    Assert.assertEquals(lr.apply(0).point.value, (37.787355, -122.403439))
   }
   @Test
    def geoOrderDesc {
