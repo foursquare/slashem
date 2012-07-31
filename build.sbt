@@ -1,6 +1,6 @@
 name := "slashem"
 
-version := "0.14.2"
+version := "0.14.3"
 
 organization := "com.foursquare"
 
@@ -54,6 +54,7 @@ resolvers += "twitter maven repo" at "http://maven.twttr.com/"
 resolvers += "codehaus maven repo" at "http://repository.codehaus.org/"
 
 resolvers += "sonatype maven repo" at "http://oss.sonatype.org/content/repositories/releases/"
+
 
 resolvers <++= (version) { v =>
   if (v.endsWith("-SNAPSHOT"))

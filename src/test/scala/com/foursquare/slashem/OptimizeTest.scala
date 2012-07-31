@@ -40,5 +40,4 @@ class OptimizeTest extends SpecsMatchers with ScalaCheckMatchers {
                              "rows" -> "10").sortWith(_._1 > _._1))
   }
 
-
 }

@@ -257,11 +257,11 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     val r = ESimpleGeoPanda where(_.id eqs new ObjectId("4c809f4251ada1cdc3790b16")) fetch()
     val lr = r.response.results
     Assert.assertEquals(lr.length, 1)
-    Assert.assertEquals(lr.apply(0).point.value, (-32.0, 74.0))
+    Assert.assertEquals(lr.apply(0).point.value, (37.787355, -122.403439))
   }
   @Test
    def geoOrderDesc {
-    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.point sqeGeoDistance(74.0,-31.0)) fetch()
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.point sqeGeoDistance(40,-74)) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
     val doc1= r.response.oidScorePair.apply(1)
@@ -270,7 +270,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
   @Test
    def geoOrderDescWithBoost {
-    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.point sqeGeoDistance(74.0,-31.0)) boostField(_.decayedPopularity1,0.001) fetch()
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderDesc(_.point sqeGeoDistance(40,-74)) boostField(_.decayedPopularity1,0.001) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
     val doc1= r.response.oidScorePair.apply(1)
@@ -279,7 +279,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
   @Test
    def geoOrderAsc {
-    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.point sqeGeoDistance(74.0,-31.0)) fetch()
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.point sqeGeoDistance(40,-74)) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
     val doc1= r.response.oidScorePair.apply(1)
@@ -288,7 +288,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
   @Test
    def geoOrderAscWithBoostField {
-    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.point sqeGeoDistance(74.0,-31.0)) boostField(_.decayedPopularity1,0.001) fetch()
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.point sqeGeoDistance(40,-74)) boostField(_.decayedPopularity1,0.001) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
     val doc1= r.response.oidScorePair.apply(1)
@@ -297,7 +297,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
   }
   @Test
   def geoOrderIntAsc {
-    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.point sqeGeoDistance(74,-31)) fetch()
+    var r = ESimpleGeoPanda where (_.name contains "ordertest") complexOrderAsc(_.point sqeGeoDistance(40,-74)) fetch()
     Assert.assertEquals(2,r.response.results.length)
     val doc0 = r.response.oidScorePair.apply(0)
     val doc1= r.response.oidScorePair.apply(1)
@@ -709,7 +709,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .startObject()
                                                                           .field("name","ordertest")
                                                                           .field("id","4c809f4251ada1cdc3790b16")
-                                                                          .field("point",74.0,-32.0)
+                                                                          .field("point",-122.403439,37.787355)
                                                                           .endObject()
       ).execute()
     .actionGet();
@@ -717,7 +717,7 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
                                                                           .startObject()
                                                                           .field("name","ordertest")
                                                                           .field("id","4c809f4251ada1cdc3790b17")
-                                                                          .field("point",74.0,-31.0)
+                                                                          .field("point",-73.99039768,40.73709857)
                                                                           .endObject()
       ).execute()
     .actionGet();
