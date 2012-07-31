@@ -1434,9 +1434,14 @@ class PointField[T <: Record[T]](override val owner: T) extends Field[Pair[Doubl
   try {
     a match {
       case "" => Empty
+      /* 
+       * GeoJSON has (long, lat) instead of (lat, long)
+       * Only ES uses GeoJSON spec and returns an ArrayList
+       *
+       */
       case ar: Array[Double] => Full(set(Pair(ar.apply(0),ar.apply(1))))
       case (lat : Double)::(lng: Double)::Nil => Full(set(Pair(lat,lng)))
-      case arl: ArrayList[_] => Full(set(Pair(arl.get(0).asInstanceOf[Double],arl.get(1).asInstanceOf[Double])))
+      case arl: ArrayList[_] => Full(set(Pair(arl.get(1).asInstanceOf[Double],arl.get(0).asInstanceOf[Double])))
       case s: String => setFromString(s)
       case _ => Empty
     }
