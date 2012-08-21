@@ -630,7 +630,9 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
     val esHits = response.getHits().getHits()
     val docs: Array[(Map[String,Any], Option[Map[String,java.util.ArrayList[String]]])] = esHits.map(doc => {
       val m = doc.sourceAsMap()
-      val annotedMap = (m.asScala ++ List("score" -> doc.score().toDouble)).toMap
+      //If a score is 0.0 this will blow up :(
+      val scoreDouble = doc.score().toDouble
+      val annotedMap = (m.asScala ++ List("score" -> scoreDouble)).toMap
       val hlf = doc.getHighlightFields()
       if (hlf == null) {
         Pair(annotedMap,None)
@@ -747,11 +749,12 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
   def scoreFields(query: ElasticQueryBuilder, fieldsToScore: List[ScoreBoost]): ElasticQueryBuilder =  {
     val scoredFields = fieldsToScore.map(_.elasticBoost)
     val params = scoredFields.flatMap(_._1)
-    val scriptSrc = scoredFields.map(_._2).mkString(" + ")
+    val scriptSrc = scoredFields.map(_._2).mkString(" * ")
     val paramNames = (1 to params.length).map("p"+_)
     val script = scriptSrc.format(paramNames:_*)
     val namesAndParams =  paramNames.zip(params).toMap
-    val scoreScript = "_score * (1 +"+ script + " )"
+    //The ES client library breaks badly with low score values
+    val scoreScript = "1.0 + _score * "+ script + ""
     scoreWithScript(query, scoreScript, namesAndParams, false)
   }
 
@@ -1434,7 +1437,7 @@ class PointField[T <: Record[T]](override val owner: T) extends Field[Pair[Doubl
   try {
     a match {
       case "" => Empty
-      /* 
+      /*
        * GeoJSON has (long, lat) instead of (lat, long)
        * Only ES uses GeoJSON spec and returns an ArrayList
        *
