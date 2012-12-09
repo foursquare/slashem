@@ -4,6 +4,7 @@ package com.foursquare.slashem
 
 
 import com.foursquare.slashem.Ast._
+import com.twitter.conversions.time._
 import com.twitter.util.{Duration, ExecutorServiceFuturePool, Future, FuturePool, FutureTask, Promise}
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.http.Http
@@ -294,6 +295,8 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
   def retries = 3
   def hostConnectionLimit = 1000
   def hostConnectionCoresize = 300
+  def solrTcpConnectTimeout: Duration = 10.seconds
+  def solrTimeout: Duration = 30.seconds
 
   var myClient: Option[Service[HttpRequest,HttpResponse]] = None
 
@@ -313,6 +316,8 @@ trait SolrMeta[T <: Record[T]] extends SlashemMeta[T] {
           .hostConnectionLimit(hostConnectionLimit)
           .hostConnectionCoresize(hostConnectionCoresize)
           .retries(retries)
+          .tcpConnectTimeout(solrTcpConnectTimeout)
+          .timeout(solrTimeout)
           .name(solrName)
           (receiver match {
             case Some(r) => cb.reportTo(r)
