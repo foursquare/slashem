@@ -2,7 +2,6 @@
 
 package com.foursquare.slashem
 
-
 import com.foursquare.slashem.Ast._
 import com.twitter.conversions.time._
 import com.twitter.util.{Duration, ExecutorServiceFuturePool, Future, FuturePool, FutureTask, Promise}
@@ -12,7 +11,7 @@ import com.twitter.finagle.stats.StatsReceiver
 import com.twitter.finagle.{Service, SimpleFilter}
 import java.lang.Integer
 import java.net.InetSocketAddress
-import java.util.{ArrayList, HashMap}
+import java.util.{ArrayList, Arrays, HashMap}
 import java.util.concurrent.{Executors, ExecutorService}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.record.{Record, OwnedField, Field, MetaRecord}
@@ -645,9 +644,8 @@ trait ElasticSchema[M <: Record[M]] extends SlashemSchema[M] {
         Pair(annotedMap,
              Some(doc.getHighlightFields().asScala
                   .mapValues(v => {
-                    val fragments: Array[String] = v.getFragments()
-                    val fragmentList: List[String] = Nil++fragments
-                    new ArrayList(fragmentList.asJava) }
+                    val fragments = v.getFragments()
+                    new ArrayList(Arrays.asList(fragments.toString)) }
                            )
                   .toMap))
       }

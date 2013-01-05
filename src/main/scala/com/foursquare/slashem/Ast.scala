@@ -408,7 +408,7 @@ object Ast {
       q.tieBreaker(1)
 
       qf.map(f => {
-        val basePhrase = EQueryBuilders.textPhraseQuery(f.fieldName, this.extend())
+        val basePhrase = EQueryBuilders.matchPhraseQuery(f.fieldName, this.extend())
         val phraseQuery = f.weight match {
           case 1.0 => basePhrase
           case _ => basePhrase.boost(f.weight.toFloat)
@@ -517,7 +517,7 @@ object Ast {
           q.tieBreaker(1)
           q.add(normalq)
           queriesToGen.map(pwf => {
-            val basePhrase = EQueryBuilders.textPhraseQuery(pwf.fieldName, this.extend())
+            val basePhrase = EQueryBuilders.matchPhraseQuery(pwf.fieldName, this.extend())
             val phraseQuery = pwf.weight match {
               case 1 => basePhrase
               case _ => basePhrase.boost(pwf.weight.toFloat)

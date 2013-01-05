@@ -1,6 +1,6 @@
 name := "slashem"
 
-version := "0.15.4"
+version := "0.15.5"
 
 organization := "com.foursquare"
 
@@ -27,7 +27,7 @@ libraryDependencies <++= (scalaVersion) { scalaVersion =>
     "junit"                    % "junit"                % "[4.8.2,)"   % "test",
     "com.novocode"             % "junit-interface"      % "[0.7,)"     % "test" ,
     "org.scala-tools.testing" %% "specs"                % specsVersion % "test",
-    "org.elasticsearch"        % "elasticsearch"  % "0.19.4" % "compile" exclude("log4j", "log4j") exclude("com.sun.jmx","jmxri") exclude("com.sun.jdmk","jmxtools") exclude("com.codahale","jerkson_2.8.1") exclude("com.codahale","jerkson") exclude("com.twitter","streamyj_2.8.1") exclude("org.codehaus.jackson" , "jackson-mapper-asl") exclude("org.codehas.jackson" , "jackson-core-asl"),
+    "org.elasticsearch"        % "elasticsearch"  % "0.19.9" % "compile" exclude("log4j", "log4j") exclude("com.sun.jmx","jmxri") exclude("com.sun.jdmk","jmxtools") exclude("com.codahale","jerkson_2.8.1") exclude("com.codahale","jerkson") exclude("com.twitter","streamyj_2.8.1") exclude("org.codehaus.jackson" , "jackson-mapper-asl") exclude("org.codehas.jackson" , "jackson-core-asl"),
     "org.codehaus.jackson"     % "jackson-mapper-asl" % "1.8.8",
     "org.codehaus.jackson"     % "jackson-core-asl" % "1.8.8",
     "org.scala-tools.testing" %% "scalacheck"         % scalaCheckVersion   % "test",
