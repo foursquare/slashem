@@ -538,6 +538,14 @@ class ElasticQueryTest extends SpecsMatchers with ScalaCheckMatchers {
     Assert.assertEquals(response1.response.results.length, 2)
   }
 
+  @Test
+  def testZeroZeroScore {
+    val params: Map[String, Any] = Map("lat" -> -31.1, "lon" -> 74.0, "weight" -> 0, "weight2" -> 0, "weight3" -> 0)
+    val response1 = ESimpleGeoPanda where(_.name contains "lolerskates") customScore("distance_score_magic", params) fetch()
+    Assert.assertEquals(response1.response.results.length, 2)
+  }
+
+
   def testFilters {
     // grab 2 results, filter to 1
     val res1 = ESimplePanda where (_.hugenums contains 1L) filter(_.nicknamesString in List("jerry")) fetch()
