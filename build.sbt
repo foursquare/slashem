@@ -101,11 +101,6 @@ pomExtra := (
 </scm>
 <developers>
  <developer>
- <id>holdenkarau></id>
- <name>Holden Karau</name>
- <email>holden@foursquare.com</email>
- </developer>
- <developer>
  <id>jonshea</id>
  <name>Jon Shea</name>
  <email>jonshea@foursquare.com</email>

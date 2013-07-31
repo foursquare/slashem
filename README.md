@@ -74,7 +74,6 @@ The current maintainers are:
 
 - Jon Shea jonshea@foursquare.com
 - Govind Kabra govind@foursquare.com
-- Holden Karau holden@foursquare.com
 - Adam Alix aalix@foursquare.com
 
 Contributions welcome!
