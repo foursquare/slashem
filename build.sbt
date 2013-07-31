@@ -1,25 +1,22 @@
 name := "slashem"
 
-version := "0.15.6"
+version := "0.15.7"
 
 organization := "com.foursquare"
 
 scalaVersion := "2.9.1"
 
+crossScalaVersions := Seq("2.9.1", "2.9.2", "2.10.2")
+
 libraryDependencies <++= (scalaVersion) { scalaVersion =>
   val specsVersion = scalaVersion match {
-    case "2.8.0" => "1.6.5"
-    case "2.9.1" => "1.6.9"
-    case _       => "1.6.8"
+    case _ => "1.6.9"
   }
   val scalaCheckVersion = scalaVersion match {
-    case "2.8.0" => "1.8"
-    case "2.8.1" => "1.8"
-    case _ => "1.9"
+    case _ => "1.10.1"
   }
   val liftVersion = scalaVersion match {
-    case "2.9.1" => "2.4"
-    case _       => "2.4-M2"
+    case _       => "2.5.1"
   }
   Seq(
     "net.liftweb"             %% "lift-record" % liftVersion  % "compile",
@@ -30,11 +27,11 @@ libraryDependencies <++= (scalaVersion) { scalaVersion =>
     "org.elasticsearch"        % "elasticsearch"  % "0.19.12" % "compile" exclude("log4j", "log4j") exclude("com.sun.jmx","jmxri") exclude("com.sun.jdmk","jmxtools") exclude("com.codahale","jerkson_2.8.1") exclude("com.codahale","jerkson") exclude("com.twitter","streamyj_2.8.1") exclude("org.codehaus.jackson" , "jackson-mapper-asl") exclude("org.codehas.jackson" , "jackson-core-asl"),
     "org.codehaus.jackson"     % "jackson-mapper-asl" % "1.8.8",
     "org.codehaus.jackson"     % "jackson-core-asl" % "1.8.8",
-    "org.scala-tools.testing" %% "scalacheck"         % scalaCheckVersion   % "test",
+    "org.scalacheck" %% "scalacheck"         % scalaCheckVersion   % "test",
     "com.twitter"              % "finagle-core"        % "5.3.23" % "compile" exclude("thrift", "libthrift"),
     "com.twitter"              % "finagle-http"        % "5.3.23" % "compile" exclude("thrift", "libthrift"),
     "com.twitter"              % "util-core"           % "5.3.14" % "compile",
-    "org.scalaj"              %% "scalaj-collection" % "1.2"
+    "org.scalaj"              %% "scalaj-collection" % "1.5"
   )
 }
 
